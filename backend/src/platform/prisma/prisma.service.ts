@@ -56,6 +56,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.payment;
   }
 
+  get paymentWebhookDelivery() {
+    return this.client.paymentWebhookDelivery;
+  }
+
   get user() {
     return this.client.user;
   }

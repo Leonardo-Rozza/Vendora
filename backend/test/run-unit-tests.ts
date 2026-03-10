@@ -1,6 +1,12 @@
 import '../src/platform/config/env.validation.spec';
+import '../src/platform/providers/mercado-pago/mercado-pago-checkout.provider.spec';
+import '../src/platform/providers/cloudinary/cloudinary-signing.provider.spec';
 import '../src/domains/catalog/catalog.service.spec';
+import '../src/domains/catalog/catalog.controller.spec';
 import '../src/domains/inventory/inventory.service.spec';
 import '../src/domains/orders/orders.service.spec';
 import '../src/domains/payments/payments.service.spec';
 import '../src/domains/users/users.service.spec';
+import '../src/platform/media/media.service.spec';
+import '../src/platform/media/media.controller.spec';
+import '../src/domains/payments/payments.controller.spec';
