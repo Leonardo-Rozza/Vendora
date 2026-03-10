@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -22,12 +24,12 @@ describe('Platform foundation (e2e)', () => {
     await app.close();
   });
 
-  it('/api/health (GET)', () => {
-    return request(app.getHttpServer())
+  test('/api/health (GET)', async () => {
+    await request(app.getHttpServer())
       .get('/api/health')
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toEqual({
+        assert.deepEqual(body, {
           status: 'ok',
           app: {
             name: 'vendora-backend',
