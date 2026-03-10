@@ -24,6 +24,14 @@ type MercadoPagoWebhookInput = {
     | 'refunded';
 };
 
+type PaymentStatus =
+  | 'PENDING'
+  | 'AUTHORIZED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -172,33 +180,64 @@ export class PaymentsService {
     const paymentStatus = this.mapWebhookStatus(input.status);
     const processedAt = this.now();
 
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        rawPayload: input,
-        status: paymentStatus,
-        confirmedAt: paymentStatus === 'APPROVED' ? processedAt : null,
-      },
-    });
-
-    if (paymentStatus === 'APPROVED' && (!payment.order.isLocked || payment.order.status !== 'PAID')) {
-      await this.prisma.order.update({
-        where: { id: payment.orderId },
+    if (!this.shouldApplyWebhookStatus(payment.status, paymentStatus)) {
+      await this.prisma.paymentWebhookDelivery.update({
+        where: { id: delivery.id },
         data: {
-          isLocked: true,
-          paidAt: processedAt,
-          status: 'PAID',
+          paymentId: payment.id,
+          processedAt,
+          status: 'IGNORED',
         },
       });
+
+      this.logger.logWebhookEvent('payment.webhook.ignored_transition', {
+        eventId: input.eventId,
+        orderId: payment.orderId,
+        paymentId: payment.id,
+        currentStatus: payment.status,
+        attemptedStatus: paymentStatus,
+      });
+
+      return {
+        status: 'ignored' as const,
+        orderId: payment.orderId,
+        paymentId: payment.id,
+        paymentStatus: payment.status,
+      };
     }
 
-    await this.prisma.paymentWebhookDelivery.update({
-      where: { id: delivery.id },
-      data: {
-        paymentId: payment.id,
-        processedAt,
-        status: 'PROCESSED',
-      },
+    await this.prisma.$transaction(async (transactionClient) => {
+      await transactionClient.payment.update({
+        where: { id: payment.id },
+        data: {
+          rawPayload: input,
+          status: paymentStatus,
+          ...(paymentStatus === 'APPROVED' ? { confirmedAt: processedAt } : {}),
+        },
+      });
+
+      if (
+        paymentStatus === 'APPROVED' &&
+        (!payment.order.isLocked || payment.order.status !== 'PAID')
+      ) {
+        await transactionClient.order.update({
+          where: { id: payment.orderId },
+          data: {
+            isLocked: true,
+            paidAt: processedAt,
+            status: 'PAID',
+          },
+        });
+      }
+
+      await transactionClient.paymentWebhookDelivery.update({
+        where: { id: delivery.id },
+        data: {
+          paymentId: payment.id,
+          processedAt,
+          status: 'PROCESSED',
+        },
+      });
     });
 
     this.logger.logPaymentEvent('payment.webhook.processed', {
@@ -218,18 +257,12 @@ export class PaymentsService {
 
   private isDuplicateWebhook(error: unknown): boolean {
     return (
-      error instanceof Prisma.PrismaClientKnownRequestError
-        ? error.code === 'P2002'
-        : typeof error === 'object' &&
-            error !== null &&
-            'code' in error &&
-            error.code === 'P2002'
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
     );
   }
 
-  private mapWebhookStatus(
-    status: MercadoPagoWebhookInput['status'],
-  ): 'PENDING' | 'AUTHORIZED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REFUNDED' {
+  private mapWebhookStatus(status: MercadoPagoWebhookInput['status']): PaymentStatus {
     switch (status) {
       case 'approved':
         return 'APPROVED';
@@ -244,5 +277,33 @@ export class PaymentsService {
       default:
         return 'PENDING';
     }
+  }
+
+  private shouldApplyWebhookStatus(
+    currentStatus: PaymentStatus,
+    nextStatus: PaymentStatus,
+  ): boolean {
+    if (currentStatus === nextStatus) {
+      return !this.isTerminalPaymentStatus(currentStatus);
+    }
+
+    if (currentStatus === 'APPROVED') {
+      return nextStatus === 'REFUNDED';
+    }
+
+    if (this.isTerminalPaymentStatus(currentStatus)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private isTerminalPaymentStatus(status: PaymentStatus): boolean {
+    return (
+      status === 'APPROVED' ||
+      status === 'REJECTED' ||
+      status === 'CANCELLED' ||
+      status === 'REFUNDED'
+    );
   }
 }

@@ -127,6 +127,9 @@ test('PaymentsService creates a Mercado Pago checkout preference for an unpaid o
 test('PaymentsService deduplicates repeated Mercado Pago webhook deliveries', async () => {
   const service = new PaymentsService(
     {
+      $transaction: async () => {
+        throw new Error('not used');
+      },
       payment: {
         findFirst: async () => ({
           id: 'payment-1',
@@ -167,16 +170,37 @@ test('PaymentsService deduplicates repeated Mercado Pago webhook deliveries', as
 test('PaymentsService locks the order when an approved webhook is processed', async () => {
   const calls: Record<string, unknown> = {};
   const now = new Date('2024-01-01T00:00:00.000Z');
+  const transactionClient = {
+    payment: {
+      update: async (args: unknown) => {
+        calls.paymentUpdate = args;
+        return {
+          id: 'payment-1',
+          status: 'APPROVED',
+        };
+      },
+    },
+    order: {
+      update: async (args: unknown) => {
+        calls.orderUpdate = args;
+        return args;
+      },
+    },
+    paymentWebhookDelivery: {
+      update: async (args: unknown) => {
+        calls.deliveryUpdate = args;
+        return args;
+      },
+    },
+  };
   const service = new PaymentsService(
     {
+      $transaction: async (callback: (client: typeof transactionClient) => Promise<unknown>) =>
+        callback(transactionClient),
       paymentWebhookDelivery: {
         create: async (args: unknown) => {
           calls.deliveryCreate = args;
           return { id: 'delivery-1' };
-        },
-        update: async (args: unknown) => {
-          calls.deliveryUpdate = args;
-          return args;
         },
       },
       payment: {
@@ -192,19 +216,6 @@ test('PaymentsService locks the order when an approved webhook is processed', as
               isLocked: false,
             },
           };
-        },
-        update: async (args: unknown) => {
-          calls.paymentUpdate = args;
-          return {
-            id: 'payment-1',
-            status: 'APPROVED',
-          };
-        },
-      },
-      order: {
-        update: async (args: unknown) => {
-          calls.orderUpdate = args;
-          return args;
         },
       },
     } as never,
@@ -249,6 +260,161 @@ test('PaymentsService locks the order when an approved webhook is processed', as
       isLocked: true,
       paidAt: now,
       status: 'PAID',
+    },
+  });
+});
+
+test('PaymentsService ignores duplicate approved webhooks after the payment is already terminal', async () => {
+  const calls: Record<string, unknown> = {};
+  const now = new Date('2024-01-02T00:00:00.000Z');
+  const service = new PaymentsService(
+    {
+      $transaction: async () => {
+        throw new Error('not used');
+      },
+      paymentWebhookDelivery: {
+        create: async (args: unknown) => {
+          calls.deliveryCreate = args;
+          return { id: 'delivery-1' };
+        },
+        update: async (args: unknown) => {
+          calls.deliveryUpdate = args;
+          return args;
+        },
+      },
+      payment: {
+        findFirst: async () => ({
+          id: 'payment-1',
+          orderId: 'order-1',
+          status: 'APPROVED',
+          order: {
+            id: 'order-1',
+            status: 'PAID',
+            isLocked: true,
+          },
+        }),
+        update: async (args: unknown) => {
+          calls.paymentUpdate = args;
+          return args;
+        },
+      },
+      order: {
+        update: async (args: unknown) => {
+          calls.orderUpdate = args;
+          return args;
+        },
+      },
+    } as never,
+    {
+      createCheckoutPreference: async () => {
+        throw new Error('not used');
+      },
+    } as never,
+    {
+      logPaymentEvent: () => undefined,
+      logWebhookEvent: () => undefined,
+      logApplicationError: () => undefined,
+    } as never,
+    () => now,
+  );
+
+  const result = await service.handleMercadoPagoWebhook({
+    eventId: 'evt-duplicate-approved',
+    resourceId: 'mp-123',
+    status: 'approved',
+    topic: 'payment',
+  });
+
+  assert.deepEqual(result, {
+    status: 'ignored',
+    orderId: 'order-1',
+    paymentId: 'payment-1',
+    paymentStatus: 'APPROVED',
+  });
+  assert.equal(calls.paymentUpdate, undefined);
+  assert.equal(calls.orderUpdate, undefined);
+  assert.deepEqual(calls.deliveryUpdate, {
+    where: { id: 'delivery-1' },
+    data: {
+      paymentId: 'payment-1',
+      processedAt: now,
+      status: 'IGNORED',
+    },
+  });
+});
+
+test('PaymentsService ignores stale webhook regressions after payment approval', async () => {
+  const calls: Record<string, unknown> = {};
+  const now = new Date('2024-01-03T00:00:00.000Z');
+  const service = new PaymentsService(
+    {
+      $transaction: async () => {
+        throw new Error('not used');
+      },
+      paymentWebhookDelivery: {
+        create: async () => ({ id: 'delivery-1' }),
+        update: async (args: unknown) => {
+          calls.deliveryUpdate = args;
+          return args;
+        },
+      },
+      payment: {
+        findFirst: async () => ({
+          id: 'payment-1',
+          orderId: 'order-1',
+          status: 'APPROVED',
+          order: {
+            id: 'order-1',
+            status: 'PAID',
+            isLocked: true,
+          },
+        }),
+        update: async (args: unknown) => {
+          calls.paymentUpdate = args;
+          return args;
+        },
+      },
+      order: {
+        update: async (args: unknown) => {
+          calls.orderUpdate = args;
+          return args;
+        },
+      },
+    } as never,
+    {
+      createCheckoutPreference: async () => {
+        throw new Error('not used');
+      },
+    } as never,
+    {
+      logPaymentEvent: () => undefined,
+      logWebhookEvent: () => undefined,
+      logApplicationError: () => undefined,
+    } as never,
+    () => now,
+  );
+
+  const result = await service.handleMercadoPagoWebhook({
+    eventId: 'evt-stale-pending',
+    resourceId: 'mp-123',
+    status: 'pending',
+    topic: 'payment',
+  });
+
+  assert.deepEqual(result, {
+    status: 'ignored',
+    orderId: 'order-1',
+    paymentId: 'payment-1',
+    paymentStatus: 'APPROVED',
+  });
+  assert.equal(calls.paymentUpdate, undefined);
+  assert.equal(calls.orderUpdate, undefined);
+  assert.deepEqual(calls.deliveryUpdate, {
+    where: { id: 'delivery-1' },
+    data: {
+      paymentId: 'payment-1',
+      processedAt: now,
+      status: 'IGNORED',
     },
   });
 });

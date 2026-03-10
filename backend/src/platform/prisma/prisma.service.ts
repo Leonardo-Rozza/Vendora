@@ -40,6 +40,19 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     await this.client.$disconnect();
   }
 
+  async $transaction<T>(
+    callback: (
+      client: Pick<
+        PrismaClient,
+        'payment' | 'order' | 'paymentWebhookDelivery'
+      >,
+    ) => Promise<T>,
+  ): Promise<T> {
+    return this.client.$transaction((transactionClient) =>
+      callback(transactionClient),
+    );
+  }
+
   get product() {
     return this.client.product;
   }
