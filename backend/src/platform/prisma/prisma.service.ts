@@ -2,6 +2,19 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { AppConfigService } from '../config/app-config.service';
 
+type PrismaTransactionClient = Pick<
+  PrismaClient,
+  | 'product'
+  | 'productVariant'
+  | 'productImage'
+  | 'inventoryItem'
+  | 'order'
+  | 'orderItem'
+  | 'payment'
+  | 'paymentWebhookDelivery'
+  | 'user'
+>;
+
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly isDatabaseConfigured: boolean;
@@ -41,12 +54,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async $transaction<T>(
-    callback: (
-      client: Pick<
-        PrismaClient,
-        'payment' | 'order' | 'paymentWebhookDelivery'
-      >,
-    ) => Promise<T>,
+    callback: (client: PrismaTransactionClient) => Promise<T>,
   ): Promise<T> {
     return this.client.$transaction((transactionClient) =>
       callback(transactionClient),
@@ -61,8 +69,20 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.inventoryItem;
   }
 
+  get productVariant() {
+    return this.client.productVariant;
+  }
+
+  get productImage() {
+    return this.client.productImage;
+  }
+
   get order() {
     return this.client.order;
+  }
+
+  get orderItem() {
+    return this.client.orderItem;
   }
 
   get payment() {

@@ -15,6 +15,11 @@ import { ProvidersModule } from './providers/providers.module';
     HealthModule,
     MediaModule,
   ],
-  exports: [PlatformConfigModule, AppLoggerModule, ProvidersModule, PrismaModule],
+  exports: [
+    PlatformConfigModule,
+    AppLoggerModule,
+    ProvidersModule,
+    PrismaModule,
+  ],
 })
 export class PlatformModule {}

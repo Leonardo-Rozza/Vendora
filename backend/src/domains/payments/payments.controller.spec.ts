@@ -9,7 +9,8 @@ test('PaymentsController returns the checkout preference contract', async () => 
       paymentId: 'payment-1',
       provider: 'mercado-pago',
       preferenceId: 'pref_order-1',
-      initPoint: 'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
+      initPoint:
+        'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
     }),
   } as never);
 
@@ -24,7 +25,8 @@ test('PaymentsController returns the checkout preference contract', async () => 
     paymentId: 'payment-1',
     provider: 'mercado-pago',
     preferenceId: 'pref_order-1',
-    initPoint: 'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
+    initPoint:
+      'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
   });
 });
 

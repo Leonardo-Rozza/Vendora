@@ -13,6 +13,8 @@ export class MediaService {
   createProductImageUploadSignature(
     input: CreateProductImageUploadSignatureInput,
   ) {
-    return this.cloudinarySigningProvider.createProductImageUploadSignature(input);
+    return this.cloudinarySigningProvider.createProductImageUploadSignature(
+      input,
+    );
   }
 }

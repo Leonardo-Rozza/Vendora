@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { InventoryService } from '../inventory/inventory.service';
 import { AppLoggerService } from '../../platform/logging/app-logger.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { MercadoPagoCheckoutProvider } from '../../platform/providers/mercado-pago/mercado-pago-checkout.provider';
@@ -36,23 +37,9 @@ type PaymentStatus =
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mercadoPagoCheckoutProvider: Pick<
-      MercadoPagoCheckoutProvider,
-      'createCheckoutPreference'
-    > = {
-      createCheckoutPreference: async () => {
-        throw new Error('Mercado Pago checkout provider is not configured');
-      },
-    },
-    private readonly logger: Pick<
-      AppLoggerService,
-      'logPaymentEvent' | 'logWebhookEvent' | 'logApplicationError'
-    > = {
-      logPaymentEvent: () => undefined,
-      logWebhookEvent: () => undefined,
-      logApplicationError: () => undefined,
-    },
-    private readonly now: () => Date = () => new Date(),
+    private readonly mercadoPagoCheckoutProvider: MercadoPagoCheckoutProvider,
+    private readonly logger: AppLoggerService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   findByProviderPaymentId(providerPaymentId: string) {
@@ -78,11 +65,13 @@ export class PaymentsService {
     });
 
     if (!order) {
-      throw new Error(`Order ${input.orderId} was not found`);
+      throw new NotFoundException(`Order ${input.orderId} was not found`);
     }
 
     if (order.status === 'PAID' || order.isLocked) {
-      throw new Error(`Order ${input.orderId} can no longer be changed`);
+      throw new ConflictException(
+        `Order ${input.orderId} can no longer be changed`,
+      );
     }
 
     const checkoutPreference =
@@ -169,7 +158,7 @@ export class PaymentsService {
       await this.prisma.paymentWebhookDelivery.update({
         where: { id: delivery.id },
         data: {
-          processedAt: this.now(),
+          processedAt: this.getNow(),
           status: 'IGNORED',
         },
       });
@@ -178,7 +167,7 @@ export class PaymentsService {
     }
 
     const paymentStatus = this.mapWebhookStatus(input.status);
-    const processedAt = this.now();
+    const processedAt = this.getNow();
 
     if (!this.shouldApplyWebhookStatus(payment.status, paymentStatus)) {
       await this.prisma.paymentWebhookDelivery.update({
@@ -220,6 +209,11 @@ export class PaymentsService {
         paymentStatus === 'APPROVED' &&
         (!payment.order.isLocked || payment.order.status !== 'PAID')
       ) {
+        await this.inventoryService.consumeReservationForOrder(
+          transactionClient,
+          payment.orderId,
+        );
+
         await transactionClient.order.update({
           where: { id: payment.orderId },
           data: {
@@ -262,7 +256,9 @@ export class PaymentsService {
     );
   }
 
-  private mapWebhookStatus(status: MercadoPagoWebhookInput['status']): PaymentStatus {
+  private mapWebhookStatus(
+    status: MercadoPagoWebhookInput['status'],
+  ): PaymentStatus {
     switch (status) {
       case 'approved':
         return 'APPROVED';
@@ -305,5 +301,9 @@ export class PaymentsService {
       status === 'CANCELLED' ||
       status === 'REFUNDED'
     );
+  }
+
+  protected getNow(): Date {
+    return new Date();
   }
 }

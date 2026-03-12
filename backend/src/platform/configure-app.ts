@@ -1,4 +1,5 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common/pipes';
+import type { INestApplication } from '@nestjs/common';
 import { AppConfigService } from './config/app-config.service';
 import { AppLoggerService } from './logging/app-logger.service';
 
