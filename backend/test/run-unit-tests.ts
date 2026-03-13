@@ -10,3 +10,4 @@ import '../src/domains/users/users.service.spec';
 import '../src/platform/media/media.service.spec';
 import '../src/platform/media/media.controller.spec';
 import '../src/domains/payments/payments.controller.spec';
+import './foundation-baseline.spec';

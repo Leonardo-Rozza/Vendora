@@ -12,6 +12,7 @@ test('MercadoPagoCheckoutProvider creates a foundation checkout preference contr
       accessToken: 'token',
       webhookSecret: 'secret',
     }),
+    frontendAppUrl: 'https://vendora.example.com',
   } as never);
 
   const result = await provider.createCheckoutPreference({
@@ -37,6 +38,12 @@ test('MercadoPagoCheckoutProvider creates a foundation checkout preference contr
     payerEmail: 'buyer@example.com',
     currencyCode: 'ARS',
     notificationPath: '/api/payments/webhooks/mercado-pago',
+    backUrls: {
+      success: 'https://vendora.example.com/checkout/success',
+      pending: 'https://vendora.example.com/checkout/pending',
+      failure: 'https://vendora.example.com/checkout/failure',
+    },
+    autoReturn: 'approved',
   });
 });
 

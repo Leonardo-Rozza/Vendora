@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "node ./node_modules/next/dist/bin/next dev",
+    "build": "node ./node_modules/next/dist/bin/next build",
+    "start": "node ./node_modules/next/dist/bin/next start",
+    "lint": "eslint",
+    "test:smoke": "node --experimental-strip-types --test test/shell-smoke.test.js test/commerce-helpers.test.ts test/commerce-runtime.test.ts test/storefront-ui-flows.test.js"
   },
   "dependencies": {
     "next": "16.1.6",

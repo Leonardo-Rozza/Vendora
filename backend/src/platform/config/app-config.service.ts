@@ -126,7 +126,9 @@ export class AppConfigService {
       );
     }
 
-    return this.configService.getOrThrow<string>('DATABASE_URL');
+    return this.normalizeDatabaseUrl(
+      this.configService.getOrThrow<string>('DATABASE_URL'),
+    );
   }
 
   requireMercadoPagoConfig(): MercadoPagoConfig {
@@ -168,5 +170,27 @@ export class AppConfigService {
 
   private getOrDefault(key: string, fallback: string): string {
     return this.configService.get<string>(key) ?? fallback;
+  }
+
+  private normalizeDatabaseUrl(databaseUrl: string): string {
+    try {
+      const url = new URL(databaseUrl);
+
+      if (!url.hostname.endsWith('.rlwy.net')) {
+        return databaseUrl;
+      }
+
+      if (!url.searchParams.has('sslmode')) {
+        url.searchParams.set('sslmode', 'require');
+      }
+
+      if (!url.searchParams.has('connect_timeout')) {
+        url.searchParams.set('connect_timeout', '5');
+      }
+
+      return url.toString();
+    } catch {
+      return databaseUrl;
+    }
   }
 }

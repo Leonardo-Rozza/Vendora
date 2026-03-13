@@ -23,6 +23,12 @@ export type CheckoutPreference = {
   payerEmail?: string;
   currencyCode: string;
   notificationPath: string;
+  backUrls?: {
+    success: string;
+    pending: string;
+    failure: string;
+  };
+  autoReturn?: 'approved';
 };
 
 @Injectable()
@@ -35,6 +41,7 @@ export class MercadoPagoCheckoutProvider {
     this.appConfigService.requireMercadoPagoConfig();
 
     const preferenceId = `pref_${input.orderId}`;
+    const frontendAppUrl = this.appConfigService.frontendAppUrl?.replace(/\/$/, '');
 
     return {
       provider: 'mercado-pago',
@@ -44,6 +51,16 @@ export class MercadoPagoCheckoutProvider {
       payerEmail: input.payerEmail,
       currencyCode: input.currencyCode,
       notificationPath: '/api/payments/webhooks/mercado-pago',
+      ...(frontendAppUrl
+        ? {
+            backUrls: {
+              success: `${frontendAppUrl}/checkout/success`,
+              pending: `${frontendAppUrl}/checkout/pending`,
+              failure: `${frontendAppUrl}/checkout/failure`,
+            },
+            autoReturn: 'approved' as const,
+          }
+        : {}),
     };
   }
 }

@@ -53,4 +53,43 @@ describe('Platform foundation (e2e)', () => {
         });
       });
   });
+
+  test('/api/payments/checkout-preferences (POST) validates write payloads', async () => {
+    await request(app.getHttpServer())
+      .post('/api/payments/checkout-preferences')
+      .send({ orderId: 42, payerEmail: 'invalid-email' })
+      .expect(400)
+      .expect(({ body }) => {
+        assert.equal(body.error, 'Bad Request');
+        assert.equal(body.statusCode, 400);
+        assert.match(body.message.join(' '), /orderId must be a string/i);
+        assert.match(body.message.join(' '), /payerEmail must be an email/i);
+      });
+  });
+
+  test('/api/payments/webhooks/mercado-pago (POST) validates webhook payloads', async () => {
+    await request(app.getHttpServer())
+      .post('/api/payments/webhooks/mercado-pago')
+      .send({ eventId: 123, resourceId: null, status: 'unknown' })
+      .expect(400)
+      .expect(({ body }) => {
+        assert.equal(body.error, 'Bad Request');
+        assert.equal(body.statusCode, 400);
+        assert.match(body.message.join(' '), /eventId must be a string/i);
+        assert.match(body.message.join(' '), /resourceId must be a string/i);
+        assert.match(body.message.join(' '), /status must be one of the following values/i);
+      });
+  });
+
+  test('/api/media/product-images/upload-signatures (POST) validates write payloads', async () => {
+    await request(app.getHttpServer())
+      .post('/api/media/product-images/upload-signatures')
+      .send({ productId: 42 })
+      .expect(400)
+      .expect(({ body }) => {
+        assert.equal(body.error, 'Bad Request');
+        assert.equal(body.statusCode, 400);
+        assert.match(body.message.join(' '), /productId must be a string/i);
+      });
+  });
 });

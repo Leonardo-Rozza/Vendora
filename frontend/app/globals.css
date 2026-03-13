@@ -10,6 +10,8 @@
   --accent-sand: #d8b690;
   --line-soft: rgba(82, 63, 45, 0.12);
   --line-strong: rgba(34, 33, 31, 0.22);
+  --warning-surface: rgba(233, 191, 113, 0.22);
+  --warning-line: rgba(156, 106, 27, 0.28);
 }
 
 @theme inline {
@@ -29,7 +31,10 @@ html {
 
 body {
   min-height: 100vh;
-  background: var(--surface-base);
+  background:
+    radial-gradient(circle at top left, rgba(210, 120, 55, 0.16), transparent 24%),
+    radial-gradient(circle at top right, rgba(24, 80, 104, 0.12), transparent 30%),
+    var(--surface-base);
   color: var(--ink-strong);
   font-family: "Avenir Next", "Trebuchet MS", sans-serif;
 }
@@ -37,6 +42,23 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+img {
+  display: block;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 ::selection {

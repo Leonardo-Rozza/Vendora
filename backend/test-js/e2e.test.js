@@ -1,135 +1,100 @@
 const assert = require('node:assert/strict');
-const { afterEach, beforeEach, describe, test } = require('node:test');
-const request = require('supertest');
-const { Test } = require('@nestjs/testing');
-
-const { AppModule } = require('../dist/app.module.js');
-const { configureApp } = require('../dist/platform/configure-app.js');
-
-let app;
+const { describe, test } = require('node:test');
 
 describe('Platform foundation (e2e)', () => {
-  beforeEach(async () => {
-    const moduleFixture = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  const baseUrl = process.env.E2E_API_BASE_URL ?? 'https://vendora-production-4f11.up.railway.app/api';
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
-  });
+  async function requestJson(path, init) {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+    });
 
-  afterEach(async () => {
-    await app.close();
-  });
+    const text = await response.text();
+    const body = text ? JSON.parse(text) : null;
+
+    return { response, body };
+  }
 
   test('/api/health (GET)', async () => {
-    await request(app.getHttpServer())
-      .get('/api/health')
-      .expect(200)
-      .expect(({ body }) => {
-        assert.deepEqual(body, {
-          status: 'ok',
-          app: {
-            name: 'vendora-backend',
-            environment: 'test',
-          },
-          services: {
-            database: {
-              configured: false,
-              reason: 'Missing DATABASE_URL',
-            },
-            mercadoPago: {
-              configured: false,
-              reason:
-                'Missing MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET',
-            },
-            cloudinary: {
-              configured: false,
-              reason: 'Missing Cloudinary credentials',
-            },
-          },
-        });
-      });
+    const { response, body } = await requestJson('/health');
+
+    assert.equal(response.status, 200);
+    assert.equal(body.status, 'ok');
+    assert.equal(body.app.name, 'vendora-backend');
+    assert.equal(body.services.database.configured, true);
   });
 
-  test('/api/payments/checkout-preferences (POST) validates write payloads', async () => {
-    await request(app.getHttpServer())
-      .post('/api/payments/checkout-preferences')
-      .send({ orderId: null, payerEmail: 'invalid-email' })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /orderId must be a string/i);
-        assert.match(body.message.join(' '), /payerEmail must be an email/i);
-      });
+  test('/api/catalog/products (GET) returns active products and supports search refinement', async () => {
+    const { response, body } = await requestJson('/catalog/products');
+    const { response: searchResponse, body: searchBody } = await requestJson(
+      '/catalog/products?query=halo',
+    );
+
+    assert.equal(response.status, 200);
+    assert.ok(Array.isArray(body));
+    assert.ok(body.length >= 1);
+    assert.equal(searchResponse.status, 200);
+    assert.ok(Array.isArray(searchBody));
+    assert.ok(searchBody.every((product) => /halo/i.test(product.name) || product.variants.some((variant) => /halo|hal/i.test(variant.sku))));
   });
 
-  test('/api/payments/webhooks/mercado-pago (POST) validates webhook payloads', async () => {
-    await request(app.getHttpServer())
-      .post('/api/payments/webhooks/mercado-pago')
-      .send({ eventId: null, resourceId: null, status: 'unknown' })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /eventId must be a string/i);
-        assert.match(body.message.join(' '), /resourceId must be a string/i);
-        assert.match(
-          body.message.join(' '),
-          /status must be one of the following values/i,
-        );
-      });
+  test('/api/catalog/products/:slug (GET) returns detail and missing slugs 404', async () => {
+    const { body: products } = await requestJson('/catalog/products');
+    const { response, body } = await requestJson(`/catalog/products/${products[0].slug}`);
+    const { response: missingResponse, body: missingBody } = await requestJson(
+      '/catalog/products/does-not-exist',
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(body.slug, products[0].slug);
+    assert.ok(Array.isArray(body.variants));
+    assert.equal(missingResponse.status, 404);
+    assert.match(missingBody.message, /was not found/i);
   });
 
-  test('/api/orders (POST) validates cart payloads', async () => {
-    await request(app.getHttpServer())
-      .post('/api/orders')
-      .send({ items: [{ variantId: null, quantity: 0 }] })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /variantId must be a string/i);
-        assert.match(body.message.join(' '), /quantity must not be less than 1/i);
-      });
+  test('/api/orders (POST) validates cart payloads and creates pending orders', async () => {
+    const { body: products } = await requestJson('/catalog/products');
+    const variantId = products[0].variants[0].id;
+    const invalid = await requestJson('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ items: [{ variantId: null, quantity: 0 }] }),
+    });
+    const created = await requestJson('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ items: [{ variantId, quantity: 1 }] }),
+    });
+
+    assert.equal(invalid.response.status, 400);
+    assert.match(invalid.body.message.join(' '), /variantId must be a string/i);
+    assert.equal(created.response.status, 201);
+    assert.equal(created.body.status, 'PENDING_PAYMENT');
+    assert.equal(created.body.items[0].variantId, variantId);
   });
 
-  test('/api/admin/catalog/products (POST) validates admin catalog payloads', async () => {
-    await request(app.getHttpServer())
-      .post('/api/admin/catalog/products')
-      .send({ slug: null, name: null, variants: [] })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /slug must be a string/i);
-        assert.match(body.message.join(' '), /variants must contain at least 1 elements/i);
-      });
-  });
+  test('/api/payments/checkout-preferences (POST) validates payloads and creates preferences', async () => {
+    const invalid = await requestJson('/payments/checkout-preferences', {
+      method: 'POST',
+      body: JSON.stringify({ orderId: null, payerEmail: 'invalid-email' }),
+    });
+    const { body: products } = await requestJson('/catalog/products');
+    const order = await requestJson('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ items: [{ variantId: products[0].variants[0].id, quantity: 1 }] }),
+    });
+    const created = await requestJson('/payments/checkout-preferences', {
+      method: 'POST',
+      body: JSON.stringify({ orderId: order.body.id, payerEmail: 'buyer@example.com' }),
+    });
 
-  test('/api/admin/inventory/variants/:variantId (PATCH) validates inventory adjustments', async () => {
-    await request(app.getHttpServer())
-      .patch('/api/admin/inventory/variants/variant-1')
-      .send({ availableQuantity: -1 })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /availableQuantity must not be less than 0/i);
-      });
-  });
-
-  test('/api/media/product-images/upload-signatures (POST) validates write payloads', async () => {
-    await request(app.getHttpServer())
-      .post('/api/media/product-images/upload-signatures')
-      .send({ productId: null })
-      .expect(400)
-      .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /productId must be a string/i);
-      });
+    assert.equal(invalid.response.status, 400);
+    assert.match(invalid.body.message.join(' '), /orderId must be a string/i);
+    assert.equal(created.response.status, 201);
+    assert.equal(created.body.orderId, order.body.id);
+    assert.equal(created.body.provider, 'mercado-pago');
+    assert.ok(created.body.initPoint.includes('mercadopago.com/checkout'));
   });
 });

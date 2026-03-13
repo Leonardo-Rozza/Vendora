@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "postinstall": "node ./scripts/patch-nest-common-index.mjs && node ./scripts/patch-class-validator-index.mjs",
+    "postinstall": "node ./scripts/patch-nest-common-index.mjs && node ./scripts/patch-nest-core-index.mjs && node ./scripts/patch-rxjs-index.mjs && node ./scripts/patch-class-validator-index.mjs",
     "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -15,11 +15,11 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.build.json && prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "NODE_ENV=test npm run build --silent && NODE_ENV=test node --test test-js/unit.test.js",
+    "test": "NODE_ENV=test node --test test-js/unit.test.js",
     "test:watch": "npm test",
     "test:cov": "npm test",
     "test:debug": "npm test",
-    "test:e2e": "NODE_ENV=test npm run build --silent && NODE_ENV=test node --test test-js/e2e.test.js",
+    "test:e2e": "NODE_ENV=test node --test test-js/e2e.test.js",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
   },

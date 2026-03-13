@@ -1,5 +1,3 @@
-import Joi from 'joi';
-
 type EnvironmentVariables = {
   APP_NAME?: string;
   CLOUDINARY_API_KEY?: string;
@@ -13,37 +11,21 @@ type EnvironmentVariables = {
   PORT?: number;
 };
 
-const environmentSchema = Joi.object<EnvironmentVariables>({
-  APP_NAME: Joi.string().trim().default('vendora-backend'),
-  CLOUDINARY_API_KEY: Joi.string().trim().optional(),
-  CLOUDINARY_API_SECRET: Joi.string().trim().optional(),
-  CLOUDINARY_CLOUD_NAME: Joi.string().trim().optional(),
-  DATABASE_URL: Joi.string()
-    .uri({ scheme: ['postgres', 'postgresql'] })
-    .optional(),
-  FRONTEND_APP_URL: Joi.string()
-    .uri({ scheme: ['http', 'https'] })
-    .optional(),
-  MERCADOPAGO_ACCESS_TOKEN: Joi.string().trim().optional(),
-  MERCADOPAGO_WEBHOOK_SECRET: Joi.string().trim().optional(),
-  NODE_ENV: Joi.string()
-    .valid('development', 'test', 'production')
-    .default('development'),
-  PORT: Joi.number().port().default(3000),
-}).prefs({ abortEarly: false, allowUnknown: true });
-
 export function validateEnvironment(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const validationResult = environmentSchema.validate(config) as {
-    error?: Error;
-    value: EnvironmentVariables;
+  const value: EnvironmentVariables = {
+    APP_NAME: readOptionalString(config.APP_NAME) ?? 'vendora-backend',
+    CLOUDINARY_API_KEY: readOptionalString(config.CLOUDINARY_API_KEY),
+    CLOUDINARY_API_SECRET: readOptionalString(config.CLOUDINARY_API_SECRET),
+    CLOUDINARY_CLOUD_NAME: readOptionalString(config.CLOUDINARY_CLOUD_NAME),
+    DATABASE_URL: readOptionalUrl(config.DATABASE_URL, ['postgres:', 'postgresql:']),
+    FRONTEND_APP_URL: readOptionalUrl(config.FRONTEND_APP_URL, ['http:', 'https:']),
+    MERCADOPAGO_ACCESS_TOKEN: readOptionalString(config.MERCADOPAGO_ACCESS_TOKEN),
+    MERCADOPAGO_WEBHOOK_SECRET: readOptionalString(config.MERCADOPAGO_WEBHOOK_SECRET),
+    NODE_ENV: readNodeEnv(config.NODE_ENV),
+    PORT: readPort(config.PORT),
   };
-  const { error, value } = validationResult;
-
-  if (error) {
-    throw new Error(`Environment validation failed: ${error.message}`);
-  }
 
   const hasMercadoPagoValue =
     Boolean(value.MERCADOPAGO_ACCESS_TOKEN) ||
@@ -75,4 +57,57 @@ export function validateEnvironment(
   }
 
   return value;
+}
+
+function readOptionalString(input: unknown): string | undefined {
+  if (typeof input !== 'string') {
+    return undefined;
+  }
+
+  const value = input.trim();
+  return value.length > 0 ? value : undefined;
+}
+
+function readOptionalUrl(
+  input: unknown,
+  allowedProtocols: string[],
+): string | undefined {
+  const value = readOptionalString(input);
+
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (!allowedProtocols.includes(url.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+
+    return value;
+  } catch {
+    throw new Error(`Environment validation failed: Invalid URL value \"${value}\"`);
+  }
+}
+
+function readNodeEnv(input: unknown): 'development' | 'test' | 'production' {
+  const value = readOptionalString(input) ?? 'development';
+
+  if (value === 'development' || value === 'test' || value === 'production') {
+    return value;
+  }
+
+  throw new Error(`Environment validation failed: Invalid NODE_ENV \"${value}\"`);
+}
+
+function readPort(input: unknown): number {
+  const value = readOptionalString(input) ?? '3000';
+  const port = Number(value);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Environment validation failed: Invalid PORT \"${value}\"`);
+  }
+
+  return port;
 }
