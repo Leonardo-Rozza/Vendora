@@ -4,6 +4,7 @@ import { normalizeCatalogProductCard } from "../lib/commerce/api.ts";
 import {
   addCartLine,
   calculateCartTotals,
+  createEmptyCheckoutFormState,
   createEmptyCartState,
   parseCartState,
   serializeCartState,
@@ -104,9 +105,36 @@ test("cart helpers serialize persistence state and shape the backend order paylo
     quantity: 2,
   });
   const rehydrated = parseCartState(serializeCartState(state));
+  const checkoutForm = {
+    ...createEmptyCheckoutFormState(),
+    fullName: "Ada Buyer",
+    email: "ada@example.com",
+    phone: "11 5555 1111",
+    recipientName: "Ada Buyer",
+    shippingPhone: "11 5555 1111",
+    streetLine1: "Cabildo 123",
+    locality: "CABA",
+    province: "CABA",
+    postalCode: "C1426",
+  };
 
   assert.deepEqual(rehydrated, state);
-  assert.deepEqual(toCreateOrderRequest(state), {
+  assert.deepEqual(toCreateOrderRequest(state, checkoutForm), {
     items: [{ variantId: "variant-2", quantity: 2 }],
+    contact: {
+      fullName: "Ada Buyer",
+      email: "ada@example.com",
+      phone: "11 5555 1111",
+    },
+    shippingAddress: {
+      recipientName: "Ada Buyer",
+      phone: "11 5555 1111",
+      streetLine1: "Cabildo 123",
+      streetLine2: undefined,
+      locality: "CABA",
+      province: "CABA",
+      postalCode: "C1426",
+      deliveryNotes: undefined,
+    },
   });
 });

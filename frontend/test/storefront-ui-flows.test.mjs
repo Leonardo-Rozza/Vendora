@@ -1,7 +1,7 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const test = require('node:test');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
 
 const readProjectFile = (relativePath) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
@@ -32,4 +32,13 @@ test('storefront flow includes explicit responsive layout classes', () => {
   assert.match(cartSource, /lg:/);
   assert.match(productSource, /sm:/);
   assert.match(productSource, /lg:/);
+});
+
+test('cart checkout UI captures AMBA-only delivery scope and contact fields', () => {
+  const cartSource = readProjectFile('components/cart/cart-page-client.tsx');
+
+  assert.match(cartSource, /Contact full name/);
+  assert.match(cartSource, /Locality/);
+  assert.match(cartSource, /Province/);
+  assert.match(cartSource, /Shipping scope: AMBA only/);
 });

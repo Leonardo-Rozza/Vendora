@@ -1,11 +1,28 @@
 import type {
   CartLine,
   CartState,
+  CheckoutFormState,
   CheckoutSnapshot,
   CreateOrderRequest,
 } from "../contracts";
 
 export const CART_STORAGE_KEY = "vendora.storefront.cart";
+
+export function createEmptyCheckoutFormState(): CheckoutFormState {
+  return {
+    fullName: "",
+    email: "",
+    phone: "",
+    recipientName: "",
+    shippingPhone: "",
+    streetLine1: "",
+    streetLine2: "",
+    locality: "",
+    province: "CABA",
+    postalCode: "",
+    deliveryNotes: "",
+  };
+}
 
 export function createEmptyCartState(): CartState {
   return {
@@ -110,11 +127,29 @@ export function parseCartState(input: string | null | undefined): CartState {
   }
 }
 
-export function toCreateOrderRequest(state: CartState): CreateOrderRequest {
+export function toCreateOrderRequest(
+  state: CartState,
+  checkoutForm: CheckoutFormState,
+): CreateOrderRequest {
   return {
     items: state.lines.map((line) => ({
       variantId: line.variantId,
       quantity: line.quantity,
     })),
+    contact: {
+      fullName: checkoutForm.fullName.trim(),
+      email: checkoutForm.email.trim(),
+      phone: checkoutForm.phone.trim(),
+    },
+    shippingAddress: {
+      recipientName: checkoutForm.recipientName.trim(),
+      phone: checkoutForm.shippingPhone.trim(),
+      streetLine1: checkoutForm.streetLine1.trim(),
+      streetLine2: checkoutForm.streetLine2.trim() || undefined,
+      locality: checkoutForm.locality.trim(),
+      province: checkoutForm.province.trim(),
+      postalCode: checkoutForm.postalCode.trim(),
+      deliveryNotes: checkoutForm.deliveryNotes.trim() || undefined,
+    },
   };
 }

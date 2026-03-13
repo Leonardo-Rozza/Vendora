@@ -7,7 +7,7 @@
     "build": "node ./node_modules/next/dist/bin/next build",
     "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "eslint",
-    "test:smoke": "node --experimental-strip-types --test test/shell-smoke.test.js test/commerce-helpers.test.ts test/commerce-runtime.test.ts test/storefront-ui-flows.test.js"
+    "test:smoke": "node --experimental-strip-types --test test/shell-smoke.test.mjs test/commerce-helpers.test.ts test/commerce-runtime.test.ts test/storefront-ui-flows.test.mjs"
   },
   "dependencies": {
     "next": "16.1.6",

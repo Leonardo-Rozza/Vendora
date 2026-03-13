@@ -1,7 +1,7 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const test = require('node:test');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
 
 const readProjectFile = (relativePath) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
@@ -54,22 +54,25 @@ test('Cart and checkout result routes render customer-facing recovery states', (
 
 test('Admin shell exposes primary operational areas and stays distinct from storefront concerns', () => {
   const adminSource = readProjectFile('app/admin/page.tsx');
+  const dashboardSource = readProjectFile('components/admin/admin-dashboard.tsx');
 
-  assert.match(adminSource, /Privileged admin shell/);
-  assert.match(adminSource, /Return to storefront/);
-  assert.match(adminSource, /catalog/i);
-  assert.match(adminSource, /media/i);
-  assert.match(adminSource, /inventory/i);
-  assert.match(adminSource, /orders/i);
+  assert.match(adminSource, /AdminDashboard/);
+  assert.match(dashboardSource, /Privileged admin shell/);
+  assert.match(dashboardSource, /Return to storefront/);
+  assert.match(dashboardSource, /catalog/i);
+  assert.match(dashboardSource, /inventory/i);
+  assert.match(dashboardSource, /purchase requests/i);
+  assert.match(dashboardSource, /Logout/);
 });
 
-test('Admin shell defines workflow destinations without over-claiming auth completion', () => {
-  const adminSource = readProjectFile('app/admin/page.tsx');
+test('Admin auth flow now exposes explicit sign-in and protected session language', () => {
+  const loginSource = readProjectFile('components/admin/admin-login-form.tsx');
 
-  assert.match(adminSource, /Auth reserved for later/);
+  assert.match(loginSource, /Admin sign in/);
+  assert.match(loginSource, /Sign in to admin/);
+  assert.match(loginSource, /environment-backed initial admin credentials/i);
   assert.match(
-    adminSource,
-    /Paid orders remain immutable regardless of future editing tools\./,
+    loginSource,
+    /Product changes, inventory updates, and order review require an active admin session\./,
   );
-  assert.doesNotMatch(adminSource, /sign in|session token|role assignment/i);
 });

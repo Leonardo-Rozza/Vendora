@@ -73,6 +73,37 @@ export type CreateOrderRequest = {
     variantId: string;
     quantity: number;
   }>;
+  contact: {
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  shippingAddress: ShippingAddressInput;
+};
+
+export type ShippingAddressInput = {
+  recipientName: string;
+  phone: string;
+  streetLine1: string;
+  streetLine2?: string;
+  locality: string;
+  province: string;
+  postalCode: string;
+  deliveryNotes?: string;
+};
+
+export type CheckoutFormState = {
+  fullName: string;
+  email: string;
+  phone: string;
+  recipientName: string;
+  shippingPhone: string;
+  streetLine1: string;
+  streetLine2: string;
+  locality: string;
+  province: string;
+  postalCode: string;
+  deliveryNotes: string;
 };
 
 export type CreatedOrder = {
@@ -81,6 +112,17 @@ export type CreatedOrder = {
   currencyCode: string;
   subtotalAmount: string;
   totalAmount: string;
+  contactFullName: string;
+  contactEmail: string;
+  contactPhone: string;
+  shippingRecipientName: string;
+  shippingPhone: string;
+  shippingStreetLine1: string;
+  shippingStreetLine2: string | null;
+  shippingLocality: string;
+  shippingProvince: string;
+  shippingPostalCode: string;
+  shippingDeliveryNotes: string | null;
   items: Array<{
     variantId: string;
     quantity: number;
@@ -115,4 +157,88 @@ export type AdminWorkspace = {
   title: string;
   description: string;
   status: string;
+};
+
+export type AdminSession = {
+  userId: string;
+  email: string;
+  role: "ADMIN";
+  expiresAt: string;
+};
+
+export type AdminProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: string;
+  variants: Array<
+    CatalogVariantPreview & {
+      availableQuantity?: number;
+      inventoryItem?: {
+        availableQuantity: number;
+        reservedQuantity: number;
+      } | null;
+    }
+  >;
+  images: CatalogImageReference[];
+};
+
+export type ProductVariantInput = {
+  id?: string;
+  sku: string;
+  name: string;
+  priceAmount: string;
+  currencyCode: string;
+  availableQuantity?: number;
+};
+
+export type ProductImageInput = {
+  assetUrl: string;
+  assetKey?: string | null;
+  altText?: string | null;
+  sortOrder?: number;
+};
+
+export type AdminProductInput = {
+  slug: string;
+  name: string;
+  description?: string;
+  status?: string;
+  variants: ProductVariantInput[];
+  images?: ProductImageInput[];
+};
+
+export type AdminOrder = {
+  id: string;
+  status: string;
+  currencyCode: string;
+  subtotalAmount: string;
+  totalAmount: string;
+  contactFullName: string;
+  contactEmail: string;
+  contactPhone: string;
+  shippingRecipientName: string;
+  shippingPhone: string;
+  shippingStreetLine1: string;
+  shippingStreetLine2: string | null;
+  shippingLocality: string;
+  shippingProvince: string;
+  shippingPostalCode: string;
+  shippingDeliveryNotes: string | null;
+  createdAt?: string;
+  items: Array<{
+    id?: string;
+    variantId: string;
+    quantity: number;
+    productName: string;
+    variantName: string;
+    sku: string;
+    unitPriceAmount: string;
+  }>;
+  payments: Array<{
+    id?: string;
+    status: string;
+    provider?: string;
+  }>;
 };

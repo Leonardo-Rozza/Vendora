@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
 import { createCheckoutPreference, createOrder } from "@/lib/commerce/api";
-import { toCreateOrderRequest } from "@/lib/commerce/cart";
-import { canStartCheckout, toCheckoutErrorMessage } from "@/lib/commerce/checkout";
+import { createEmptyCheckoutFormState, toCreateOrderRequest } from "@/lib/commerce/cart";
+import {
+  canStartCheckout,
+  toCheckoutErrorMessage,
+  validateCheckoutForm,
+} from "@/lib/commerce/checkout";
 import { formatItemCount, formatLineTotal, formatMoney } from "@/lib/commerce/format";
 
 export function CartPageClient() {
@@ -20,7 +24,7 @@ export function CartPageClient() {
     subtotalAmount,
     updateQuantity,
   } = useCommerce();
-  const [payerEmail, setPayerEmail] = useState("");
+  const [checkoutForm, setCheckoutForm] = useState(createEmptyCheckoutFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,14 +33,21 @@ export function CartPageClient() {
       return;
     }
 
+    const validationMessage = validateCheckoutForm(checkoutForm);
+
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const order = await createOrder(toCreateOrderRequest(cartState));
+      const order = await createOrder(toCreateOrderRequest(cartState, checkoutForm));
       const preference = await createCheckoutPreference({
         orderId: order.id,
-        payerEmail: payerEmail.trim() || undefined,
+        payerEmail: checkoutForm.email.trim() || undefined,
       });
 
       setLastCheckout({
@@ -170,7 +181,7 @@ export function CartPageClient() {
           </h2>
           <p className="mt-4 text-sm leading-7 text-white/76">
             Vendora creates the order first, then requests the checkout preference.
-            Webhook confirmation still finalizes the payment state after redirect.
+            Contact and shipping data are captured before redirect, and shipping is currently limited to AMBA.
           </p>
 
           <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/6 p-5">
@@ -178,16 +189,117 @@ export function CartPageClient() {
               <span className="text-sm text-white/70">Subtotal</span>
               <strong className="text-xl">{formatMoney(subtotalAmount, currencyCode)}</strong>
             </div>
-            <label className="mt-5 block text-sm text-white/76">
-              Payer email (optional)
-              <input
-                className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                onChange={(event) => setPayerEmail(event.target.value)}
-                placeholder="buyer@example.com"
-                type="email"
-                value={payerEmail}
-              />
-            </label>
+            <div className="mt-5 grid gap-4">
+              <label className="block text-sm text-white/76">
+                Contact full name
+                <input
+                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                  onChange={(event) => setCheckoutForm((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="Buyer full name"
+                  value={checkoutForm.fullName}
+                />
+              </label>
+              <label className="block text-sm text-white/76">
+                Contact email
+                <input
+                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                  onChange={(event) => setCheckoutForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="buyer@example.com"
+                  type="email"
+                  value={checkoutForm.email}
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm text-white/76">
+                  Contact phone
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, phone: event.target.value }))}
+                    placeholder="11 5555 5555"
+                    value={checkoutForm.phone}
+                  />
+                </label>
+                <label className="block text-sm text-white/76">
+                  Recipient name
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, recipientName: event.target.value }))}
+                    placeholder="Who receives the order"
+                    value={checkoutForm.recipientName}
+                  />
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm text-white/76">
+                  Shipping phone
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, shippingPhone: event.target.value }))}
+                    placeholder="Delivery contact"
+                    value={checkoutForm.shippingPhone}
+                  />
+                </label>
+                <label className="block text-sm text-white/76">
+                  Postal code
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, postalCode: event.target.value }))}
+                    placeholder="C1425 / B1678"
+                    value={checkoutForm.postalCode}
+                  />
+                </label>
+              </div>
+              <label className="block text-sm text-white/76">
+                Street address
+                <input
+                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                  onChange={(event) => setCheckoutForm((current) => ({ ...current, streetLine1: event.target.value }))}
+                  placeholder="Street, number, floor, apartment"
+                  value={checkoutForm.streetLine1}
+                />
+              </label>
+              <label className="block text-sm text-white/76">
+                Address line 2 (optional)
+                <input
+                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                  onChange={(event) => setCheckoutForm((current) => ({ ...current, streetLine2: event.target.value }))}
+                  placeholder="Tower, block, extra reference"
+                  value={checkoutForm.streetLine2}
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm text-white/76">
+                  Locality
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, locality: event.target.value }))}
+                    placeholder="CABA, Vicente Lopez, Quilmes..."
+                    value={checkoutForm.locality}
+                  />
+                </label>
+                <label className="block text-sm text-white/76">
+                  Province
+                  <input
+                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                    onChange={(event) => setCheckoutForm((current) => ({ ...current, province: event.target.value }))}
+                    placeholder="CABA or Buenos Aires"
+                    value={checkoutForm.province}
+                  />
+                </label>
+              </div>
+              <label className="block text-sm text-white/76">
+                Delivery notes (optional)
+                <textarea
+                  className="mt-2 min-h-24 w-full rounded-[1.5rem] border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+                  onChange={(event) => setCheckoutForm((current) => ({ ...current, deliveryNotes: event.target.value }))}
+                  placeholder="Preferred time slot, doorbell instructions, or extra reference"
+                  value={checkoutForm.deliveryNotes}
+                />
+              </label>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-[0.24em] text-white/56">
+              Shipping scope: AMBA only for this MVP batch.
+            </p>
             {error ? <p className="mt-4 text-sm text-[var(--accent-sand)]">{error}</p> : null}
             <button
               className="mt-5 w-full rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"

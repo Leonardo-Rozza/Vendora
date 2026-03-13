@@ -1,4 +1,8 @@
 import type {
+  AdminOrder,
+  AdminProduct,
+  AdminProductInput,
+  AdminSession,
   CatalogProductCard,
   CatalogProductDetail,
   CheckoutPreferenceResponse,
@@ -59,6 +63,13 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function requestAdminJson<T>(path: string, init?: RequestInit): Promise<T> {
+  return requestJson<T>(path, {
+    ...init,
+    credentials: "include",
+  });
+}
+
 export function normalizeCatalogProductCard(
   product: CatalogProductDetail,
 ): CatalogProductCard {
@@ -109,5 +120,64 @@ export function createCheckoutPreference(
   return requestJson<CheckoutPreferenceResponse>("/payments/checkout-preferences", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function loginAdmin(payload: { email: string; password: string }) {
+  return requestAdminJson<AdminSession>("/admin/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function logoutAdmin() {
+  return requestAdminJson<{ success: boolean }>("/admin/auth/logout", {
+    method: "POST",
+  });
+}
+
+export function getCurrentAdmin() {
+  return requestAdminJson<AdminSession>("/admin/auth/me");
+}
+
+export function listAdminProducts(query?: string) {
+  const searchParams = new URLSearchParams();
+
+  if (query?.trim()) {
+    searchParams.set("query", query.trim());
+  }
+
+  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  return requestAdminJson<AdminProduct[]>(`/admin/catalog/products${suffix}`);
+}
+
+export function createAdminProduct(payload: AdminProductInput) {
+  return requestAdminJson<AdminProduct>("/admin/catalog/products", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminProduct(productId: string, payload: Partial<AdminProductInput>) {
+  return requestAdminJson<AdminProduct>(`/admin/catalog/products/${productId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listAdminOrders(status?: string) {
+  const searchParams = new URLSearchParams();
+
+  if (status?.trim()) {
+    searchParams.set("status", status.trim());
+  }
+
+  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  return requestAdminJson<AdminOrder[]>(`/admin/orders${suffix}`);
+}
+
+export function cancelAdminOrder(orderId: string) {
+  return requestAdminJson<AdminOrder>(`/admin/orders/${orderId}/cancel`, {
+    method: "POST",
   });
 }

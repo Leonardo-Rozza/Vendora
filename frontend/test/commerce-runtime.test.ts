@@ -4,9 +4,12 @@ import { ApiError } from "../lib/commerce/api.ts";
 import { toCatalogErrorMessage } from "../lib/commerce/catalog.ts";
 import {
   canStartCheckout,
+  isWithinAmbaShippingScope,
   resolveCheckoutReferences,
   toCheckoutErrorMessage,
+  validateCheckoutForm,
 } from "../lib/commerce/checkout.ts";
+import { createEmptyCheckoutFormState } from "../lib/commerce/cart.ts";
 
 test("catalog error helper surfaces retryable API failures", () => {
   assert.equal(
@@ -65,4 +68,34 @@ test("checkout reference helper prefers redirect params and falls back to snapsh
     orderReference: null,
     paymentReference: null,
   });
+});
+
+test("checkout validation requires delivery fields and rejects non-AMBA destinations", () => {
+  const emptyForm = createEmptyCheckoutFormState();
+  const validForm = {
+    ...emptyForm,
+    fullName: "Ada Buyer",
+    email: "ada@example.com",
+    phone: "11 5555 1111",
+    recipientName: "Ada Buyer",
+    shippingPhone: "11 5555 1111",
+    streetLine1: "Cabildo 123",
+    locality: "Vicente Lopez",
+    province: "Buenos Aires",
+    postalCode: "B1638",
+  };
+
+  assert.equal(
+    validateCheckoutForm(emptyForm),
+    "Complete the contact and shipping fields before continuing.",
+  );
+  assert.equal(validateCheckoutForm(validForm), null);
+  assert.equal(
+    validateCheckoutForm({ ...validForm, locality: "Rosario", province: "Santa Fe" }),
+    "Shipping is currently limited to AMBA destinations.",
+  );
+  assert.equal(
+    isWithinAmbaShippingScope({ locality: "CABA", province: "CABA" }),
+    true,
+  );
 });

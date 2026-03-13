@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { CartLine, CartState, CheckoutSnapshot } from "@/lib/contracts";
@@ -38,14 +39,14 @@ type CommerceContextValue = {
 const CommerceContext = createContext<CommerceContextValue | null>(null);
 
 export function CommerceProvider({ children }: { children: ReactNode }) {
-  const [cartState, setCartState] = useState<CartState>(createEmptyCartState);
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const [cartState, setCartState] = useState<CartState>(() => {
+    if (typeof window === "undefined") {
+      return createEmptyCartState();
+    }
 
-  useEffect(() => {
-    const persistedState = parseCartState(window.localStorage.getItem(CART_STORAGE_KEY));
-    setCartState(persistedState);
-    setHasHydrated(true);
-  }, []);
+    return parseCartState(window.localStorage.getItem(CART_STORAGE_KEY));
+  });
+  const hasHydrated = useSyncExternalStore(subscribeToHydration, getHydratedSnapshot, getServerSnapshot);
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -79,6 +80,18 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
   );
 
   return <CommerceContext.Provider value={value}>{children}</CommerceContext.Provider>;
+}
+
+function subscribeToHydration() {
+  return () => undefined;
+}
+
+function getHydratedSnapshot() {
+  return true;
+}
+
+function getServerSnapshot() {
+  return false;
 }
 
 export function useCommerce() {

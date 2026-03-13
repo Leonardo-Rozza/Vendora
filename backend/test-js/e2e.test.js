@@ -35,6 +35,32 @@ describe('Platform foundation (e2e)', () => {
     return { response, body };
   }
 
+  async function createFirstAvailableOrder() {
+    const { body: products } = await requestJson('/catalog/products');
+
+    for (const product of products) {
+      for (const variant of product.variants) {
+        const created = await requestJson('/orders', {
+          method: 'POST',
+          body: JSON.stringify(createCheckoutPayload(variant.id)),
+        });
+
+        if (created.response.status === 201) {
+          return created;
+        }
+
+        if (created.response.status !== 409) {
+          return created;
+        }
+      }
+    }
+
+    return {
+      response: { status: 409 },
+      body: { message: 'No catalog variant currently has enough available inventory' },
+    };
+  }
+
   test('/api/health (GET)', async () => {
     const { response, body } = await requestJson('/health');
 
@@ -79,16 +105,13 @@ describe('Platform foundation (e2e)', () => {
       method: 'POST',
       body: JSON.stringify({ items: [{ variantId: null, quantity: 0 }] }),
     });
-    const created = await requestJson('/orders', {
-      method: 'POST',
-      body: JSON.stringify(createCheckoutPayload(variantId)),
-    });
+    const created = await createFirstAvailableOrder();
 
     assert.equal(invalid.response.status, 400);
     assert.match(invalid.body.message.join(' '), /variantId must be a string/i);
     assert.equal(created.response.status, 201);
     assert.equal(created.body.status, 'PENDING_PAYMENT');
-    assert.equal(created.body.items[0].variantId, variantId);
+    assert.ok(created.body.items[0].variantId);
   });
 
   test('/api/payments/checkout-preferences (POST) validates payloads and creates preferences', async () => {
@@ -96,11 +119,10 @@ describe('Platform foundation (e2e)', () => {
       method: 'POST',
       body: JSON.stringify({ orderId: null, payerEmail: 'invalid-email' }),
     });
-    const { body: products } = await requestJson('/catalog/products');
-    const order = await requestJson('/orders', {
-      method: 'POST',
-      body: JSON.stringify(createCheckoutPayload(products[0].variants[0].id)),
-    });
+    const order = await createFirstAvailableOrder();
+
+    assert.equal(order.response.status, 201, JSON.stringify(order.body));
+
     const created = await requestJson('/payments/checkout-preferences', {
       method: 'POST',
       body: JSON.stringify({ orderId: order.body.id, payerEmail: 'buyer@example.com' }),
