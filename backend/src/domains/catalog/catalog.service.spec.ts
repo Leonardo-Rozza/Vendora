@@ -148,7 +148,9 @@ test('CatalogService creates a product with variants, inventory, and images', as
       name: string;
       description: string;
       status: string;
-      variants: { create: Array<{ priceAmount: Prisma.Decimal; currencyCode: string }> };
+      variants: {
+        create: Array<{ priceAmount: Prisma.Decimal; currencyCode: string }>;
+      };
       images: { create: Array<{ assetUrl: string }> };
     };
   };
@@ -157,7 +159,10 @@ test('CatalogService creates a product with variants, inventory, and images', as
   assert.equal(createArgs.data.description, 'Classic mate.');
   assert.equal(createArgs.data.status, 'ACTIVE');
   assert.equal(createArgs.data.variants.create[0]?.currencyCode, 'ARS');
-  assert.equal(createArgs.data.variants.create[0]?.priceAmount.toString(), '12500');
+  assert.equal(
+    createArgs.data.variants.create[0]?.priceAmount.toString(),
+    '12500',
+  );
   assert.equal(
     createArgs.data.images.create[0]?.assetUrl,
     'https://cdn.example.com/mate.jpg',

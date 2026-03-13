@@ -8,6 +8,22 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 
+const validCheckoutInput = {
+  contact: {
+    fullName: 'Ada Buyer',
+    email: 'ada@example.com',
+    phone: '11 5555 1111',
+  },
+  shippingAddress: {
+    recipientName: 'Ada Buyer',
+    phone: '11 5555 1111',
+    streetLine1: 'Cabildo 123',
+    locality: 'CABA',
+    province: 'CABA',
+    postalCode: 'C1426',
+  },
+};
+
 const noopInventoryService = {
   reserveItems: async () => undefined,
   releaseReservationForOrder: async () => undefined,
@@ -15,14 +31,17 @@ const noopInventoryService = {
 
 test('OrdersService loads an order with item and payment snapshots', async () => {
   let receivedArgs: unknown;
-  const service = new OrdersService({
-    order: {
-      findUnique: async (args: unknown) => {
-        receivedArgs = args;
-        return { id: 'order-1' };
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'order-1' };
+        },
       },
-    },
-  } as never, noopInventoryService);
+    } as never,
+    noopInventoryService,
+  );
 
   const result = await service.findOrderById('order-1');
 
@@ -39,14 +58,17 @@ test('OrdersService loads an order with item and payment snapshots', async () =>
 
 test('OrdersService lists orders with an optional status filter', async () => {
   let receivedArgs: unknown;
-  const service = new OrdersService({
-    order: {
-      findMany: async (args: unknown) => {
-        receivedArgs = args;
-        return [{ id: 'order-1' }];
+  const service = new OrdersService(
+    {
+      order: {
+        findMany: async (args: unknown) => {
+          receivedArgs = args;
+          return [{ id: 'order-1' }];
+        },
       },
-    },
-  } as never, noopInventoryService);
+    } as never,
+    noopInventoryService,
+  );
 
   const result = await service.listOrders('PENDING_PAYMENT');
 
@@ -112,10 +134,13 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
       { variantId: 'variant-1', quantity: 1 },
       { variantId: 'variant-1', quantity: 2 },
     ],
+    ...validCheckoutInput,
   });
 
   assert.deepEqual(result, { id: 'order-1', status: 'PENDING_PAYMENT' });
-  assert.deepEqual(calls.reserveItems, [{ variantId: 'variant-1', quantity: 3 }]);
+  assert.deepEqual(calls.reserveItems, [
+    { variantId: 'variant-1', quantity: 3 },
+  ]);
   assert.deepEqual(calls.variantFindMany, {
     where: {
       id: {
@@ -131,78 +156,93 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
     (calls.orderCreate as { data: { status: string } }).data.status,
     'PENDING_PAYMENT',
   );
+  assert.equal(
+    (calls.orderCreate as { data: { contactEmail: string } }).data.contactEmail,
+    'ada@example.com',
+  );
 });
 
 test('OrdersService rejects unknown or inactive variants', async () => {
-  const missingVariantService = new OrdersService({
-    productVariant: {
-      findMany: async () => [],
-    },
-  } as never, noopInventoryService);
+  const missingVariantService = new OrdersService(
+    {
+      productVariant: {
+        findMany: async () => [],
+      },
+    } as never,
+    noopInventoryService,
+  );
 
   await assert.rejects(
     () =>
       missingVariantService.createOrder({
         items: [{ variantId: 'variant-1', quantity: 1 }],
+        ...validCheckoutInput,
       }),
     (error: unknown) => error instanceof NotFoundException,
   );
 
-  const inactiveVariantService = new OrdersService({
-    productVariant: {
-      findMany: async () => [
-        {
-          id: 'variant-1',
-          sku: 'SKU-1',
+  const inactiveVariantService = new OrdersService(
+    {
+      productVariant: {
+        findMany: async () => [
+          {
+            id: 'variant-1',
+            sku: 'SKU-1',
             name: 'Standard',
             priceAmount: new Prisma.Decimal('12500.00'),
             currencyCode: 'ARS',
             product: {
-            name: 'Mate Gourd',
-            status: 'DRAFT',
+              name: 'Mate Gourd',
+              status: 'DRAFT',
+            },
+            inventoryItem: {
+              availableQuantity: 5,
+            },
           },
-          inventoryItem: {
-            availableQuantity: 5,
-          },
-        },
-      ],
-    },
-  } as never, noopInventoryService);
+        ],
+      },
+    } as never,
+    noopInventoryService,
+  );
 
   await assert.rejects(
     () =>
       inactiveVariantService.createOrder({
         items: [{ variantId: 'variant-1', quantity: 1 }],
+        ...validCheckoutInput,
       }),
     (error: unknown) => error instanceof ConflictException,
   );
 });
 
 test('OrdersService rejects mixed-currency carts', async () => {
-  const service = new OrdersService({
-    productVariant: {
-      findMany: async () => [
-        {
-          id: 'variant-1',
-          sku: 'SKU-1',
-          name: 'Standard',
-          priceAmount: new Prisma.Decimal('12500.00'),
-          currencyCode: 'ARS',
-          product: { name: 'Mate', status: 'ACTIVE' },
-          inventoryItem: { availableQuantity: 5 },
-        },
-        {
-          id: 'variant-2',
-          sku: 'SKU-2',
-          name: 'XL',
-          priceAmount: new Prisma.Decimal('10.00'),
-          currencyCode: 'USD',
-          product: { name: 'Mate', status: 'ACTIVE' },
-          inventoryItem: { availableQuantity: 5 },
-        },
-      ],
-    },
-  } as never, noopInventoryService);
+  const service = new OrdersService(
+    {
+      productVariant: {
+        findMany: async () => [
+          {
+            id: 'variant-1',
+            sku: 'SKU-1',
+            name: 'Standard',
+            priceAmount: new Prisma.Decimal('12500.00'),
+            currencyCode: 'ARS',
+            product: { name: 'Mate', status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 5 },
+          },
+          {
+            id: 'variant-2',
+            sku: 'SKU-2',
+            name: 'XL',
+            priceAmount: new Prisma.Decimal('10.00'),
+            currencyCode: 'USD',
+            product: { name: 'Mate', status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 5 },
+          },
+        ],
+      },
+    } as never,
+    noopInventoryService,
+  );
 
   await assert.rejects(
     () =>
@@ -211,6 +251,7 @@ test('OrdersService rejects mixed-currency carts', async () => {
           { variantId: 'variant-1', quantity: 1 },
           { variantId: 'variant-2', quantity: 1 },
         ],
+        ...validCheckoutInput,
       }),
     (error: unknown) => error instanceof BadRequestException,
   );
@@ -255,10 +296,46 @@ test('OrdersService propagates insufficient stock failures without creating an o
     () =>
       service.createOrder({
         items: [{ variantId: 'variant-1', quantity: 2 }],
+        ...validCheckoutInput,
       }),
     (error: unknown) => error instanceof ConflictException,
   );
   assert.equal(calls.orderCreate, undefined);
+});
+
+test('OrdersService rejects shipping destinations outside AMBA', async () => {
+  const service = new OrdersService(
+    {
+      productVariant: {
+        findMany: async () => [
+          {
+            id: 'variant-1',
+            sku: 'SKU-1',
+            name: 'Standard',
+            priceAmount: new Prisma.Decimal('12500.00'),
+            currencyCode: 'ARS',
+            product: { name: 'Mate', status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 5 },
+          },
+        ],
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await assert.rejects(
+    () =>
+      service.createOrder({
+        items: [{ variantId: 'variant-1', quantity: 1 }],
+        ...validCheckoutInput,
+        shippingAddress: {
+          ...validCheckoutInput.shippingAddress,
+          locality: 'Rosario',
+          province: 'Santa Fe',
+        },
+      }),
+    (error: unknown) => error instanceof BadRequestException,
+  );
 });
 
 test('OrdersService cancels unpaid orders and releases reservations', async () => {
@@ -312,18 +389,21 @@ test('OrdersService cancels unpaid orders and releases reservations', async () =
 });
 
 test('OrdersService rejects cancellation for paid orders', async () => {
-  const service = new OrdersService({
-    order: {
-      findUnique: async () => ({
-        id: 'order-1',
-        status: 'PAID',
-        isLocked: true,
-        items: [],
-        payments: [],
-        user: null,
-      }),
-    },
-  } as never, noopInventoryService);
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PAID',
+          isLocked: true,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+      },
+    } as never,
+    noopInventoryService,
+  );
 
   await assert.rejects(
     () => service.cancelOrder('order-1'),

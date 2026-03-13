@@ -1,0 +1,29 @@
+CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'ADMIN');
+
+ALTER TABLE "User"
+ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'CUSTOMER',
+ADD COLUMN "passwordHash" TEXT;
+
+ALTER TABLE "Order"
+ADD COLUMN "contactFullName" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "contactEmail" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "contactPhone" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingRecipientName" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingPhone" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingStreetLine1" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingStreetLine2" TEXT,
+ADD COLUMN "shippingLocality" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingProvince" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingPostalCode" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "shippingDeliveryNotes" TEXT;
+
+ALTER TABLE "Order"
+ALTER COLUMN "contactFullName" DROP DEFAULT,
+ALTER COLUMN "contactEmail" DROP DEFAULT,
+ALTER COLUMN "contactPhone" DROP DEFAULT,
+ALTER COLUMN "shippingRecipientName" DROP DEFAULT,
+ALTER COLUMN "shippingPhone" DROP DEFAULT,
+ALTER COLUMN "shippingStreetLine1" DROP DEFAULT,
+ALTER COLUMN "shippingLocality" DROP DEFAULT,
+ALTER COLUMN "shippingProvince" DROP DEFAULT,
+ALTER COLUMN "shippingPostalCode" DROP DEFAULT;

@@ -77,7 +77,10 @@ describe('Platform foundation (e2e)', () => {
         assert.equal(body.statusCode, 400);
         assert.match(body.message.join(' '), /eventId must be a string/i);
         assert.match(body.message.join(' '), /resourceId must be a string/i);
-        assert.match(body.message.join(' '), /status must be one of the following values/i);
+        assert.match(
+          body.message.join(' '),
+          /status must be one of the following values/i,
+        );
       });
   });
 
@@ -90,6 +93,35 @@ describe('Platform foundation (e2e)', () => {
         assert.equal(body.error, 'Bad Request');
         assert.equal(body.statusCode, 400);
         assert.match(body.message.join(' '), /productId must be a string/i);
+      });
+  });
+
+  test('/api/admin/catalog/products (GET) rejects unauthenticated access', async () => {
+    await request(app.getHttpServer())
+      .get('/api/admin/catalog/products')
+      .expect(401)
+      .expect(({ body }) => {
+        assert.equal(body.statusCode, 401);
+      });
+  });
+
+  test('/api/orders (POST) validates required contact and shipping fields', async () => {
+    await request(app.getHttpServer())
+      .post('/api/orders')
+      .send({
+        items: [{ variantId: 'variant-1', quantity: 1 }],
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        assert.equal(body.error, 'Bad Request');
+        assert.match(
+          body.message.join(' '),
+          /contact should not be null or undefined/i,
+        );
+        assert.match(
+          body.message.join(' '),
+          /shippingAddress should not be null or undefined/i,
+        );
       });
   });
 });

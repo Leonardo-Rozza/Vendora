@@ -41,7 +41,10 @@ export class MercadoPagoCheckoutProvider {
     this.appConfigService.requireMercadoPagoConfig();
 
     const preferenceId = `pref_${input.orderId}`;
-    const frontendAppUrl = this.appConfigService.frontendAppUrl?.replace(/\/$/, '');
+    const frontendAppUrl = this.appConfigService.frontendAppUrl?.replace(
+      /\/$/,
+      '',
+    );
 
     return {
       provider: 'mercado-pago',

@@ -8,6 +8,13 @@ import { OrderStatus, Prisma, ProductStatus } from '@prisma/client';
 import { InventoryService } from '../inventory/inventory.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { isWithinAmbaShippingScope } from './amba-shipping';
+
+const ORDER_INCLUDE = {
+  items: true,
+  payments: true,
+  user: true,
+} as const;
 
 @Injectable()
 export class OrdersService {
@@ -19,22 +26,14 @@ export class OrdersService {
   findOrderById(id: string) {
     return this.prisma.order.findUnique({
       where: { id },
-      include: {
-        items: true,
-        payments: true,
-        user: true,
-      },
+      include: ORDER_INCLUDE,
     });
   }
 
   listOrders(status?: OrderStatus) {
     return this.prisma.order.findMany({
       where: status ? { status } : undefined,
-      include: {
-        items: true,
-        payments: true,
-        user: true,
-      },
+      include: ORDER_INCLUDE,
       orderBy: {
         createdAt: 'desc',
       },
@@ -60,7 +59,9 @@ export class OrdersService {
       throw new NotFoundException('One or more variants were not found');
     }
 
-    const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+    const variantMap = new Map(
+      variants.map((variant) => [variant.id, variant]),
+    );
 
     for (const item of aggregatedItems) {
       const variant = variantMap.get(item.variantId);
@@ -83,7 +84,9 @@ export class OrdersService {
     }
 
     const currencyCodes = new Set(
-      aggregatedItems.map((item) => variantMap.get(item.variantId)!.currencyCode),
+      aggregatedItems.map(
+        (item) => variantMap.get(item.variantId)!.currencyCode,
+      ),
     );
 
     if (currencyCodes.size !== 1) {
@@ -96,6 +99,12 @@ export class OrdersService {
       return total.plus(variant.priceAmount.mul(item.quantity));
     }, new Prisma.Decimal(0));
 
+    if (!isWithinAmbaShippingScope(input.shippingAddress)) {
+      throw new BadRequestException(
+        'Shipping is currently limited to AMBA destinations',
+      );
+    }
+
     return this.prisma.$transaction(async (client) => {
       await this.inventoryService.reserveItems(client, aggregatedItems);
 
@@ -106,6 +115,17 @@ export class OrdersService {
           currencyCode,
           subtotalAmount,
           totalAmount: subtotalAmount,
+          contactFullName: input.contact.fullName,
+          contactEmail: input.contact.email,
+          contactPhone: input.contact.phone,
+          shippingRecipientName: input.shippingAddress.recipientName,
+          shippingPhone: input.shippingAddress.phone,
+          shippingStreetLine1: input.shippingAddress.streetLine1,
+          shippingStreetLine2: input.shippingAddress.streetLine2,
+          shippingLocality: input.shippingAddress.locality,
+          shippingProvince: input.shippingAddress.province,
+          shippingPostalCode: input.shippingAddress.postalCode,
+          shippingDeliveryNotes: input.shippingAddress.deliveryNotes,
           items: {
             create: aggregatedItems.map((item) => {
               const variant = variantMap.get(item.variantId)!;
@@ -121,11 +141,7 @@ export class OrdersService {
             }),
           },
         },
-        include: {
-          items: true,
-          payments: true,
-          user: true,
-        },
+        include: ORDER_INCLUDE,
       });
     });
   }
@@ -133,11 +149,7 @@ export class OrdersService {
   async cancelOrder(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        items: true,
-        payments: true,
-        user: true,
-      },
+      include: ORDER_INCLUDE,
     });
 
     if (!order) {
@@ -160,11 +172,7 @@ export class OrdersService {
         data: {
           status: OrderStatus.CANCELLED,
         },
-        include: {
-          items: true,
-          payments: true,
-          user: true,
-        },
+        include: ORDER_INCLUDE,
       });
     });
   }

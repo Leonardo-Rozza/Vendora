@@ -6,7 +6,9 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersDto } from './dto/list-orders.dto';
 import { OrderParamsDto } from './dto/order-params.dto';
@@ -22,11 +24,13 @@ export class OrdersController {
   }
 
   @Get('admin/orders')
+  @UseGuards(AdminSessionGuard)
   listOrders(@Query() query: ListOrdersDto) {
     return this.ordersService.listOrders(query.status);
   }
 
   @Get('admin/orders/:orderId')
+  @UseGuards(AdminSessionGuard)
   async getOrder(@Param() params: OrderParamsDto) {
     const order = await this.ordersService.findOrderById(params.orderId);
 
@@ -38,6 +42,7 @@ export class OrdersController {
   }
 
   @Post('admin/orders/:orderId/cancel')
+  @UseGuards(AdminSessionGuard)
   cancelOrder(@Param() params: OrderParamsDto) {
     return this.ordersService.cancelOrder(params.orderId);
   }

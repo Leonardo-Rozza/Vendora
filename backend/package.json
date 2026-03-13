@@ -5,8 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20 <22"
+  },
   "scripts": {
-    "postinstall": "node ./scripts/patch-nest-common-index.mjs && node ./scripts/patch-nest-core-index.mjs && node ./scripts/patch-rxjs-index.mjs && node ./scripts/patch-class-validator-index.mjs",
     "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

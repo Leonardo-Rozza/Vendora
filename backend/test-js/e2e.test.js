@@ -3,6 +3,22 @@ const { describe, test } = require('node:test');
 
 describe('Platform foundation (e2e)', () => {
   const baseUrl = process.env.E2E_API_BASE_URL ?? 'https://vendora-production-4f11.up.railway.app/api';
+  const createCheckoutPayload = (variantId) => ({
+    items: [{ variantId, quantity: 1 }],
+    contact: {
+      fullName: 'Ada Buyer',
+      email: 'ada@example.com',
+      phone: '11 5555 1111',
+    },
+    shippingAddress: {
+      recipientName: 'Ada Buyer',
+      phone: '11 5555 1111',
+      streetLine1: 'Cabildo 123',
+      locality: 'CABA',
+      province: 'CABA',
+      postalCode: 'C1426',
+    },
+  });
 
   async function requestJson(path, init) {
     const response = await fetch(`${baseUrl}${path}`, {
@@ -65,7 +81,7 @@ describe('Platform foundation (e2e)', () => {
     });
     const created = await requestJson('/orders', {
       method: 'POST',
-      body: JSON.stringify({ items: [{ variantId, quantity: 1 }] }),
+      body: JSON.stringify(createCheckoutPayload(variantId)),
     });
 
     assert.equal(invalid.response.status, 400);
@@ -83,7 +99,7 @@ describe('Platform foundation (e2e)', () => {
     const { body: products } = await requestJson('/catalog/products');
     const order = await requestJson('/orders', {
       method: 'POST',
-      body: JSON.stringify({ items: [{ variantId: products[0].variants[0].id, quantity: 1 }] }),
+      body: JSON.stringify(createCheckoutPayload(products[0].variants[0].id)),
     });
     const created = await requestJson('/payments/checkout-preferences', {
       method: 'POST',

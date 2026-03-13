@@ -29,8 +29,58 @@ export class ConfigurationUnavailableError extends Error {
 export class AppConfigService {
   constructor(private readonly configService: ConfigService) {}
 
+  private readonly allowedFrontendProtocols = ['http:', 'https:'] as const;
+
   get appName(): string {
     return this.getOrDefault('APP_NAME', 'vendora-backend');
+  }
+
+  get adminSessionCookieName(): string {
+    return this.getOrDefault(
+      'ADMIN_SESSION_COOKIE_NAME',
+      'vendora_admin_session',
+    );
+  }
+
+  get adminSessionCookieSameSite(): 'lax' | 'none' | 'strict' {
+    const configuredValue = this.getOrDefault(
+      'ADMIN_SESSION_COOKIE_SAME_SITE',
+      this.environment === 'production' ? 'none' : 'lax',
+    ).toLowerCase();
+
+    if (
+      configuredValue === 'lax' ||
+      configuredValue === 'none' ||
+      configuredValue === 'strict'
+    ) {
+      return configuredValue;
+    }
+
+    return this.environment === 'production' ? 'none' : 'lax';
+  }
+
+  get adminSessionSecret(): string {
+    return this.getOrDefault(
+      'ADMIN_SESSION_SECRET',
+      'vendora-admin-session-dev-secret',
+    );
+  }
+
+  get adminSessionTtlMs(): number {
+    return (
+      Number(this.getOrDefault('ADMIN_SESSION_TTL_HOURS', '12')) *
+      60 *
+      60 *
+      1000
+    );
+  }
+
+  get initialAdminEmail(): string | null {
+    return this.configService.get<string>('ADMIN_INITIAL_EMAIL') ?? null;
+  }
+
+  get initialAdminPassword(): string | null {
+    return this.configService.get<string>('ADMIN_INITIAL_PASSWORD') ?? null;
   }
 
   get environment(): RuntimeEnvironment {
@@ -41,8 +91,42 @@ export class AppConfigService {
     return Number(this.getOrDefault('PORT', '3000'));
   }
 
+  get frontendAppUrls(): string[] {
+    const configuredValue = this.configService.get<string>('FRONTEND_APP_URL');
+
+    if (!configuredValue) {
+      return [];
+    }
+
+    return configuredValue
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .map((value) => this.normalizeOrigin(value))
+      .filter(
+        (value, index, collection) => collection.indexOf(value) === index,
+      );
+  }
+
   get frontendAppUrl(): string | null {
-    return this.configService.get<string>('FRONTEND_APP_URL') ?? null;
+    return this.frontendAppUrls[0] ?? null;
+  }
+
+  isAllowedFrontendOrigin(origin: string | undefined): boolean {
+    if (!origin) {
+      return true;
+    }
+
+    if (this.frontendAppUrls.length === 0) {
+      return true;
+    }
+
+    try {
+      const normalizedOrigin = this.normalizeOrigin(origin);
+      return this.frontendAppUrls.includes(normalizedOrigin);
+    } catch {
+      return false;
+    }
   }
 
   get databaseStatus(): CapabilityStatus {
@@ -170,6 +254,20 @@ export class AppConfigService {
 
   private getOrDefault(key: string, fallback: string): string {
     return this.configService.get<string>(key) ?? fallback;
+  }
+
+  private normalizeOrigin(input: string): string {
+    const url = new URL(input);
+
+    if (
+      !this.allowedFrontendProtocols.includes(
+        url.protocol as (typeof this.allowedFrontendProtocols)[number],
+      )
+    ) {
+      throw new Error(`Invalid frontend origin protocol: ${url.protocol}`);
+    }
+
+    return url.origin;
   }
 
   private normalizeDatabaseUrl(databaseUrl: string): string {

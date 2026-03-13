@@ -29,14 +29,19 @@ const withFixedNow = (service: PaymentsService, now: Date) => {
 
 test('PaymentsService loads a payment by provider payment id with webhook deliveries', async () => {
   let receivedArgs: unknown;
-  const service = new PaymentsService({
-    payment: {
-      findFirst: async (args: unknown) => {
-        receivedArgs = args;
-        return { id: 'payment-1' };
+  const service = new PaymentsService(
+    {
+      payment: {
+        findFirst: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'payment-1' };
+        },
       },
-    },
-  } as never, noopCheckoutProvider, noopLogger, noopInventoryService);
+    } as never,
+    noopCheckoutProvider,
+    noopLogger,
+    noopInventoryService,
+  );
 
   const result = await service.findByProviderPaymentId('mp-123');
 
@@ -272,19 +277,22 @@ test('PaymentsService locks the order when an approved webhook is processed', as
         createCheckoutPreference: async () => {
           throw new Error('not used');
         },
-    } as never,
-    {
-      logPaymentEvent: (event: string, payload: unknown) => {
-        paymentLogs.push({ event, payload });
-      },
-      logWebhookEvent: () => undefined,
-      logApplicationError: () => undefined,
-    } as never,
-    {
-      consumeReservationForOrder: async (client: unknown, orderId: string) => {
-        inventoryCalls.push({ client, orderId });
-      },
-    } as never,
+      } as never,
+      {
+        logPaymentEvent: (event: string, payload: unknown) => {
+          paymentLogs.push({ event, payload });
+        },
+        logWebhookEvent: () => undefined,
+        logApplicationError: () => undefined,
+      } as never,
+      {
+        consumeReservationForOrder: async (
+          client: unknown,
+          orderId: string,
+        ) => {
+          inventoryCalls.push({ client, orderId });
+        },
+      } as never,
     ),
     now,
   );
@@ -462,17 +470,17 @@ test('PaymentsService ignores stale webhook regressions after payment approval',
         createCheckoutPreference: async () => {
           throw new Error('not used');
         },
-    } as never,
-    {
-      logPaymentEvent: () => undefined,
-      logWebhookEvent: (event: string, payload: unknown) => {
-        webhookLogs.push({ event, payload });
-      },
-      logApplicationError: () => undefined,
-    } as never,
-    {
-      consumeReservationForOrder: async () => undefined,
-    } as never,
+      } as never,
+      {
+        logPaymentEvent: () => undefined,
+        logWebhookEvent: (event: string, payload: unknown) => {
+          webhookLogs.push({ event, payload });
+        },
+        logApplicationError: () => undefined,
+      } as never,
+      {
+        consumeReservationForOrder: async () => undefined,
+      } as never,
     ),
     now,
   );

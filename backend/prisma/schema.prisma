@@ -37,14 +37,21 @@ enum WebhookDeliveryStatus {
   IGNORED
 }
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  firstName    String?
+  lastName     String?
+  role         UserRole @default(CUSTOMER)
+  passwordHash String?
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Product {
@@ -100,19 +107,30 @@ model ProductImage {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  userId         String?
-  status         OrderStatus @default(DRAFT)
-  currencyCode   String      @db.Char(3)
-  subtotalAmount Decimal     @db.Decimal(10, 2)
-  totalAmount    Decimal     @db.Decimal(10, 2)
-  paidAt         DateTime?
-  isLocked       Boolean     @default(false)
-  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items          OrderItem[]
-  payments       Payment[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                    String      @id @default(cuid())
+  userId                String?
+  status                OrderStatus @default(DRAFT)
+  currencyCode          String      @db.Char(3)
+  subtotalAmount        Decimal     @db.Decimal(10, 2)
+  totalAmount           Decimal     @db.Decimal(10, 2)
+  contactFullName       String
+  contactEmail          String
+  contactPhone          String
+  shippingRecipientName String
+  shippingPhone         String
+  shippingStreetLine1   String
+  shippingStreetLine2   String?
+  shippingLocality      String
+  shippingProvince      String
+  shippingPostalCode    String
+  shippingDeliveryNotes String?
+  paidAt                DateTime?
+  isLocked              Boolean     @default(false)
+  user                  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items                 OrderItem[]
+  payments              Payment[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   @@index([userId])
   @@index([status])

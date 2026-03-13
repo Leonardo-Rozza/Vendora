@@ -133,7 +133,10 @@ test('InventoryService releases and consumes order reservations', async () => {
     },
     inventoryItem: {
       updateMany: async (args: unknown) => {
-        if ((args as { data: { availableQuantity?: unknown } }).data.availableQuantity) {
+        if (
+          (args as { data: { availableQuantity?: unknown } }).data
+            .availableQuantity
+        ) {
           calls.release.push(args);
         } else {
           calls.consume.push(args);

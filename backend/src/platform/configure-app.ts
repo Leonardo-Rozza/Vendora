@@ -10,7 +10,20 @@ export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api');
   app.enableShutdownHooks();
   app.enableCors({
-    origin: config.frontendAppUrl ?? true,
+    origin: (
+      requestOrigin: string | undefined,
+      callback: (error: Error | null, allow?: boolean | string) => void,
+    ) => {
+      if (config.isAllowedFrontendOrigin(requestOrigin)) {
+        callback(null, requestOrigin ?? true);
+        return;
+      }
+
+      callback(
+        new Error(`CORS blocked origin: ${requestOrigin ?? 'unknown'}`),
+        false,
+      );
+    },
     credentials: true,
   });
   app.useGlobalPipes(

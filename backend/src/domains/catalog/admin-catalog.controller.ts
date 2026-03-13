@@ -7,13 +7,16 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { CatalogService } from './catalog.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListAdminProductsDto } from './dto/list-admin-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('admin/catalog')
+@UseGuards(AdminSessionGuard)
 export class AdminCatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 

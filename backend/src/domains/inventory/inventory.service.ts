@@ -11,7 +11,9 @@ type InventoryDbClient = {
     updateMany(args: unknown): Promise<{ count: number }>;
   };
   orderItem: {
-    findMany(args: unknown): Promise<Array<{ variantId: string; quantity: number }>>;
+    findMany(
+      args: unknown,
+    ): Promise<Array<{ variantId: string; quantity: number }>>;
   };
 };
 
