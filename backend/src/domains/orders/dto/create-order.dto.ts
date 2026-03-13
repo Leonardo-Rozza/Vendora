@@ -22,28 +22,6 @@ export class CreateOrderItemDto {
   quantity!: number;
 }
 
-export class CreateOrderDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => CreateOrderItemDto)
-  items!: CreateOrderItemDto[];
-
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
-  @IsDefined()
-  @ValidateNested()
-  @Type(() => OrderContactDto)
-  contact!: OrderContactDto;
-
-  @IsDefined()
-  @ValidateNested()
-  @Type(() => ShippingAddressDto)
-  shippingAddress!: ShippingAddressDto;
-}
-
 export class OrderContactDto {
   @IsString()
   @MaxLength(160)
@@ -91,4 +69,26 @@ export class ShippingAddressDto {
   @IsString()
   @MaxLength(500)
   deliveryNotes?: string;
+}
+
+export class CreateOrderDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  items!: CreateOrderItemDto[];
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => OrderContactDto)
+  contact!: OrderContactDto;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => ShippingAddressDto)
+  shippingAddress!: ShippingAddressDto;
 }
