@@ -2,12 +2,18 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderMilestoneType, Prisma } from '@prisma/client';
 import { InventoryService } from '../inventory/inventory.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AppLoggerService } from '../../platform/logging/app-logger.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { MercadoPagoCheckoutProvider } from '../../platform/providers/mercado-pago/mercado-pago-checkout.provider';
+import {
+  createMilestoneContent,
+  shouldSendNotificationForMilestone,
+} from '../orders/order-tracking.mapper';
 
 const MERCADO_PAGO_PROVIDER = 'mercado-pago';
 
@@ -44,6 +50,8 @@ export class PaymentsService {
     private readonly mercadoPagoCheckoutProvider: MercadoPagoCheckoutProvider,
     private readonly logger: AppLoggerService,
     private readonly inventoryService: InventoryService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   findByProviderPaymentId(providerPaymentId: string) {
@@ -199,44 +207,90 @@ export class PaymentsService {
       };
     }
 
-    await this.prisma.$transaction(async (transactionClient) => {
-      await transactionClient.payment.update({
-        where: { id: payment.id },
-        data: {
-          rawPayload: input,
-          status: paymentStatus,
-          ...(paymentStatus === 'APPROVED' ? { confirmedAt: processedAt } : {}),
-        },
-      });
+    const notificationContext = await this.prisma.$transaction(
+      async (transactionClient) => {
+        let nextNotificationContext: {
+          orderId: string;
+          milestoneId: string;
+          milestoneType: OrderMilestoneType;
+          trackingToken: string | null;
+          trackingCode: string | null;
+          recipientEmail: string;
+          recipientName: string;
+          deliveryReference: string | null;
+        } | null = null;
 
-      if (
-        paymentStatus === 'APPROVED' &&
-        (!payment.order.isLocked || payment.order.status !== 'PAID')
-      ) {
-        await this.inventoryService.consumeReservationForOrder(
-          transactionClient,
-          payment.orderId,
-        );
-
-        await transactionClient.order.update({
-          where: { id: payment.orderId },
+        await transactionClient.payment.update({
+          where: { id: payment.id },
           data: {
-            isLocked: true,
-            paidAt: processedAt,
-            status: 'PAID',
+            rawPayload: input,
+            status: paymentStatus,
+            ...(paymentStatus === 'APPROVED'
+              ? { confirmedAt: processedAt }
+              : {}),
           },
         });
-      }
 
-      await transactionClient.paymentWebhookDelivery.update({
-        where: { id: delivery.id },
-        data: {
-          paymentId: payment.id,
-          processedAt,
-          status: 'PROCESSED',
-        },
-      });
-    });
+        if (
+          paymentStatus === 'APPROVED' &&
+          (!payment.order.isLocked || payment.order.status !== 'PAID')
+        ) {
+          await this.inventoryService.consumeReservationForOrder(
+            transactionClient,
+            payment.orderId,
+          );
+
+          const updatedOrder = await transactionClient.order.update({
+            where: { id: payment.orderId },
+            data: {
+              isLocked: true,
+              paidAt: processedAt,
+              status: 'PAID',
+            },
+          });
+
+          const milestone = await transactionClient.orderMilestone.create({
+            data: {
+              orderId: payment.orderId,
+              type: OrderMilestoneType.PAYMENT_CONFIRMED,
+              ...createMilestoneContent(OrderMilestoneType.PAYMENT_CONFIRMED),
+            },
+          });
+
+          nextNotificationContext = {
+            orderId: payment.orderId,
+            milestoneId: milestone.id,
+            milestoneType: milestone.type,
+            trackingToken: payment.order.trackingToken,
+            trackingCode: payment.order.trackingCode,
+            recipientEmail: payment.order.contactEmail,
+            recipientName: payment.order.contactFullName,
+            deliveryReference: updatedOrder.deliveryReference,
+          };
+        }
+
+        await transactionClient.paymentWebhookDelivery.update({
+          where: { id: delivery.id },
+          data: {
+            paymentId: payment.id,
+            processedAt,
+            status: 'PROCESSED',
+          },
+        });
+
+        return nextNotificationContext;
+      },
+    );
+
+    if (
+      notificationContext &&
+      this.notificationsService &&
+      shouldSendNotificationForMilestone(notificationContext.milestoneType)
+    ) {
+      await this.notificationsService.dispatchMilestoneNotification(
+        notificationContext,
+      );
+    }
 
     this.logger.logPaymentEvent('payment.webhook.processed', {
       eventId: input.eventId,

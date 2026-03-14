@@ -9,9 +9,11 @@ type PrismaTransactionClient = Pick<
   | 'productImage'
   | 'inventoryItem'
   | 'order'
+  | 'orderMilestone'
   | 'orderItem'
   | 'payment'
   | 'paymentWebhookDelivery'
+  | 'notificationDelivery'
   | 'user'
 >;
 
@@ -85,12 +87,20 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.orderItem;
   }
 
+  get orderMilestone() {
+    return this.client.orderMilestone;
+  }
+
   get payment() {
     return this.client.payment;
   }
 
   get paymentWebhookDelivery() {
     return this.client.paymentWebhookDelivery;
+  }
+
+  get notificationDelivery() {
+    return this.client.notificationDelivery;
   }
 
   get user() {

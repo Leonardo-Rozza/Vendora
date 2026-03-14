@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ApiError,
+  getOrderTracking,
   listAdminProducts,
   listAdminOrders,
   listCatalogProductCollection,
@@ -13,6 +14,7 @@ import {
   canStartCheckout,
   isWithinAmbaShippingScope,
   resolveCheckoutReferences,
+  resolveTrackingPath,
   toCheckoutErrorMessage,
   validateCheckoutForm,
 } from "../lib/commerce/checkout.ts";
@@ -37,7 +39,9 @@ test("checkout helper blocks duplicate submissions and empty carts", () => {
 
 test("checkout error helper preserves API validation messages", () => {
   assert.equal(
-    toCheckoutErrorMessage(new ApiError("Quantity must not be less than 1", 400)),
+    toCheckoutErrorMessage(
+      new ApiError("Quantity must not be less than 1", 400),
+    ),
     "Quantity must not be less than 1",
   );
   assert.equal(
@@ -56,6 +60,9 @@ test("checkout reference helper prefers redirect params and falls back to snapsh
       orderId: "order-saved",
       paymentId: "payment-saved",
       preferenceId: "pref-1",
+      trackingToken: "tracking-live",
+      trackingCode: "VEN-1234-5678-ABCD",
+      trackingUrlPath: "/seguimiento/tracking-live",
       itemCount: 1,
       totalAmount: "84900",
       currencyCode: "ARS",
@@ -75,6 +82,51 @@ test("checkout reference helper prefers redirect params and falls back to snapsh
     orderReference: null,
     paymentReference: null,
   });
+  assert.equal(
+    resolveTrackingPath(
+      withParams
+        ? {
+            orderId: "order-saved",
+            paymentId: "payment-saved",
+            preferenceId: "pref-1",
+            trackingToken: "tracking-live",
+            trackingCode: "VEN-1234-5678-ABCD",
+            trackingUrlPath: "/seguimiento/tracking-live",
+            itemCount: 1,
+            totalAmount: "84900",
+            currencyCode: "ARS",
+            submittedAt: "2026-03-13T00:00:00.000Z",
+          }
+        : null,
+    ),
+    "/seguimiento/tracking-live",
+  );
+});
+
+test("tracking helper requests the buyer-safe tracking endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({ orderId: "order-1", trackingToken: "tracking-1" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    await getOrderTracking("tracking-1");
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(seenRequests.length, 1);
+  assert.match(seenRequests[0]!.url, /\/orders\/tracking\/tracking-1$/);
 });
 
 test("checkout validation requires delivery fields and rejects non-AMBA destinations", () => {
@@ -98,7 +150,11 @@ test("checkout validation requires delivery fields and rejects non-AMBA destinat
   );
   assert.equal(validateCheckoutForm(validForm), null);
   assert.equal(
-    validateCheckoutForm({ ...validForm, locality: "Rosario", province: "Santa Fe" }),
+    validateCheckoutForm({
+      ...validForm,
+      locality: "Rosario",
+      province: "Santa Fe",
+    }),
     "Por ahora solo hacemos envios dentro de CABA y AMBA.",
   );
   assert.equal(
@@ -127,7 +183,10 @@ test("admin order helper appends fulfillment filters to the query string", async
   }
 
   assert.equal(seenRequests.length, 1);
-  assert.match(seenRequests[0]!.url, /\/admin\/orders\?fulfillmentStatus=PREPARING$/);
+  assert.match(
+    seenRequests[0]!.url,
+    /\/admin\/orders\?fulfillmentStatus=PREPARING$/,
+  );
   assert.equal(seenRequests[0]!.init?.credentials, "include");
 });
 
@@ -222,10 +281,13 @@ test("admin fulfillment helper sends a patch request with the transition payload
   global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     seenRequests.push({ url: String(input), init });
 
-    return new Response(JSON.stringify({ id: "order-1", fulfillmentStatus: "CONFIRMED" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ id: "order-1", fulfillmentStatus: "CONFIRMED" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }) as typeof global.fetch;
 
   try {
@@ -242,7 +304,10 @@ test("admin fulfillment helper sends a patch request with the transition payload
   assert.match(seenRequests[0]!.url, /\/admin\/orders\/order-1\/fulfillment$/);
   assert.equal(seenRequests[0]!.init?.method, "PATCH");
   assert.equal(seenRequests[0]!.init?.credentials, "include");
-  assert.match(String(seenRequests[0]!.init?.body), /"fulfillmentStatus":"CONFIRMED"/);
+  assert.match(
+    String(seenRequests[0]!.init?.body),
+    /"fulfillmentStatus":"CONFIRMED"/,
+  );
 });
 
 test("api helper resolves the configured API base url without a trailing slash", () => {

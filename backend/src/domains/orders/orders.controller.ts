@@ -13,6 +13,7 @@ import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersDto } from './dto/list-orders.dto';
 import { OrderParamsDto } from './dto/order-params.dto';
+import { OrderTrackingParamsDto } from './dto/order-tracking-params.dto';
 import { UpdateOrderFulfillmentDto } from './dto/update-order-fulfillment.dto';
 import { OrdersService } from './orders.service';
 
@@ -34,10 +35,23 @@ export class OrdersController {
   @Get('admin/orders/:orderId')
   @UseGuards(AdminSessionGuard)
   async getOrder(@Param() params: OrderParamsDto) {
-    const order = await this.ordersService.findOrderById(params.orderId);
+    const order = await this.ordersService.findAdminOrderById(params.orderId);
 
     if (!order) {
       throw new NotFoundException(`Order ${params.orderId} was not found`);
+    }
+
+    return order;
+  }
+
+  @Get('orders/tracking/:trackingToken')
+  async getOrderTracking(@Param() params: OrderTrackingParamsDto) {
+    const order = await this.ordersService.findOrderTrackingByToken(
+      params.trackingToken,
+    );
+
+    if (!order) {
+      throw new NotFoundException('Tracking reference was not found');
     }
 
     return order;

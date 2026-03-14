@@ -38,19 +38,37 @@ test('Mercado Pago provider includes storefront return URL wiring', () => {
 });
 
 test('storefront scope stays free of excluded backend domains', () => {
-  assert.equal(fs.existsSync(path.join(process.cwd(), 'src/domains/shipping')), false);
-  assert.equal(fs.existsSync(path.join(process.cwd(), 'src/domains/discounts')), false);
-  assert.equal(fs.existsSync(path.join(process.cwd(), 'src/domains/reviews')), false);
-  assert.equal(fs.existsSync(path.join(process.cwd(), 'src/domains/analytics')), false);
+  assert.equal(
+    fs.existsSync(path.join(process.cwd(), 'src/domains/shipping')),
+    false,
+  );
+  assert.equal(
+    fs.existsSync(path.join(process.cwd(), 'src/domains/discounts')),
+    false,
+  );
+  assert.equal(
+    fs.existsSync(path.join(process.cwd(), 'src/domains/reviews')),
+    false,
+  );
+  assert.equal(
+    fs.existsSync(path.join(process.cwd(), 'src/domains/analytics')),
+    false,
+  );
 });
 
 test('admin auth and authorization wiring exists for protected operations', () => {
   const authController = readProjectFile('src/domains/auth/auth.controller.ts');
   const authService = readProjectFile('src/domains/auth/auth.service.ts');
   const configureApp = readProjectFile('src/platform/configure-app.ts');
-  const appConfigService = readProjectFile('src/platform/config/app-config.service.ts');
-  const adminCatalogController = readProjectFile('src/domains/catalog/admin-catalog.controller.ts');
-  const inventoryController = readProjectFile('src/domains/inventory/inventory.controller.ts');
+  const appConfigService = readProjectFile(
+    'src/platform/config/app-config.service.ts',
+  );
+  const adminCatalogController = readProjectFile(
+    'src/domains/catalog/admin-catalog.controller.ts',
+  );
+  const inventoryController = readProjectFile(
+    'src/domains/inventory/inventory.controller.ts',
+  );
 
   assert.match(authController, /@Controller\('admin\/auth'\)/);
   assert.match(authController, /@Post\('login'\)/);
@@ -66,13 +84,18 @@ test('admin auth and authorization wiring exists for protected operations', () =
 });
 
 test('order intake captures buyer fulfillment data and enforces AMBA shipping scope', () => {
-  const orderDto = readProjectFile('src/domains/orders/dto/create-order.dto.ts');
+  const orderDto = readProjectFile(
+    'src/domains/orders/dto/create-order.dto.ts',
+  );
   const ordersService = readProjectFile('src/domains/orders/orders.service.ts');
   const ambaScope = readProjectFile('src/domains/orders/amba-shipping.ts');
 
   assert.match(orderDto, /contact!:/);
   assert.match(orderDto, /shippingAddress!:/);
-  assert.match(ordersService, /Shipping is currently limited to AMBA destinations/);
+  assert.match(
+    ordersService,
+    /Shipping is currently limited to AMBA destinations/,
+  );
   assert.match(ordersService, /contactFullName/);
   assert.match(ordersService, /shippingRecipientName/);
   assert.match(ambaScope, /AMBA_LOCALITIES/);
@@ -81,17 +104,64 @@ test('order intake captures buyer fulfillment data and enforces AMBA shipping sc
 
 test('fulfillment operations add a separate AMBA admin workflow', () => {
   const schema = readProjectFile('prisma/schema.prisma');
-  const ordersController = readProjectFile('src/domains/orders/orders.controller.ts');
+  const ordersController = readProjectFile(
+    'src/domains/orders/orders.controller.ts',
+  );
   const ordersService = readProjectFile('src/domains/orders/orders.service.ts');
-  const fulfillmentHelpers = readProjectFile('src/domains/orders/fulfillment-status.ts');
+  const fulfillmentHelpers = readProjectFile(
+    'src/domains/orders/fulfillment-status.ts',
+  );
 
   assert.match(schema, /enum FulfillmentStatus/);
   assert.match(schema, /fulfillmentStatus\s+FulfillmentStatus/);
   assert.match(schema, /fulfillmentNotes\s+String\?/);
   assert.match(schema, /deliveryReference\s+String\?/);
-  assert.match(ordersController, /@Patch\('admin\/orders\/:orderId\/fulfillment'\)/);
+  assert.match(
+    ordersController,
+    /@Patch\('admin\/orders\/:orderId\/fulfillment'\)/,
+  );
   assert.match(ordersService, /updateOrderFulfillment/);
   assert.match(ordersService, /must be paid before fulfillment can advance/);
   assert.match(fulfillmentHelpers, /NEXT_FULFILLMENT_STATUS/);
   assert.match(fulfillmentHelpers, /OUT_FOR_DELIVERY/);
+});
+
+test('order tracking foundation adds opaque tracking fields and notification plumbing', () => {
+  const schema = readProjectFile('prisma/schema.prisma');
+  const trackingHelpers = readProjectFile(
+    'src/domains/orders/tracking-token.ts',
+  );
+  const trackingMapper = readProjectFile(
+    'src/domains/orders/order-tracking.mapper.ts',
+  );
+  const ordersController = readProjectFile(
+    'src/domains/orders/orders.controller.ts',
+  );
+  const ordersService = readProjectFile('src/domains/orders/orders.service.ts');
+  const paymentsService = readProjectFile(
+    'src/domains/payments/payments.service.ts',
+  );
+  const notificationsService = readProjectFile(
+    'src/domains/notifications/notifications.service.ts',
+  );
+  const emailProvider = readProjectFile(
+    'src/domains/notifications/providers/email-notification.provider.ts',
+  );
+
+  assert.match(schema, /trackingToken\s+String\?/);
+  assert.match(schema, /trackingTokenHash\s+String\?/);
+  assert.match(schema, /trackingCode\s+String\?/);
+  assert.match(schema, /model OrderMilestone \{/);
+  assert.match(schema, /model NotificationDelivery \{/);
+  assert.match(trackingHelpers, /createOrderTrackingToken/);
+  assert.match(trackingHelpers, /hashOrderTrackingToken/);
+  assert.match(trackingMapper, /mapOrderToTrackingResponse/);
+  assert.match(trackingMapper, /PAGO_PENDIENTE/);
+  assert.match(ordersController, /@Get\('orders\/tracking\/:trackingToken'\)/);
+  assert.match(ordersService, /findOrderTrackingByToken/);
+  assert.match(ordersService, /dispatchMilestoneNotification/);
+  assert.match(paymentsService, /PAYMENT_CONFIRMED/);
+  assert.match(notificationsService, /sendOrderMilestoneEmail/);
+  assert.match(notificationsService, /dispatchMilestoneNotification/);
+  assert.match(emailProvider, /notification\.email\.skipped_unconfigured/);
 });

@@ -52,6 +52,29 @@ enum WebhookDeliveryStatus {
   IGNORED
 }
 
+enum OrderMilestoneType {
+  ORDER_CREATED
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  FULFILLMENT_CONFIRMED
+  FULFILLMENT_PREPARING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  ORDER_CANCELLED
+}
+
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 enum UserRole {
   CUSTOMER
   ADMIN
@@ -129,6 +152,9 @@ model Order {
   userId                String?
   status                OrderStatus @default(DRAFT)
   fulfillmentStatus     FulfillmentStatus @default(REQUESTED)
+  trackingToken         String?     @unique
+  trackingTokenHash     String?     @unique
+  trackingCode          String?     @unique
   currencyCode          String      @db.Char(3)
   subtotalAmount        Decimal     @db.Decimal(10, 2)
   totalAmount           Decimal     @db.Decimal(10, 2)
@@ -149,6 +175,8 @@ model Order {
   isLocked              Boolean     @default(false)
   user                  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items                 OrderItem[]
+  milestones            OrderMilestone[]
+  notificationDeliveries NotificationDelivery[]
   payments              Payment[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
@@ -209,4 +237,44 @@ model PaymentWebhookDelivery {
 
   @@unique([provider, providerEventId])
   @@index([paymentId])
+}
+
+model OrderMilestone {
+  id            String             @id @default(cuid())
+  orderId       String
+  type          OrderMilestoneType
+  title         String
+  description   String?
+  metadata      Json?
+  occurredAt    DateTime           @default(now())
+  order         Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  notifications NotificationDelivery[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([orderId, occurredAt])
+  @@index([type])
+}
+
+model NotificationDelivery {
+  id                String                     @id @default(cuid())
+  orderId           String
+  milestoneId       String?
+  channel           NotificationChannel
+  recipient         String
+  provider          String?
+  providerMessageId String?
+  status            NotificationDeliveryStatus @default(PENDING)
+  payload           Json?
+  errorMessage      String?
+  sentAt            DateTime?
+  failedAt          DateTime?
+  order             Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  milestone         OrderMilestone?            @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  @@index([orderId])
+  @@index([milestoneId])
+  @@index([status])
 }

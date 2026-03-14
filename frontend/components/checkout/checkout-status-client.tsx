@@ -4,12 +4,19 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
-import { resolveCheckoutReferences } from "@/lib/commerce/checkout";
+import {
+  resolveCheckoutReferences,
+  resolveTrackingPath,
+} from "@/lib/commerce/checkout";
 import { formatItemCount, formatMoney } from "@/lib/commerce/format";
 import type { CheckoutStatusRoute } from "@/lib/contracts";
 import { appCopy } from "@/lib/copy/es-ar";
 
-export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }) {
+export function CheckoutStatusClient({
+  status,
+}: {
+  status: CheckoutStatusRoute;
+}) {
   const searchParams = useSearchParams();
   const { cartState, clearCart } = useCommerce();
   const content = appCopy.checkoutStatus[status];
@@ -18,6 +25,7 @@ export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }
     searchParams,
     snapshot: cartState.lastCheckout,
   });
+  const trackingPath = resolveTrackingPath(cartState.lastCheckout);
 
   useEffect(() => {
     if (status === "success") {
@@ -34,7 +42,9 @@ export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[var(--ink-strong)]">
           {content.title}
         </h1>
-        <p className="mt-4 text-sm leading-7 text-[var(--ink-muted)]">{content.description}</p>
+        <p className="mt-4 text-sm leading-7 text-[var(--ink-muted)]">
+          {content.description}
+        </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
@@ -57,15 +67,36 @@ export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }
 
         {cartState.lastCheckout ? (
           <div className="mt-4 rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5 text-sm text-[var(--ink-muted)]">
-            {copy.snapshotLabel}: {formatItemCount(cartState.lastCheckout.itemCount)} · {formatMoney(cartState.lastCheckout.totalAmount, cartState.lastCheckout.currencyCode)}
+            {copy.snapshotLabel}:{" "}
+            {formatItemCount(cartState.lastCheckout.itemCount)} ·{" "}
+            {formatMoney(
+              cartState.lastCheckout.totalAmount,
+              cartState.lastCheckout.currencyCode,
+            )}
           </div>
         ) : null}
 
+        <div className="mt-6 rounded-[1.5rem] border border-[var(--line-soft)] bg-[linear-gradient(160deg,rgba(210,120,55,0.1),rgba(24,80,104,0.07))] p-5 text-sm text-[var(--ink-muted)]">
+          <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
+            {copy.trackingCardTitle}
+          </p>
+          <p className="mt-3 leading-7">{copy.trackingCardDescription}</p>
+          <p className="mt-3 text-xs text-[var(--ink-soft)]">
+            {trackingPath ? trackingPath : copy.trackingPendingHint}
+          </p>
+        </div>
+
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link className="rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)]" href={content.actionHref}>
-            {content.actionLabel}
+          <Link
+            className="rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)]"
+            href={trackingPath ?? content.actionHref}
+          >
+            {trackingPath ? copy.trackingButton : content.actionLabel}
           </Link>
-          <Link className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)]" href="/">
+          <Link
+            className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)]"
+            href="/"
+          >
             {copy.browseCatalog}
           </Link>
         </div>

@@ -60,7 +60,12 @@ export function validateCheckoutForm(form: CheckoutFormState) {
     return "Completa los datos de contacto y entrega antes de continuar.";
   }
 
-  if (!isWithinAmbaShippingScope({ locality: form.locality, province: form.province })) {
+  if (
+    !isWithinAmbaShippingScope({
+      locality: form.locality,
+      province: form.province,
+    })
+  ) {
     return "Por ahora solo hacemos envios dentro de CABA y AMBA.";
   }
 
@@ -97,6 +102,18 @@ export function resolveCheckoutReferences(options: {
       options.snapshot?.paymentId ??
       null,
   };
+}
+
+export function resolveTrackingPath(snapshot: CheckoutSnapshot | null) {
+  if (snapshot?.trackingUrlPath) {
+    return snapshot.trackingUrlPath;
+  }
+
+  if (snapshot?.trackingToken) {
+    return `/seguimiento/${snapshot.trackingToken}`;
+  }
+
+  return null;
 }
 
 export function isWithinAmbaShippingScope(input: {

@@ -5,24 +5,22 @@ import type {
   AdminSession,
   CatalogCollectionResponse,
   CatalogFilters,
-   CatalogProductCard,
-   CatalogProductDetail,
-   CheckoutPreferenceResponse,
-   CreateCheckoutPreferenceRequest,
-   CreateOrderRequest,
-   ListAdminProductsQuery,
-   CreatedOrder,
-   ListAdminOrdersQuery,
-   UpdateAdminOrderFulfillmentRequest,
+  CatalogProductCard,
+  CatalogProductDetail,
+  CheckoutPreferenceResponse,
+  CreateCheckoutPreferenceRequest,
+  CreateOrderRequest,
+  ListAdminProductsQuery,
+  CreatedOrder,
+  ListAdminOrdersQuery,
+  OrderTrackingView,
+  UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 
 export class ApiError extends Error {
   readonly status: number;
 
-  constructor(
-    message: string,
-    status: number,
-  ) {
+  constructor(message: string, status: number) {
     super(message);
     this.status = status;
   }
@@ -52,7 +50,9 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     let message = `Request failed with status ${response.status}`;
 
     try {
-      const payload = (await response.json()) as { message?: string | string[] };
+      const payload = (await response.json()) as {
+        message?: string | string[];
+      };
       if (Array.isArray(payload.message)) {
         message = payload.message.join(", ");
       } else if (payload.message) {
@@ -68,7 +68,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function requestAdminJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function requestAdminJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   return requestJson<T>(path, {
     ...init,
     credentials: "include",
@@ -96,7 +99,11 @@ export function normalizeCatalogProductCard(
   };
 }
 
-function appendSearchParam(searchParams: URLSearchParams, key: string, value?: string) {
+function appendSearchParam(
+  searchParams: URLSearchParams,
+  key: string,
+  value?: string,
+) {
   const normalizedValue = value?.trim();
 
   if (normalizedValue) {
@@ -112,14 +119,24 @@ function resolveCatalogFilters(filters?: string | CatalogFilters) {
   return filters ?? {};
 }
 
-export async function listCatalogProductCollection(filters?: string | CatalogFilters) {
+export async function listCatalogProductCollection(
+  filters?: string | CatalogFilters,
+) {
   const resolvedFilters = resolveCatalogFilters(filters);
   const searchParams = new URLSearchParams();
 
   appendSearchParam(searchParams, "query", resolvedFilters.query);
   appendSearchParam(searchParams, "category", resolvedFilters.category);
-  appendSearchParam(searchParams, "minPriceAmount", resolvedFilters.minPriceAmount);
-  appendSearchParam(searchParams, "maxPriceAmount", resolvedFilters.maxPriceAmount);
+  appendSearchParam(
+    searchParams,
+    "minPriceAmount",
+    resolvedFilters.minPriceAmount,
+  );
+  appendSearchParam(
+    searchParams,
+    "maxPriceAmount",
+    resolvedFilters.maxPriceAmount,
+  );
   appendSearchParam(searchParams, "sort", resolvedFilters.sort);
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
@@ -143,13 +160,20 @@ export function createOrder(payload: CreateOrderRequest) {
   });
 }
 
+export function getOrderTracking(trackingToken: string) {
+  return requestJson<OrderTrackingView>(`/orders/tracking/${trackingToken}`);
+}
+
 export function createCheckoutPreference(
   payload: CreateCheckoutPreferenceRequest,
 ) {
-  return requestJson<CheckoutPreferenceResponse>("/payments/checkout-preferences", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return requestJson<CheckoutPreferenceResponse>(
+    "/payments/checkout-preferences",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function loginAdmin(payload: { email: string; password: string }) {
@@ -188,11 +212,17 @@ export function createAdminProduct(payload: AdminProductInput) {
   });
 }
 
-export function updateAdminProduct(productId: string, payload: Partial<AdminProductInput>) {
-  return requestAdminJson<AdminProduct>(`/admin/catalog/products/${productId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+export function updateAdminProduct(
+  productId: string,
+  payload: Partial<AdminProductInput>,
+) {
+  return requestAdminJson<AdminProduct>(
+    `/admin/catalog/products/${productId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function listAdminOrders(query: ListAdminOrdersQuery = {}) {

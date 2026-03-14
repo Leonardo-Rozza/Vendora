@@ -19,6 +19,14 @@ type CloudinaryConfig = {
   apiSecret: string;
 };
 
+type NotificationEmailConfig = {
+  apiBaseUrl: string;
+  apiKey: string;
+  fromEmail: string;
+  fromName: string | null;
+  replyToEmail: string | null;
+};
+
 export class ConfigurationUnavailableError extends Error {
   constructor(capability: string, reason: string) {
     super(`${capability} is not configured: ${reason}`);
@@ -192,10 +200,33 @@ export class AppConfigService {
     return { configured: true };
   }
 
+  get notificationEmailStatus(): CapabilityStatus {
+    const apiKey = this.configService.get<string>('NOTIFICATION_EMAIL_API_KEY');
+    const fromEmail = this.configService.get<string>('NOTIFICATION_EMAIL_FROM');
+
+    if (!apiKey && !fromEmail) {
+      return {
+        configured: false,
+        reason: 'Missing notification email credentials',
+      };
+    }
+
+    if (!apiKey || !fromEmail) {
+      return {
+        configured: false,
+        reason:
+          'Notification email requires both NOTIFICATION_EMAIL_API_KEY and NOTIFICATION_EMAIL_FROM',
+      };
+    }
+
+    return { configured: true };
+  }
+
   getCapabilitySummary(): Record<string, CapabilityStatus> {
     return {
       database: this.databaseStatus,
       mercadoPago: this.mercadoPagoStatus,
+      notificationEmail: this.notificationEmailStatus,
       cloudinary: this.cloudinaryStatus,
     };
   }
@@ -249,6 +280,33 @@ export class AppConfigService {
       cloudName: this.configService.getOrThrow<string>('CLOUDINARY_CLOUD_NAME'),
       apiKey: this.configService.getOrThrow<string>('CLOUDINARY_API_KEY'),
       apiSecret: this.configService.getOrThrow<string>('CLOUDINARY_API_SECRET'),
+    };
+  }
+
+  requireNotificationEmailConfig(): NotificationEmailConfig {
+    const status = this.notificationEmailStatus;
+
+    if (!status.configured) {
+      throw new ConfigurationUnavailableError(
+        'notificationEmail',
+        status.reason ?? 'Unknown reason',
+      );
+    }
+
+    return {
+      apiBaseUrl:
+        this.configService.get<string>('NOTIFICATION_EMAIL_API_BASE_URL') ??
+        'https://api.resend.com',
+      apiKey: this.configService.getOrThrow<string>(
+        'NOTIFICATION_EMAIL_API_KEY',
+      ),
+      fromEmail: this.configService.getOrThrow<string>(
+        'NOTIFICATION_EMAIL_FROM',
+      ),
+      fromName:
+        this.configService.get<string>('NOTIFICATION_EMAIL_FROM_NAME') ?? null,
+      replyToEmail:
+        this.configService.get<string>('NOTIFICATION_EMAIL_REPLY_TO') ?? null,
     };
   }
 

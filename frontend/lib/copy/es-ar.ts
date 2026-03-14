@@ -29,7 +29,8 @@ export const appCopy = {
   },
   storefrontCatalog: {
     heroEyebrow: "Tienda MVP en marcha",
-    heroTitle: "Explora productos reales con filtros claros y una navegacion simple.",
+    heroTitle:
+      "Explora productos reales con filtros claros y una navegacion simple.",
     heroDescription:
       "Vendora prioriza descubrir rapido por categoria, precio y busqueda sin perder el acceso al carrito ni al detalle de producto.",
     searchPlaceholder: "Buscar por producto o SKU",
@@ -73,7 +74,8 @@ export const appCopy = {
   productDetail: {
     missingEyebrow: "Producto no disponible",
     missingTitle: "Este producto ya no aparece en el catalogo activo.",
-    missingDescription: "Vuelve al catalogo para seguir explorando opciones disponibles.",
+    missingDescription:
+      "Vuelve al catalogo para seguir explorando opciones disponibles.",
     backToCatalog: "Volver al catalogo",
     temporaryError: "No pudimos cargar el detalle del producto.",
     reviewCart: "Ver carrito",
@@ -96,7 +98,8 @@ export const appCopy = {
   cart: {
     emptyEyebrow: "Carrito listo para empezar",
     emptyTitle: "Tu carrito esta vacio.",
-    emptyDescription: "Explora el catalogo y agrega al menos una variante para preparar el checkout.",
+    emptyDescription:
+      "Explora el catalogo y agrega al menos una variante para preparar el checkout.",
     returnToCatalog: "Volver al catalogo",
     eyebrow: "Resumen de compra",
     title: "Revisa tus productos y confirma el envio antes de pagar.",
@@ -139,30 +142,61 @@ export const appCopy = {
     success: {
       eyebrow: "Pago enviado correctamente",
       title: "Tu pago fue enviado a validacion.",
-      description: "La confirmacion final sigue llegando por webhook, pero el pedido ya quedo registrado y el flujo de pago se completo correctamente.",
-      actionLabel: "Volver al catalogo",
+      description:
+        "La confirmacion final sigue llegando por webhook, pero el pedido ya quedo registrado y el flujo de pago se completo correctamente.",
+      actionLabel: "Seguir mi pedido",
       actionHref: "/",
     },
     pending: {
       eyebrow: "Pago en revision",
       title: "Mercado Pago todavia esta procesando la confirmacion.",
-      description: "Guarda la referencia del pedido y espera la actualizacion final del pago.",
-      actionLabel: "Revisar carrito",
-      actionHref: "/cart",
+      description:
+        "Guarda la referencia del pedido y espera la actualizacion final del pago.",
+      actionLabel: "Ver seguimiento",
+      actionHref: "/",
     },
     failure: {
       eyebrow: "Pago no completado",
       title: "El pago no pudo completarse.",
-      description: "Puedes volver al carrito, revisar tus datos y reintentar cuando quieras.",
+      description:
+        "Puedes volver al carrito, revisar tus datos y reintentar cuando quieras.",
       actionLabel: "Volver al carrito",
       actionHref: "/cart",
     },
     orderReference: "Referencia del pedido",
     paymentReference: "Referencia del pago",
     snapshotLabel: "Ultimo checkout guardado",
+    trackingCardTitle: "Seguimiento disponible",
+    trackingCardDescription:
+      "Usa este acceso para revisar el estado del pedido sin crear una cuenta.",
+    trackingButton: "Abrir seguimiento",
+    trackingPendingHint:
+      "El enlace de seguimiento queda disponible apenas Vendora confirma la referencia del pedido.",
     fallbackOrder: "Disponible cuando llegue la redireccion",
     fallbackPayment: "Sin referencia informada en la redireccion",
     browseCatalog: "Explorar catalogo",
+  },
+  orderTracking: {
+    eyebrow: "Seguimiento del pedido",
+    title: "Sigue tu compra paso a paso.",
+    description:
+      "Vendora te muestra el progreso comercial y operativo del pedido con un resumen claro, pensado para revisar rapido desde el celular o la compu.",
+    summaryTitle: "Resumen visible",
+    statusLabel: "Estado actual",
+    deliveryReference: "Referencia de entrega",
+    orderCode: "Codigo de seguimiento",
+    orderDate: "Pedido creado",
+    paidAt: "Pago confirmado",
+    itemCount: "Items",
+    itemsTitle: "Contenido del pedido",
+    timelineTitle: "Linea de tiempo",
+    trackingCta: "Abrir enlace de seguimiento",
+    continueShopping: "Volver a la tienda",
+    missingReference: "A confirmar",
+    missingEyebrow: "Seguimiento no disponible",
+    missingTitle: "No encontramos ese seguimiento.",
+    missingDescription:
+      "Revisa que el enlace este completo o vuelve al ultimo correo/transaccion para abrir el seguimiento correcto.",
   },
   adminLogin: {
     eyebrow: "Acceso administrativo",
@@ -231,7 +265,8 @@ export const appCopy = {
     imageKey: "Clave del asset en Cloudinary",
     imageAlt: "Texto alternativo",
     imageSortOrder: "Orden",
-    helper: "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",
+    helper:
+      "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",
     saving: "Guardando producto...",
     saveChanges: "Guardar cambios",
     createProduct: "Crear producto",
@@ -260,9 +295,14 @@ export const appCopy = {
     advancing: "Actualizando...",
     done: "Fulfillment completo",
     waitPayment: "Espera pago antes de avanzar",
-    cannotCancelPaid: "Los pedidos pagos quedan bloqueados para mantener la integridad del flujo.",
+    cannotCancelPaid:
+      "Los pedidos pagos quedan bloqueados para mantener la integridad del flujo.",
     orderItems: "Contenido del pedido",
     currentNote: "Nota actual",
+    buyerTracking: "Cliente",
+    trackingLink: "Seguimiento publico",
+    openTracking: "Abrir tracking",
+    trackingCode: "Codigo tracking",
   },
 };
 

@@ -6,11 +6,14 @@ import {
 } from '@nestjs/common';
 import {
   FulfillmentStatus as PrismaFulfillmentStatus,
+  OrderMilestoneType,
   OrderStatus as PrismaOrderStatus,
   Prisma,
   ProductStatus,
 } from '@prisma/client';
+import { Optional } from '@nestjs/common';
 import { InventoryService } from '../inventory/inventory.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { isWithinAmbaShippingScope } from './amba-shipping';
@@ -19,6 +22,14 @@ import {
   getNextFulfillmentStatus,
   isValidNextFulfillmentStatus,
 } from './fulfillment-status';
+import {
+  buildTrackingUrlPath,
+  createMilestoneContent,
+  mapOrderToAdminTrackingMetadata,
+  mapOrderToTrackingResponse,
+  shouldSendNotificationForMilestone,
+} from './order-tracking.mapper';
+import { createOrderTrackingToken } from './tracking-token';
 
 const ORDER_INCLUDE = {
   items: true,
@@ -26,11 +37,32 @@ const ORDER_INCLUDE = {
   user: true,
 } as const;
 
+const ADMIN_ORDER_INCLUDE = {
+  ...ORDER_INCLUDE,
+  milestones: {
+    orderBy: {
+      occurredAt: 'asc',
+    },
+  },
+} as const;
+
+const TRACKING_ORDER_INCLUDE = {
+  items: true,
+  payments: true,
+  milestones: {
+    orderBy: {
+      occurredAt: 'asc',
+    },
+  },
+} as const;
+
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   findOrderById(id: string) {
@@ -44,19 +76,55 @@ export class OrdersService {
     status?: PrismaOrderStatus,
     fulfillmentStatus?: PrismaFulfillmentStatus,
   ) {
-    return this.prisma.order.findMany({
-      where:
-        status || fulfillmentStatus
-          ? {
-              ...(status ? { status } : {}),
-              ...(fulfillmentStatus ? { fulfillmentStatus } : {}),
-            }
-          : undefined,
-      include: ORDER_INCLUDE,
-      orderBy: {
-        createdAt: 'desc',
-      },
+    return this.prisma.order
+      .findMany({
+        where:
+          status || fulfillmentStatus
+            ? {
+                ...(status ? { status } : {}),
+                ...(fulfillmentStatus ? { fulfillmentStatus } : {}),
+              }
+            : undefined,
+        include: ADMIN_ORDER_INCLUDE,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+      .then((orders) =>
+        orders.map((order) => ({
+          ...order,
+          ...mapOrderToAdminTrackingMetadata(order),
+        })),
+      );
+  }
+
+  async findAdminOrderById(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: ADMIN_ORDER_INCLUDE,
     });
+
+    if (!order) {
+      return null;
+    }
+
+    return {
+      ...order,
+      ...mapOrderToAdminTrackingMetadata(order),
+    };
+  }
+
+  async findOrderTrackingByToken(trackingToken: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { trackingToken },
+      include: TRACKING_ORDER_INCLUDE,
+    });
+
+    if (!order) {
+      return null;
+    }
+
+    return mapOrderToTrackingResponse(order);
   }
 
   async createOrder(input: CreateOrderDto) {
@@ -124,14 +192,19 @@ export class OrdersService {
       );
     }
 
+    const tracking = createOrderTrackingToken();
+
     return this.prisma.$transaction(async (client) => {
       await this.inventoryService.reserveItems(client, aggregatedItems);
 
-      return client.order.create({
+      const createdOrder = await client.order.create({
         data: {
           userId: input.userId,
           status: PrismaOrderStatus.PENDING_PAYMENT,
           fulfillmentStatus: PrismaFulfillmentStatus.REQUESTED,
+          trackingToken: tracking.token,
+          trackingTokenHash: tracking.tokenHash,
+          trackingCode: tracking.trackingCode,
           currencyCode,
           subtotalAmount,
           totalAmount: subtotalAmount,
@@ -163,6 +236,22 @@ export class OrdersService {
         },
         include: ORDER_INCLUDE,
       });
+
+      await this.createMilestone(client, {
+        orderId: createdOrder.id,
+        type: OrderMilestoneType.ORDER_CREATED,
+      });
+      await this.createMilestone(client, {
+        orderId: createdOrder.id,
+        type: OrderMilestoneType.PAYMENT_PENDING,
+      });
+
+      return {
+        ...createdOrder,
+        trackingToken: tracking.token,
+        trackingCode: tracking.trackingCode,
+        trackingUrlPath: buildTrackingUrlPath(tracking.token),
+      };
     });
   }
 
@@ -187,13 +276,20 @@ export class OrdersService {
     return this.prisma.$transaction(async (client) => {
       await this.inventoryService.releaseReservationForOrder(client, orderId);
 
-      return client.order.update({
+      const updatedOrder = await client.order.update({
         where: { id: orderId },
         data: {
           status: PrismaOrderStatus.CANCELLED,
         },
         include: ORDER_INCLUDE,
       });
+
+      await this.createMilestone(client, {
+        orderId,
+        type: OrderMilestoneType.ORDER_CANCELLED,
+      });
+
+      return updatedOrder;
     });
   }
 
@@ -236,13 +332,120 @@ export class OrdersService {
       );
     }
 
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: {
-        fulfillmentStatus: input.fulfillmentStatus,
-        ...this.buildFulfillmentMetadataUpdate(input),
+    const metadataUpdate = this.buildFulfillmentMetadataUpdate(input);
+
+    const { updatedOrder, milestone } = await this.prisma.$transaction(
+      async (client) => {
+        const nextOrder = await client.order.update({
+          where: { id: orderId },
+          data: {
+            fulfillmentStatus: input.fulfillmentStatus,
+            ...metadataUpdate,
+          },
+          include: ORDER_INCLUDE,
+        });
+
+        const createdMilestone = await this.createMilestone(client, {
+          orderId,
+          type: this.mapFulfillmentToMilestoneType(input.fulfillmentStatus),
+          metadata: {
+            deliveryReference:
+              metadataUpdate.deliveryReference ?? nextOrder.deliveryReference,
+          },
+        });
+
+        return {
+          updatedOrder: nextOrder,
+          milestone: createdMilestone,
+        };
       },
-      include: ORDER_INCLUDE,
+    );
+
+    await this.maybeNotifyForMilestone(updatedOrder, milestone);
+
+    return {
+      ...updatedOrder,
+      ...mapOrderToAdminTrackingMetadata(updatedOrder),
+    };
+  }
+
+  private async maybeNotifyForMilestone(
+    order: {
+      id: string;
+      contactEmail: string;
+      contactFullName: string;
+      trackingToken: string | null;
+      trackingCode: string | null;
+      deliveryReference: string | null;
+    },
+    milestone: {
+      id: string;
+      type: OrderMilestoneType;
+    },
+  ) {
+    if (
+      !this.notificationsService ||
+      !shouldSendNotificationForMilestone(milestone.type)
+    ) {
+      return;
+    }
+
+    await this.notificationsService.dispatchMilestoneNotification({
+      orderId: order.id,
+      milestoneId: milestone.id,
+      milestoneType: milestone.type,
+      trackingToken: order.trackingToken,
+      trackingCode: order.trackingCode,
+      recipientEmail: order.contactEmail,
+      recipientName: order.contactFullName,
+      deliveryReference: order.deliveryReference,
+    });
+  }
+
+  private mapFulfillmentToMilestoneType(status: PrismaFulfillmentStatus) {
+    switch (status) {
+      case PrismaFulfillmentStatus.CONFIRMED:
+        return OrderMilestoneType.FULFILLMENT_CONFIRMED;
+      case PrismaFulfillmentStatus.PREPARING:
+        return OrderMilestoneType.FULFILLMENT_PREPARING;
+      case PrismaFulfillmentStatus.READY_FOR_DELIVERY:
+        return OrderMilestoneType.READY_FOR_DELIVERY;
+      case PrismaFulfillmentStatus.OUT_FOR_DELIVERY:
+        return OrderMilestoneType.OUT_FOR_DELIVERY;
+      case PrismaFulfillmentStatus.DELIVERED:
+        return OrderMilestoneType.DELIVERED;
+      case PrismaFulfillmentStatus.REQUESTED:
+        return OrderMilestoneType.ORDER_CREATED;
+      default:
+        return OrderMilestoneType.ORDER_CREATED;
+    }
+  }
+
+  private createMilestone(
+    client: {
+      orderMilestone: {
+        create(args: unknown): Promise<{
+          id: string;
+          type: OrderMilestoneType;
+        }>;
+      };
+    },
+    input: {
+      orderId: string;
+      type: OrderMilestoneType;
+      metadata?: Prisma.InputJsonValue;
+    },
+  ) {
+    const content = createMilestoneContent(input.type);
+
+    return client.orderMilestone.create({
+      data: {
+        orderId: input.orderId,
+        type: input.type,
+        title: content.title,
+        description: content.description,
+        ...(input.metadata ? { metadata: input.metadata } : {}),
+      },
     });
   }
 

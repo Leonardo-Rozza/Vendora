@@ -1,4 +1,8 @@
-export const PRODUCT_CATEGORIES = ["ELECTRONICA", "HOGAR", "ACCESORIOS"] as const;
+export const PRODUCT_CATEGORIES = [
+  "ELECTRONICA",
+  "HOGAR",
+  "ACCESORIOS",
+] as const;
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
@@ -105,11 +109,23 @@ export type CheckoutSnapshot = {
   orderId: string;
   paymentId?: string;
   preferenceId?: string;
+  trackingToken?: string;
+  trackingCode?: string;
+  trackingUrlPath?: string;
   itemCount: number;
   totalAmount: string;
   currencyCode: string;
   submittedAt: string;
 };
+
+export type BuyerTrackingStatus =
+  | "PAGO_PENDIENTE"
+  | "PAGO_CONFIRMADO"
+  | "PREPARANDO_PEDIDO"
+  | "LISTO_PARA_ENTREGA"
+  | "EN_CAMINO"
+  | "ENTREGADO"
+  | "CANCELADO";
 
 export type CartState = {
   lines: CartLine[];
@@ -157,6 +173,9 @@ export type CheckoutFormState = {
 export type CreatedOrder = {
   id: string;
   status: string;
+  trackingToken: string | null;
+  trackingCode: string | null;
+  trackingUrlPath: string | null;
   currencyCode: string;
   subtotalAmount: string;
   totalAmount: string;
@@ -288,6 +307,12 @@ export type AdminOrder = {
   id: string;
   status: string;
   fulfillmentStatus: FulfillmentStatus;
+  trackingToken?: string | null;
+  trackingCode?: string | null;
+  trackingUrlPath?: string | null;
+  buyerTrackingStatus?: BuyerTrackingStatus;
+  buyerTrackingLabel?: string;
+  buyerTrackingDescription?: string;
   currencyCode: string;
   subtotalAmount: string;
   totalAmount: string;
@@ -319,5 +344,37 @@ export type AdminOrder = {
     id?: string;
     status: string;
     provider?: string;
+  }>;
+};
+
+export type OrderTrackingMilestone = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  occurredAt: string;
+  deliveryReference: string | null;
+};
+
+export type OrderTrackingView = {
+  orderId: string;
+  trackingCode: string | null;
+  trackingToken: string | null;
+  trackingUrlPath: string | null;
+  status: BuyerTrackingStatus;
+  statusLabel: string;
+  statusDescription: string;
+  contactName: string;
+  itemCount: number;
+  totalAmount: string;
+  currencyCode: string;
+  paidAt: string | null;
+  createdAt: string;
+  deliveryReference: string | null;
+  timeline: OrderTrackingMilestone[];
+  items: Array<{
+    productName: string;
+    variantName: string;
+    quantity: number;
   }>;
 };

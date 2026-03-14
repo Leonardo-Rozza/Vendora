@@ -14,6 +14,11 @@ type EnvironmentVariables = {
   MERCADOPAGO_ACCESS_TOKEN?: string;
   MERCADOPAGO_WEBHOOK_SECRET?: string;
   NODE_ENV?: 'development' | 'test' | 'production';
+  NOTIFICATION_EMAIL_API_BASE_URL?: string;
+  NOTIFICATION_EMAIL_API_KEY?: string;
+  NOTIFICATION_EMAIL_FROM?: string;
+  NOTIFICATION_EMAIL_FROM_NAME?: string;
+  NOTIFICATION_EMAIL_REPLY_TO?: string;
   PORT?: number;
 };
 
@@ -56,6 +61,19 @@ export function validateEnvironment(
       config.MERCADOPAGO_WEBHOOK_SECRET,
     ),
     NODE_ENV: readNodeEnv(config.NODE_ENV),
+    NOTIFICATION_EMAIL_API_BASE_URL:
+      readOptionalUrl(config.NOTIFICATION_EMAIL_API_BASE_URL, ['https:']) ??
+      'https://api.resend.com',
+    NOTIFICATION_EMAIL_API_KEY: readOptionalString(
+      config.NOTIFICATION_EMAIL_API_KEY,
+    ),
+    NOTIFICATION_EMAIL_FROM: readOptionalEmail(config.NOTIFICATION_EMAIL_FROM),
+    NOTIFICATION_EMAIL_FROM_NAME: readOptionalString(
+      config.NOTIFICATION_EMAIL_FROM_NAME,
+    ),
+    NOTIFICATION_EMAIL_REPLY_TO: readOptionalEmail(
+      config.NOTIFICATION_EMAIL_REPLY_TO,
+    ),
     PORT: readPort(config.PORT),
   };
 
@@ -95,6 +113,22 @@ export function validateEnvironment(
     if (!value.ADMIN_INITIAL_EMAIL || !value.ADMIN_INITIAL_PASSWORD) {
       throw new Error(
         'Environment validation failed: Admin bootstrap requires both ADMIN_INITIAL_EMAIL and ADMIN_INITIAL_PASSWORD',
+      );
+    }
+  }
+
+  const hasNotificationEmailValue = [
+    config.NOTIFICATION_EMAIL_API_KEY,
+    config.NOTIFICATION_EMAIL_FROM,
+    config.NOTIFICATION_EMAIL_FROM_NAME,
+    config.NOTIFICATION_EMAIL_REPLY_TO,
+    config.NOTIFICATION_EMAIL_API_BASE_URL,
+  ].some((entry) => readOptionalString(entry) !== undefined);
+
+  if (hasNotificationEmailValue) {
+    if (!value.NOTIFICATION_EMAIL_API_KEY || !value.NOTIFICATION_EMAIL_FROM) {
+      throw new Error(
+        'Environment validation failed: Notification email configuration requires both NOTIFICATION_EMAIL_API_KEY and NOTIFICATION_EMAIL_FROM',
       );
     }
   }
