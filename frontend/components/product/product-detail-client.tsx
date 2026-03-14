@@ -113,6 +113,8 @@ export function ProductDetailClient({ slug }: { slug: string }) {
 
   const primaryImage = product.images[0] ?? null;
   const stockCopy = describeVariantStock(selectedVariant.availableQuantity, copy);
+  const isSelectedVariantUnavailable =
+    selectedVariant.availableQuantity !== undefined && selectedVariant.availableQuantity <= 0;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12">
@@ -136,7 +138,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               <img alt={primaryImage.altText ?? product.name} className="h-full w-full object-cover" src={primaryImage.assetUrl} />
             ) : (
               <div className="flex h-full items-end p-6 font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-strong)]">
-                Imagen pendiente
+                {copy.imagePending}
               </div>
             )}
           </div>
@@ -224,7 +226,8 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               </Link>
             </div>
             <button
-              className="rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5"
+              className="rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-55"
+              disabled={isSelectedVariantUnavailable}
               onClick={() => {
                 addToCart({
                   variantId: selectedVariant.id,
@@ -243,7 +246,7 @@ export function ProductDetailClient({ slug }: { slug: string }) {
               }}
               type="button"
             >
-              {copy.addToCart}
+              {isSelectedVariantUnavailable ? copy.unavailableCta : copy.addToCart}
             </button>
             {confirmation ? <p className="text-sm text-white/76">{confirmation}</p> : null}
           </div>

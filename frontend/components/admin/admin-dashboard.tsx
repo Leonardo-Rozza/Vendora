@@ -54,7 +54,7 @@ export function AdminDashboard() {
       setProducts(nextProducts);
       setOrders(nextOrders);
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : "Admin session could not be loaded.";
+      const message = caughtError instanceof Error ? caughtError.message : "No pudimos cargar la sesion administrativa.";
       const status = caughtError instanceof ApiError ? caughtError.status : null;
       setError(message);
 
@@ -78,9 +78,9 @@ export function AdminDashboard() {
       router.refresh();
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Admin session could not be closed.",
+          caughtError instanceof Error
+            ? caughtError.message
+            : "No pudimos cerrar la sesion administrativa.",
       );
     }
   }

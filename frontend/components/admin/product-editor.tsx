@@ -137,7 +137,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
 
   return (
     <section className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]" id="admin-productos">
-      <aside className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/78 p-5">
+      <aside className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/78 p-5 xl:sticky xl:top-24 xl:self-start">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">{copy.workspaceEyebrow}</p>
@@ -181,7 +181,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       <article className="rounded-[1.75rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">Editor guiado</p>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">Edicion guiada</p>
             <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">
               {selectedProduct ? `${copy.editTitle}: ${selectedProduct.name}` : copy.createTitle}
             </h3>

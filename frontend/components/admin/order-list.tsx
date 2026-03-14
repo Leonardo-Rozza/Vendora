@@ -177,7 +177,7 @@ export function OrderList({
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-soft)]">{copy.notes}</p>
                   <textarea className="mt-2 min-h-24 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)]" onChange={(event) => setNotesByOrderId((current) => ({ ...current, [order.id]: event.target.value }))} placeholder={order.fulfillmentNotes ?? copy.addNote} value={notesByOrderId[order.id] ?? ""} />
-                  {order.fulfillmentNotes ? <p className="mt-2 text-xs text-[var(--ink-muted)]">Actual: {order.fulfillmentNotes}</p> : null}
+                  {order.fulfillmentNotes ? <p className="mt-2 text-xs text-[var(--ink-muted)]">{copy.currentNote}: {order.fulfillmentNotes}</p> : null}
                 </div>
 
                 <div>

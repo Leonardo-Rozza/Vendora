@@ -201,7 +201,7 @@ export function CatalogExperience() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19.5rem_minmax(0,1fr)]">
-        <div className="hidden lg:block">
+        <div className="hidden self-start lg:sticky lg:top-28 lg:block">
           <CatalogFiltersPanel
             filters={draftFilters}
             metadata={collection?.filters ?? null}

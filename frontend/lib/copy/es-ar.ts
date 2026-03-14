@@ -52,7 +52,7 @@ export const appCopy = {
     allProducts: "Todos los productos activos",
     filteredProducts: "Resultados filtrados",
     resultCountSuffix: "productos",
-    categoryCountSuffix: "items",
+    categoryCountSuffix: "productos",
     emptyTitle: "No encontramos productos con esos filtros.",
     emptyDescription:
       "Prueba con otra categoria, un rango de precio mas amplio o una busqueda mas corta.",
@@ -90,6 +90,8 @@ export const appCopy = {
     stockUnknown: "Stock a confirmar",
     addedToCart: "agregado al carrito",
     categoryLabel: "Categoria",
+    imagePending: "Imagen pendiente",
+    unavailableCta: "Variante sin stock",
   },
   cart: {
     emptyEyebrow: "Carrito listo para empezar",
@@ -127,6 +129,11 @@ export const appCopy = {
     ambaOnly: "Envios disponibles solo en CABA y AMBA.",
     preparing: "Preparando checkout...",
     continueToPayment: "Continuar a Mercado Pago",
+    steps: [
+      "1. Revisa tu carrito",
+      "2. Completa entrega en AMBA",
+      "3. Paga en Mercado Pago",
+    ],
   },
   checkoutStatus: {
     success: {
@@ -169,7 +176,7 @@ export const appCopy = {
     sectionEyebrow: "Inicio de sesion",
     sectionTitle: "Abre una sesion protegida.",
     backToStore: "Volver a la tienda",
-    emailLabel: "Email admin",
+    emailLabel: "Correo admin",
     emailPlaceholder: "ops@vendora.local",
     passwordLabel: "Contrasena",
     passwordPlaceholder: "Minimo 8 caracteres",
@@ -221,7 +228,7 @@ export const appCopy = {
     addImage: "Agregar imagen",
     removeImage: "Quitar imagen",
     imageUrl: "URL de imagen",
-    imageKey: "Cloudinary asset key",
+    imageKey: "Clave del asset en Cloudinary",
     imageAlt: "Texto alternativo",
     imageSortOrder: "Orden",
     helper: "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",
@@ -255,6 +262,7 @@ export const appCopy = {
     waitPayment: "Espera pago antes de avanzar",
     cannotCancelPaid: "Los pedidos pagos quedan bloqueados para mantener la integridad del flujo.",
     orderItems: "Contenido del pedido",
+    currentNote: "Nota actual",
   },
 };
 

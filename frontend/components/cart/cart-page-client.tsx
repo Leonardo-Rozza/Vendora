@@ -113,6 +113,17 @@ export function CartPageClient() {
         </Link>
       </div>
 
+      <div className="mb-6 flex flex-wrap gap-2">
+        {copy.steps.map((step) => (
+          <span
+            key={step}
+            className="rounded-full border border-[var(--line-soft)] bg-white/76 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-strong)]"
+          >
+            {step}
+          </span>
+        ))}
+      </div>
+
       <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
         <article className="rounded-[2rem] border border-[var(--line-soft)] bg-white/82 p-6 shadow-[0_18px_60px_rgba(51,38,29,0.1)]">
           <div className="flex items-center justify-between gap-4 border-b border-[var(--line-soft)] pb-4">
@@ -158,7 +169,7 @@ export function CartPageClient() {
           </div>
         </article>
 
-        <aside className="rounded-[2rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(26,58,73,0.96),rgba(18,39,52,0.98))] p-6 text-[var(--surface-base)] shadow-[0_18px_60px_rgba(8,14,19,0.28)]">
+        <aside className="rounded-[2rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(26,58,73,0.96),rgba(18,39,52,0.98))] p-6 text-[var(--surface-base)] shadow-[0_18px_60px_rgba(8,14,19,0.28)] lg:sticky lg:top-24 lg:self-start">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-[var(--accent-sand)]">{copy.orderSummaryEyebrow}</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">{copy.orderSummaryTitle}</h2>
           <p className="mt-4 text-sm leading-7 text-white/76">{copy.orderSummaryDescription}</p>
