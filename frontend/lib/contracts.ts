@@ -1,9 +1,23 @@
+export const PRODUCT_CATEGORIES = ["ELECTRONICA", "HOGAR", "ACCESORIOS"] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+export const CATALOG_SORT_OPTIONS = [
+  "featured",
+  "price-asc",
+  "price-desc",
+  "newest",
+] as const;
+
+export type CatalogSortOption = (typeof CATALOG_SORT_OPTIONS)[number];
+
 export type CatalogVariantPreview = {
   id: string;
   sku: string;
   name: string;
   priceAmount: string;
   currencyCode: string;
+  availableQuantity?: number;
 };
 
 export type CatalogImageReference = {
@@ -20,6 +34,7 @@ export type CatalogProductDetail = {
   name: string;
   description: string | null;
   status: string;
+  category: ProductCategory | null;
   variants: CatalogVariantPreview[];
   images: CatalogImageReference[];
 };
@@ -30,11 +45,44 @@ export type CatalogProductCard = {
   name: string;
   description: string | null;
   status: string;
+  category: ProductCategory | null;
   variants: CatalogVariantPreview[];
   primaryImageUrl: string | null;
   primaryImageAlt: string | null;
   startingPriceAmount: string | null;
   currencyCode: string | null;
+};
+
+export type CatalogFilters = {
+  query?: string;
+  category?: ProductCategory;
+  minPriceAmount?: string;
+  maxPriceAmount?: string;
+  sort?: CatalogSortOption;
+};
+
+export type CatalogFilterMetadata = {
+  categories: Array<{
+    value: ProductCategory;
+    count: number;
+  }>;
+  priceRange: {
+    minAmount: string | null;
+    maxAmount: string | null;
+  };
+  availableSorts: CatalogSortOption[];
+  applied: {
+    query: string | null;
+    category: ProductCategory | null;
+    minPriceAmount: string | null;
+    maxPriceAmount: string | null;
+    sort: CatalogSortOption;
+  };
+};
+
+export type CatalogCollectionResponse = {
+  items: CatalogProductDetail[];
+  filters: CatalogFilterMetadata;
 };
 
 export type CartLine = {
@@ -172,6 +220,7 @@ export type AdminProduct = {
   name: string;
   description: string | null;
   status: string;
+  category: ProductCategory | null;
   variants: Array<
     CatalogVariantPreview & {
       availableQuantity?: number;
@@ -205,6 +254,7 @@ export type AdminProductInput = {
   name: string;
   description?: string;
   status?: string;
+  category?: ProductCategory;
   variants: ProductVariantInput[];
   images?: ProductImageInput[];
 };
@@ -220,6 +270,12 @@ export type FulfillmentStatus =
 export type ListAdminOrdersQuery = {
   status?: string;
   fulfillmentStatus?: FulfillmentStatus;
+};
+
+export type ListAdminProductsQuery = {
+  query?: string;
+  status?: string;
+  category?: ProductCategory;
 };
 
 export type UpdateAdminOrderFulfillmentRequest = {

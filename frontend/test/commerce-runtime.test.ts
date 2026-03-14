@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ApiError,
+  listAdminProducts,
   listAdminOrders,
+  listCatalogProductCollection,
   resolveApiBaseUrl,
   updateAdminOrderFulfillment,
 } from "../lib/commerce/api.ts";
@@ -40,7 +42,7 @@ test("checkout error helper preserves API validation messages", () => {
   );
   assert.equal(
     toCheckoutErrorMessage(new Error("boom")),
-    "Checkout could not be prepared. Please retry.",
+    "No pudimos preparar el checkout. Intenta nuevamente.",
   );
 });
 
@@ -92,12 +94,12 @@ test("checkout validation requires delivery fields and rejects non-AMBA destinat
 
   assert.equal(
     validateCheckoutForm(emptyForm),
-    "Complete the contact and shipping fields before continuing.",
+    "Completa los datos de contacto y entrega antes de continuar.",
   );
   assert.equal(validateCheckoutForm(validForm), null);
   assert.equal(
     validateCheckoutForm({ ...validForm, locality: "Rosario", province: "Santa Fe" }),
-    "Shipping is currently limited to AMBA destinations.",
+    "Por ahora solo hacemos envios dentro de CABA y AMBA.",
   );
   assert.equal(
     isWithinAmbaShippingScope({ locality: "CABA", province: "CABA" }),
@@ -126,6 +128,90 @@ test("admin order helper appends fulfillment filters to the query string", async
 
   assert.equal(seenRequests.length, 1);
   assert.match(seenRequests[0]!.url, /\/admin\/orders\?fulfillmentStatus=PREPARING$/);
+  assert.equal(seenRequests[0]!.init?.credentials, "include");
+});
+
+test("catalog collection helper appends category, price, and sort filters", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({
+        items: [],
+        filters: {
+          categories: [{ value: "HOGAR", count: 1 }],
+          priceRange: { minAmount: "9000.00", maxAmount: "12000.00" },
+          availableSorts: ["featured", "price-asc", "price-desc", "newest"],
+          applied: {
+            query: "mate",
+            category: "HOGAR",
+            minPriceAmount: "9000",
+            maxPriceAmount: "12000",
+            sort: "price-asc",
+          },
+        },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const response = await listCatalogProductCollection({
+      query: "mate",
+      category: "HOGAR",
+      minPriceAmount: "9000",
+      maxPriceAmount: "12000",
+      sort: "price-asc",
+    });
+
+    assert.deepEqual(response.filters.applied, {
+      query: "mate",
+      category: "HOGAR",
+      minPriceAmount: "9000",
+      maxPriceAmount: "12000",
+      sort: "price-asc",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(seenRequests.length, 1);
+  assert.match(
+    seenRequests[0]!.url,
+    /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc$/,
+  );
+});
+
+test("admin product helper appends category and status filters to the query string", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof global.fetch;
+
+  try {
+    await listAdminProducts({ status: "ACTIVE", category: "ACCESORIOS" });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(seenRequests.length, 1);
+  assert.match(
+    seenRequests[0]!.url,
+    /\/admin\/catalog\/products\?status=ACTIVE&category=ACCESORIOS$/,
+  );
   assert.equal(seenRequests[0]!.init?.credentials, "include");
 });
 

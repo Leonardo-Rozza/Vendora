@@ -3,42 +3,143 @@ import test from 'node:test';
 import { Prisma } from '@prisma/client';
 import { CatalogService } from './catalog.service';
 
-test('CatalogService lists only active catalog products and applies search filters', async () => {
+test('CatalogService lists active catalog products with filter metadata and search filters', async () => {
   let receivedArgs: unknown;
+  let metadataArgs: unknown;
   const service = new CatalogService({
     product: {
       findMany: async (args: unknown) => {
+        if (!metadataArgs) {
+          metadataArgs = args;
+          return [
+            {
+              category: 'HOGAR',
+              variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
+            },
+          ];
+        }
+
         receivedArgs = args;
-        return [{ id: 'product-1' }];
+        return [
+          {
+            id: 'product-1',
+            createdAt: new Date('2026-03-14T00:00:00.000Z'),
+            variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
+          },
+        ];
       },
     },
   } as never);
 
-  const result = await service.listProducts({ query: 'mate' });
+  const result = await service.listProducts({
+    query: 'mate',
+    category: 'HOGAR',
+    minPriceAmount: '9000',
+    maxPriceAmount: '12000',
+    sort: 'price-asc',
+  });
 
-  assert.deepEqual(result, [{ id: 'product-1' }]);
+  assert.deepEqual(result, {
+    items: [
+      {
+        id: 'product-1',
+        createdAt: new Date('2026-03-14T00:00:00.000Z'),
+        variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
+      },
+    ],
+    filters: {
+      categories: [{ value: 'HOGAR', count: 1 }],
+      priceRange: {
+        minAmount: '9900.00',
+        maxAmount: '9900.00',
+      },
+      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
+      applied: {
+        query: 'mate',
+        category: 'HOGAR',
+        minPriceAmount: '9000',
+        maxPriceAmount: '12000',
+        sort: 'price-asc',
+      },
+    },
+  });
+  assert.deepEqual(metadataArgs, {
+    where: {
+      AND: [
+        { status: 'ACTIVE' },
+        {
+          OR: [
+            {
+              name: {
+                contains: 'mate',
+                mode: 'insensitive',
+              },
+            },
+            {
+              slug: {
+                contains: 'mate',
+                mode: 'insensitive',
+              },
+            },
+            {
+              variants: {
+                some: {
+                  sku: {
+                    contains: 'mate',
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    include: {
+      variants: {
+        select: {
+          priceAmount: true,
+        },
+      },
+    },
+  });
   assert.deepEqual(receivedArgs, {
     where: {
-      status: 'ACTIVE',
-      OR: [
+      AND: [
+        { status: 'ACTIVE' },
+        { category: 'HOGAR' },
         {
-          name: {
-            contains: 'mate',
-            mode: 'insensitive',
-          },
-        },
-        {
-          slug: {
-            contains: 'mate',
-            mode: 'insensitive',
-          },
+          OR: [
+            {
+              name: {
+                contains: 'mate',
+                mode: 'insensitive',
+              },
+            },
+            {
+              slug: {
+                contains: 'mate',
+                mode: 'insensitive',
+              },
+            },
+            {
+              variants: {
+                some: {
+                  sku: {
+                    contains: 'mate',
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          ],
         },
         {
           variants: {
             some: {
-              sku: {
-                contains: 'mate',
-                mode: 'insensitive',
+              priceAmount: {
+                gte: new Prisma.Decimal('9000'),
+                lte: new Prisma.Decimal('12000'),
               },
             },
           },
@@ -57,22 +158,41 @@ test('CatalogService lists only active catalog products and applies search filte
         },
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
   });
 });
 
 test('CatalogService returns an empty collection when no active products match the search', async () => {
+  let readCount = 0;
   const service = new CatalogService({
     product: {
-      findMany: async () => [],
+      findMany: async () => {
+        readCount += 1;
+        return [];
+      },
     },
   } as never);
 
   const result = await service.listProducts({ query: 'missing' });
 
-  assert.deepEqual(result, []);
+  assert.equal(readCount, 2);
+  assert.deepEqual(result, {
+    items: [],
+    filters: {
+      categories: [],
+      priceRange: {
+        minAmount: null,
+        maxAmount: null,
+      },
+      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
+      applied: {
+        query: 'missing',
+        category: null,
+        minPriceAmount: null,
+        maxPriceAmount: null,
+        sort: 'featured',
+      },
+    },
+  });
 });
 
 test('CatalogService loads an active product aggregate by slug', async () => {
@@ -106,7 +226,7 @@ test('CatalogService loads an active product aggregate by slug', async () => {
   });
 });
 
-test('CatalogService creates a product with variants, inventory, and images', async () => {
+test('CatalogService creates a product with category, variants, inventory, and images', async () => {
   let receivedArgs: unknown;
   const service = new CatalogService({
     product: {
@@ -122,6 +242,7 @@ test('CatalogService creates a product with variants, inventory, and images', as
     name: 'Mate Gourd',
     description: 'Classic mate.',
     status: 'ACTIVE',
+    category: 'HOGAR',
     variants: [
       {
         sku: 'SKU-1',
@@ -148,6 +269,7 @@ test('CatalogService creates a product with variants, inventory, and images', as
       name: string;
       description: string;
       status: string;
+      category: string;
       variants: {
         create: Array<{ priceAmount: Prisma.Decimal; currencyCode: string }>;
       };
@@ -158,6 +280,7 @@ test('CatalogService creates a product with variants, inventory, and images', as
   assert.equal(createArgs.data.name, 'Mate Gourd');
   assert.equal(createArgs.data.description, 'Classic mate.');
   assert.equal(createArgs.data.status, 'ACTIVE');
+  assert.equal(createArgs.data.category, 'HOGAR');
   assert.equal(createArgs.data.variants.create[0]?.currencyCode, 'ARS');
   assert.equal(
     createArgs.data.variants.create[0]?.priceAmount.toString(),
@@ -230,6 +353,7 @@ test('CatalogService updates product fields and existing variants', async () => 
 
   const result = await service.updateProduct('product-1', {
     name: 'Updated Mate Gourd',
+    category: 'ACCESORIOS',
     variants: [
       {
         id: 'variant-1',
@@ -258,6 +382,7 @@ test('CatalogService updates product fields and existing variants', async () => 
       name: 'Updated Mate Gourd',
       description: undefined,
       status: undefined,
+      category: 'ACCESORIOS',
     },
   });
   assert.deepEqual(calls.variantUpdate, {

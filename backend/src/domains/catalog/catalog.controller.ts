@@ -14,9 +14,12 @@ export class CatalogController {
 
   @Get('products')
   async listProducts(@Query() query: ListCatalogProductsDto) {
-    const products = await this.catalogService.listProducts(query);
+    const { items, filters } = await this.catalogService.listProducts(query);
 
-    return products.map((product) => this.mapStorefrontProduct(product));
+    return {
+      items: items.map((product) => this.mapStorefrontProduct(product)),
+      filters,
+    };
   }
 
   @Get('products/:slug')
@@ -36,12 +39,16 @@ export class CatalogController {
     name: string;
     description: string | null;
     status: string;
+    category: string | null;
     variants: Array<{
       id: string;
       sku: string;
       name: string;
       priceAmount: { toString(): string };
       currencyCode: string;
+      inventoryItem?: {
+        availableQuantity: number;
+      } | null;
     }>;
     images: Array<{
       id: string;
@@ -57,12 +64,14 @@ export class CatalogController {
       name: product.name,
       description: product.description,
       status: product.status,
+      category: product.category,
       variants: product.variants.map((variant) => ({
         id: variant.id,
         sku: variant.sku,
         name: variant.name,
         priceAmount: variant.priceAmount.toString(),
         currencyCode: variant.currencyCode,
+        availableQuantity: variant.inventoryItem?.availableQuantity,
       })),
       images: product.images.map((image) => ({
         id: image.id,

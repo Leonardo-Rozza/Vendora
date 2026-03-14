@@ -7,18 +7,36 @@ const readProjectFile = (relativePath) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 
 test('catalog UI includes unavailable-state retry affordance', () => {
+  const copySource = readProjectFile('lib/copy/es-ar.ts');
   const source = readProjectFile('components/storefront/catalog-experience.tsx');
 
-  assert.match(source, /Catalog is temporarily unavailable\./);
-  assert.match(source, /Retry catalog/);
-  assert.match(source, /loadProducts\(activeQuery\)/);
+  assert.match(source, /loadProducts\(activeFilters\)/);
+  assert.match(source, /CatalogFiltersPanel/);
+  assert.match(copySource, /El catalogo no esta disponible por el momento\./);
+  assert.match(copySource, /Reintentar catalogo/);
+});
+
+test('catalog UI exposes category, search, price, and sort browsing controls', () => {
+  const experienceSource = readProjectFile('components/storefront/catalog-experience.tsx');
+  const toolbarSource = readProjectFile('components/storefront/catalog-toolbar.tsx');
+  const filtersSource = readProjectFile('components/storefront/catalog-filters.tsx');
+
+  assert.match(experienceSource, /handleQuickCategory/);
+  assert.match(toolbarSource, /sort/i);
+  assert.match(toolbarSource, /onToggleFilters/);
+  assert.match(filtersSource, /minPriceAmount/);
+  assert.match(filtersSource, /maxPriceAmount/);
+  assert.match(filtersSource, /onCategoryChange/);
 });
 
 test('product detail UI includes product-not-found recovery', () => {
+  const copySource = readProjectFile('lib/copy/es-ar.ts');
   const source = readProjectFile('components/product/product-detail-client.tsx');
 
-  assert.match(source, /Product not found/);
-  assert.match(source, /Back to catalog/);
+  assert.match(source, /stockLabel/);
+  assert.match(source, /describeVariantStock/);
+  assert.match(copySource, /Producto no disponible/);
+  assert.match(copySource, /Volver al catalogo/);
 });
 
 test('storefront flow includes explicit responsive layout classes', () => {
@@ -35,10 +53,11 @@ test('storefront flow includes explicit responsive layout classes', () => {
 });
 
 test('cart checkout UI captures AMBA-only delivery scope and contact fields', () => {
+  const copySource = readProjectFile('lib/copy/es-ar.ts');
   const cartSource = readProjectFile('components/cart/cart-page-client.tsx');
 
-  assert.match(cartSource, /Contact full name/);
-  assert.match(cartSource, /Locality/);
-  assert.match(cartSource, /Province/);
-  assert.match(cartSource, /Shipping scope: AMBA only/);
+  assert.match(cartSource, /contactSection/);
+  assert.match(cartSource, /shippingSection/);
+  assert.match(copySource, /Cobertura actual/);
+  assert.match(copySource, /Envios disponibles solo en CABA y AMBA/);
 });

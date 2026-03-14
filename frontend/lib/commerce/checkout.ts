@@ -57,11 +57,11 @@ export function validateCheckoutForm(form: CheckoutFormState) {
   ];
 
   if (requiredValues.some((value) => value.trim().length === 0)) {
-    return "Complete the contact and shipping fields before continuing.";
+    return "Completa los datos de contacto y entrega antes de continuar.";
   }
 
   if (!isWithinAmbaShippingScope({ locality: form.locality, province: form.province })) {
-    return "Shipping is currently limited to AMBA destinations.";
+    return "Por ahora solo hacemos envios dentro de CABA y AMBA.";
   }
 
   return null;
@@ -72,7 +72,7 @@ export function toCheckoutErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Checkout could not be prepared. Please retry.";
+  return "No pudimos preparar el checkout. Intenta nuevamente.";
 }
 
 function isApiError(error: unknown): error is Error & { status: number } {

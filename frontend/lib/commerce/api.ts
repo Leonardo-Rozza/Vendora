@@ -3,14 +3,17 @@ import type {
   AdminProduct,
   AdminProductInput,
   AdminSession,
-  CatalogProductCard,
-  CatalogProductDetail,
-  CheckoutPreferenceResponse,
-  CreateCheckoutPreferenceRequest,
-  CreateOrderRequest,
-  CreatedOrder,
-  ListAdminOrdersQuery,
-  UpdateAdminOrderFulfillmentRequest,
+  CatalogCollectionResponse,
+  CatalogFilters,
+   CatalogProductCard,
+   CatalogProductDetail,
+   CheckoutPreferenceResponse,
+   CreateCheckoutPreferenceRequest,
+   CreateOrderRequest,
+   ListAdminProductsQuery,
+   CreatedOrder,
+   ListAdminOrdersQuery,
+   UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 
 export class ApiError extends Error {
@@ -84,6 +87,7 @@ export function normalizeCatalogProductCard(
     name: product.name,
     description: product.description,
     status: product.status,
+    category: product.category,
     variants: product.variants,
     primaryImageUrl: primaryImage?.assetUrl ?? null,
     primaryImageAlt: primaryImage?.altText ?? null,
@@ -92,17 +96,40 @@ export function normalizeCatalogProductCard(
   };
 }
 
-export async function listCatalogProducts(query?: string) {
-  const searchParams = new URLSearchParams();
+function appendSearchParam(searchParams: URLSearchParams, key: string, value?: string) {
+  const normalizedValue = value?.trim();
 
-  if (query?.trim()) {
-    searchParams.set("query", query.trim());
+  if (normalizedValue) {
+    searchParams.set(key, normalizedValue);
+  }
+}
+
+function resolveCatalogFilters(filters?: string | CatalogFilters) {
+  if (typeof filters === "string") {
+    return { query: filters } satisfies CatalogFilters;
   }
 
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const products = await requestJson<CatalogProductDetail[]>(`/catalog/products${suffix}`);
+  return filters ?? {};
+}
 
-  return products.map(normalizeCatalogProductCard);
+export async function listCatalogProductCollection(filters?: string | CatalogFilters) {
+  const resolvedFilters = resolveCatalogFilters(filters);
+  const searchParams = new URLSearchParams();
+
+  appendSearchParam(searchParams, "query", resolvedFilters.query);
+  appendSearchParam(searchParams, "category", resolvedFilters.category);
+  appendSearchParam(searchParams, "minPriceAmount", resolvedFilters.minPriceAmount);
+  appendSearchParam(searchParams, "maxPriceAmount", resolvedFilters.maxPriceAmount);
+  appendSearchParam(searchParams, "sort", resolvedFilters.sort);
+
+  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  return requestJson<CatalogCollectionResponse>(`/catalog/products${suffix}`);
+}
+
+export async function listCatalogProducts(filters?: string | CatalogFilters) {
+  const products = await listCatalogProductCollection(filters);
+
+  return products.items.map(normalizeCatalogProductCard);
 }
 
 export function getCatalogProduct(slug: string) {
@@ -142,12 +169,13 @@ export function getCurrentAdmin() {
   return requestAdminJson<AdminSession>("/admin/auth/me");
 }
 
-export function listAdminProducts(query?: string) {
+export function listAdminProducts(query: string | ListAdminProductsQuery = {}) {
+  const resolvedQuery = typeof query === "string" ? { query } : query;
   const searchParams = new URLSearchParams();
 
-  if (query?.trim()) {
-    searchParams.set("query", query.trim());
-  }
+  appendSearchParam(searchParams, "query", resolvedQuery.query);
+  appendSearchParam(searchParams, "status", resolvedQuery.status);
+  appendSearchParam(searchParams, "category", resolvedQuery.category);
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   return requestAdminJson<AdminProduct[]>(`/admin/catalog/products${suffix}`);

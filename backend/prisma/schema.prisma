@@ -13,6 +13,12 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum ProductCategory {
+  ELECTRONICA
+  HOGAR
+  ACCESORIOS
+}
+
 enum OrderStatus {
   DRAFT
   PENDING_PAYMENT
@@ -69,10 +75,13 @@ model Product {
   name        String
   description String?
   status      ProductStatus    @default(DRAFT)
+  category    ProductCategory? @default(ACCESORIOS)
   variants    ProductVariant[]
   images      ProductImage[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+
+  @@index([category])
 }
 
 model ProductVariant {

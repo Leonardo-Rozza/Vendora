@@ -19,6 +19,7 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     name: "Aurora Speaker",
     description: "Portable audio.",
     status: "ACTIVE",
+    category: "ELECTRONICA",
     variants: [
       {
         id: "variant-1",
@@ -45,6 +46,7 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     name: "Aurora Speaker",
     description: "Portable audio.",
     status: "ACTIVE",
+    category: "ELECTRONICA",
     variants: [
       {
         id: "variant-1",

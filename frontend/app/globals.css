@@ -7,11 +7,15 @@
   --ink-muted: #5a554f;
   --ink-soft: #85796f;
   --brand-deep: #8c4b26;
+  --brand-ink: #173747;
   --accent-sand: #d8b690;
+  --accent-sky: #d6e8ef;
   --line-soft: rgba(82, 63, 45, 0.12);
   --line-strong: rgba(34, 33, 31, 0.22);
   --warning-surface: rgba(233, 191, 113, 0.22);
   --warning-line: rgba(156, 106, 27, 0.28);
+  --shadow-soft: 0 20px 70px rgba(61, 43, 28, 0.08);
+  --shadow-strong: 0 24px 90px rgba(82, 56, 34, 0.12);
 }
 
 @theme inline {
@@ -45,7 +49,9 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -63,4 +69,60 @@ button:disabled {
 
 ::selection {
   background: rgba(140, 75, 38, 0.16);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(23, 55, 71, 0.34);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(210, 120, 55, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(24, 80, 104, 0.14), transparent 30%),
+    linear-gradient(180deg, #f5efe4 0%, #f2ece1 46%, #ebe2d3 100%);
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 250, 244, 0.82);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(14px);
+}
+
+.surface-panel {
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 248, 239, 0.96);
+  box-shadow: var(--shadow-soft);
+}
+
+.chip-button {
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.82);
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.chip-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.chip-button[data-active="true"] {
+  border-color: rgba(140, 75, 38, 0.4);
+  background: rgba(140, 75, 38, 0.1);
+}
+
+.catalog-field {
+  width: 100%;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-strong);
+}
+
+.catalog-field::placeholder {
+  color: var(--ink-soft);
 }

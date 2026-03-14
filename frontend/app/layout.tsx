@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { CommerceProvider } from "@/components/commerce/commerce-provider";
-import { StorefrontHeader } from "@/components/storefront/storefront-header";
+import { AppChrome } from "@/components/layout/app-chrome";
+import { appCopy } from "@/lib/copy/es-ar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Vendora",
-  description: "Customer storefront and admin foundations for the Vendora MVP.",
+  title: appCopy.metadata.title,
+  description: appCopy.metadata.description,
 };
 
 export default function RootLayout({
@@ -17,8 +18,7 @@ export default function RootLayout({
     <html lang="es-AR">
       <body className="bg-[var(--surface-base)] text-[var(--ink-strong)] antialiased">
         <CommerceProvider>
-          <StorefrontHeader />
-          {children}
+          <AppChrome>{children}</AppChrome>
         </CommerceProvider>
       </body>
     </html>

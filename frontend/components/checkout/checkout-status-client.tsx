@@ -7,44 +7,13 @@ import { useCommerce } from "@/components/commerce/commerce-provider";
 import { resolveCheckoutReferences } from "@/lib/commerce/checkout";
 import { formatItemCount, formatMoney } from "@/lib/commerce/format";
 import type { CheckoutStatusRoute } from "@/lib/contracts";
-
-const COPY_BY_STATUS: Record<
-  CheckoutStatusRoute,
-  {
-    eyebrow: string;
-    title: string;
-    description: string;
-    actionLabel: string;
-    actionHref: string;
-  }
-> = {
-  success: {
-    eyebrow: "Payment success",
-    title: "Your payment handoff finished successfully.",
-    description: "Webhook confirmation remains the final backend authority, but your order has been handed off cleanly.",
-    actionLabel: "Return to catalog",
-    actionHref: "/",
-  },
-  pending: {
-    eyebrow: "Payment pending",
-    title: "Mercado Pago is still confirming the payment.",
-    description: "Keep the order reference nearby while the backend waits for the provider webhook to settle the payment state.",
-    actionLabel: "Review cart",
-    actionHref: "/cart",
-  },
-  failure: {
-    eyebrow: "Payment failure",
-    title: "The payment did not complete.",
-    description: "You can return to the cart or browse the catalog again before retrying checkout.",
-    actionLabel: "Back to cart",
-    actionHref: "/cart",
-  },
-};
+import { appCopy } from "@/lib/copy/es-ar";
 
 export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }) {
   const searchParams = useSearchParams();
   const { cartState, clearCart } = useCommerce();
-  const content = COPY_BY_STATUS[status];
+  const content = appCopy.checkoutStatus[status];
+  const copy = appCopy.checkoutStatus;
   const { orderReference, paymentReference } = resolveCheckoutReferences({
     searchParams,
     snapshot: cartState.lastCheckout,
@@ -70,25 +39,25 @@ export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
-              Order reference
+              {copy.orderReference}
             </p>
             <p className="mt-3 text-lg font-semibold text-[var(--ink-strong)]">
-              {orderReference ?? "Available after redirect metadata arrives"}
+              {orderReference ?? copy.fallbackOrder}
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
-              Payment reference
+              {copy.paymentReference}
             </p>
             <p className="mt-3 text-lg font-semibold text-[var(--ink-strong)]">
-              {paymentReference ?? "Not provided in the redirect"}
+              {paymentReference ?? copy.fallbackPayment}
             </p>
           </div>
         </div>
 
         {cartState.lastCheckout ? (
           <div className="mt-4 rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5 text-sm text-[var(--ink-muted)]">
-            Last checkout snapshot: {formatItemCount(cartState.lastCheckout.itemCount)} · {formatMoney(cartState.lastCheckout.totalAmount, cartState.lastCheckout.currencyCode)}
+            {copy.snapshotLabel}: {formatItemCount(cartState.lastCheckout.itemCount)} · {formatMoney(cartState.lastCheckout.totalAmount, cartState.lastCheckout.currencyCode)}
           </div>
         ) : null}
 
@@ -97,7 +66,7 @@ export function CheckoutStatusClient({ status }: { status: CheckoutStatusRoute }
             {content.actionLabel}
           </Link>
           <Link className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)]" href="/">
-            Browse catalog
+            {copy.browseCatalog}
           </Link>
         </div>
       </section>

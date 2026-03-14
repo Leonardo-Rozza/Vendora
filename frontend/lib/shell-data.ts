@@ -29,6 +29,7 @@ export const featuredProducts: CatalogProductDetail[] = [
     name: "Aurora Portable Speaker",
     description: "Compact room-to-room audio with weather-ready casing and variant-led stock tracking.",
     status: "draft-foundation",
+    category: "ELECTRONICA",
     variants: [
       {
         id: "aurora-onyx",
@@ -61,6 +62,7 @@ export const featuredProducts: CatalogProductDetail[] = [
     name: "Halo Desk Lamp",
     description: "A warm-light workspace accent that signals future home gadget merchandising.",
     status: "draft-foundation",
+    category: "HOGAR",
     variants: [
       {
         id: "halo-brass",
@@ -86,6 +88,7 @@ export const featuredProducts: CatalogProductDetail[] = [
     name: "Pulse Smart Kettle",
     description: "Kitchen hardware placeholder for future inventory, media, and order seams.",
     status: "draft-foundation",
+    category: "HOGAR",
     variants: [
       {
         id: "pulse-matte",

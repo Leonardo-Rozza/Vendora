@@ -1,12 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type {
-  AdminProduct,
-  AdminProductInput,
-  ProductImageInput,
-  ProductVariantInput,
-} from "@/lib/contracts";
+import { ProductFormSections, createEmptyImage, createEmptyVariant, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
+import type { AdminProduct, AdminProductInput, ProductCategory } from "@/lib/contracts";
+import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
 
 type ProductEditorProps = {
   products: AdminProduct[];
@@ -19,30 +16,21 @@ const blankProductPayload = {
   name: "",
   description: "",
   status: "DRAFT",
-  variantsJson: JSON.stringify(
-    [
-      {
-        sku: "",
-        name: "",
-        priceAmount: "0",
-        currencyCode: "ARS",
-        availableQuantity: 0,
-      },
-    ],
-    null,
-    2,
-  ),
-  imagesJson: "[]",
+  category: "ELECTRONICA" as ProductCategory,
+  variants: [createEmptyVariant()] as EditableVariant[],
+  images: [createEmptyImage(0)] as EditableImage[],
 };
 
 export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorProps) {
+  const copy = appCopy.adminProductEditor;
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [slug, setSlug] = useState(blankProductPayload.slug);
   const [name, setName] = useState(blankProductPayload.name);
   const [description, setDescription] = useState(blankProductPayload.description);
   const [status, setStatus] = useState(blankProductPayload.status);
-  const [variantsJson, setVariantsJson] = useState(blankProductPayload.variantsJson);
-  const [imagesJson, setImagesJson] = useState(blankProductPayload.imagesJson);
+  const [category, setCategory] = useState<ProductCategory>(blankProductPayload.category);
+  const [variants, setVariants] = useState<EditableVariant[]>(blankProductPayload.variants);
+  const [images, setImages] = useState<EditableImage[]>(blankProductPayload.images);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,8 +46,9 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       setName(blankProductPayload.name);
       setDescription(blankProductPayload.description);
       setStatus(blankProductPayload.status);
-      setVariantsJson(blankProductPayload.variantsJson);
-      setImagesJson(blankProductPayload.imagesJson);
+      setCategory(blankProductPayload.category);
+      setVariants([createEmptyVariant()]);
+      setImages([createEmptyImage(0)]);
       setError(null);
       return;
     }
@@ -69,31 +58,26 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
     setName(product.name);
     setDescription(product.description ?? "");
     setStatus(product.status);
-    setVariantsJson(
-      JSON.stringify(
-        product.variants.map((variant) => ({
-          id: variant.id,
-          sku: variant.sku,
-          name: variant.name,
-          priceAmount: variant.priceAmount,
-          currencyCode: variant.currencyCode,
-          availableQuantity: variant.inventoryItem?.availableQuantity ?? 0,
-        })),
-        null,
-        2,
-      ),
+    setCategory(product.category ?? blankProductPayload.category);
+    setVariants(
+      product.variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        name: variant.name,
+        priceAmount: variant.priceAmount,
+        currencyCode: variant.currencyCode,
+        availableQuantity: variant.inventoryItem?.availableQuantity ?? 0,
+      })),
     );
-    setImagesJson(
-      JSON.stringify(
-        product.images.map((image) => ({
-          assetUrl: image.assetUrl,
-          assetKey: image.assetKey,
-          altText: image.altText,
-          sortOrder: image.sortOrder,
-        })),
-        null,
-        2,
-      ),
+    setImages(
+      product.images.length > 0
+        ? product.images.map((image) => ({
+            assetUrl: image.assetUrl,
+            assetKey: image.assetKey ?? "",
+            altText: image.altText ?? "",
+            sortOrder: image.sortOrder,
+          }))
+        : [createEmptyImage(0)],
     );
     setError(null);
   }
@@ -108,13 +92,32 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
 
     try {
       const payload = {
-        slug: slug.trim(),
-        name: name.trim(),
+        slug: readRequiredString(slug, copy.slug),
+        name: readRequiredString(name, copy.name),
         description: description.trim() || undefined,
         status,
-        variants: parseVariantInputs(variantsJson),
-        images: parseImageInputs(imagesJson),
+        category,
+        variants: variants.map((variant, index) => ({
+          ...(variant.id ? { id: variant.id } : {}),
+          sku: readRequiredString(variant.sku, `${copy.variantSku} ${index + 1}`),
+          name: readRequiredString(variant.name, `${copy.variantName} ${index + 1}`),
+          priceAmount: readRequiredString(variant.priceAmount, `${copy.variantPrice} ${index + 1}`),
+          currencyCode: readRequiredString(variant.currencyCode, `${copy.variantCurrency} ${index + 1}`).toUpperCase(),
+          availableQuantity: Number.isFinite(variant.availableQuantity) ? variant.availableQuantity : 0,
+        })),
+        images: images
+          .filter((image) => image.assetUrl.trim().length > 0)
+          .map((image) => ({
+            assetUrl: image.assetUrl.trim(),
+            assetKey: image.assetKey.trim() || undefined,
+            altText: image.altText.trim() || undefined,
+            sortOrder: image.sortOrder,
+          })),
       } satisfies AdminProductInput;
+
+      if (payload.variants.length === 0) {
+        throw new Error("Debes cargar al menos una variante.");
+      }
 
       if (selectedProductId) {
         await onUpdate(selectedProductId, payload);
@@ -126,29 +129,31 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
         populateForm(null);
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Product save failed.");
+      setError(caughtError instanceof Error ? caughtError.message : "No pudimos guardar el producto.");
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <section className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+    <section className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]" id="admin-productos">
       <aside className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/78 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">
-              Product management
-            </p>
-            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">
-              Catalog workspace
-            </h3>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">{copy.workspaceEyebrow}</p>
+            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">{copy.workspaceTitle}</h3>
+            <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">{copy.workspaceDescription}</p>
           </div>
           <button className="rounded-full border border-[var(--line-soft)] px-4 py-2 text-sm font-semibold" onClick={() => populateForm(null)} type="button">
-            New product
+            {copy.newProduct}
           </button>
         </div>
         <div className="mt-5 space-y-3">
+          {products.length === 0 ? (
+            <div className="rounded-[1.2rem] border border-dashed border-[var(--line-soft)] bg-white/70 px-4 py-5 text-sm text-[var(--ink-muted)]">
+              {copy.emptyProducts}
+            </div>
+          ) : null}
           {products.map((product) => (
             <button
               key={product.id}
@@ -156,10 +161,18 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
               onClick={() => populateForm(product)}
               type="button"
             >
-              <p className="text-sm font-semibold text-[var(--ink-strong)]">{product.name}</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--ink-soft)]">
-                {product.status} · {product.variants.length} variants
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--ink-strong)]">{product.name}</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--ink-soft)]">
+                    {getProductCategoryLabel(product.category ?? blankProductPayload.category)}
+                  </p>
+                </div>
+                <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
+                  {product.status}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-[var(--ink-muted)]">{product.variants.length} variantes cargadas</p>
             </button>
           ))}
         </div>
@@ -168,160 +181,49 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       <article className="rounded-[1.75rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">
-              Product editor
-            </p>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">Editor guiado</p>
             <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">
-              {selectedProduct ? `Editing ${selectedProduct.name}` : "Create a new product"}
+              {selectedProduct ? `${copy.editTitle}: ${selectedProduct.name}` : copy.createTitle}
             </h3>
           </div>
-          {selectedProduct ? (
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-deep)]">
-              {selectedProduct.status}
-            </span>
-          ) : null}
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-deep)]">
+            {selectedProduct ? selectedProduct.status : copy.draftLabel}
+          </span>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
-            Product name
-            <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setName(event.target.value)} value={name} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
-            Slug
-            <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setSlug(event.target.value)} value={slug} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2">
-            Description
-            <textarea className="mt-2 min-h-28 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setDescription(event.target.value)} value={description} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2">
-            Status
-            <select className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setStatus(event.target.value)} value={status}>
-              <option value="DRAFT">DRAFT</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="ARCHIVED">ARCHIVED</option>
-            </select>
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2">
-            Variants JSON
-            <textarea className="mt-2 min-h-56 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 font-mono text-xs" onChange={(event) => setVariantsJson(event.target.value)} value={variantsJson} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2">
-            Images JSON
-            <textarea className="mt-2 min-h-40 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 font-mono text-xs" onChange={(event) => setImagesJson(event.target.value)} value={imagesJson} />
-          </label>
-        </div>
+        <ProductFormSections
+          category={category}
+          description={description}
+          images={images}
+          name={name}
+          setCategory={setCategory}
+          setDescription={setDescription}
+          setImages={setImages}
+          setName={setName}
+          setSlug={setSlug}
+          setStatus={setStatus}
+          setVariants={setVariants}
+          slug={slug}
+          status={status}
+          variants={variants}
+        />
 
         <div className="mt-5 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/70 p-4 text-sm leading-7 text-[var(--ink-muted)]">
-          Use `availableQuantity` on each variant for inventory. Set status to `ARCHIVED` to retire a product from active operations.
+          {copy.helper}
         </div>
-        {error ? <p className="mt-4 text-sm text-[var(--warning-copy)]">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm text-[var(--brand-deep)]">{error}</p> : null}
         <button className="mt-5 rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)] disabled:opacity-60" disabled={isSaving} onClick={() => void handleSave()} type="button">
-          {isSaving ? "Saving product..." : selectedProduct ? "Save changes" : "Create product"}
+          {isSaving ? copy.saving : selectedProduct ? copy.saveChanges : copy.createProduct}
         </button>
       </article>
     </section>
   );
 }
 
-function parseVariantInputs(input: string): ProductVariantInput[] {
-  const parsed = JSON.parse(input) as unknown;
-
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error("Variants JSON must describe at least one variant.");
-  }
-
-  return parsed.map((variant, index) => {
-    if (!isRecord(variant)) {
-      throw new Error(`Variant ${index + 1} must be an object.`);
-    }
-
-    const sku = readRequiredString(variant.sku, `Variant ${index + 1} SKU`);
-    const name = readRequiredString(variant.name, `Variant ${index + 1} name`);
-    const priceAmount = readRequiredString(
-      variant.priceAmount,
-      `Variant ${index + 1} price amount`,
-    );
-    const currencyCode = readRequiredString(
-      variant.currencyCode,
-      `Variant ${index + 1} currency code`,
-    );
-    const availableQuantity = readOptionalNumber(
-      variant.availableQuantity,
-      `Variant ${index + 1} available quantity`,
-    );
-    const id = readOptionalString(variant.id, `Variant ${index + 1} id`);
-
-    return {
-      ...(id ? { id } : {}),
-      sku,
-      name,
-      priceAmount,
-      currencyCode,
-      ...(availableQuantity !== undefined ? { availableQuantity } : {}),
-    } satisfies ProductVariantInput;
-  });
-}
-
-function parseImageInputs(input: string): ProductImageInput[] {
-  const parsed = JSON.parse(input) as unknown;
-
-  if (!Array.isArray(parsed)) {
-    throw new Error("Images JSON must be an array.");
-  }
-
-  return parsed.map((image, index) => {
-    if (!isRecord(image)) {
-      throw new Error(`Image ${index + 1} must be an object.`);
-    }
-
-    const assetUrl = readRequiredString(image.assetUrl, `Image ${index + 1} asset URL`);
-    const assetKey = readOptionalString(image.assetKey, `Image ${index + 1} asset key`);
-    const altText = readOptionalString(image.altText, `Image ${index + 1} alt text`);
-    const sortOrder = readOptionalNumber(image.sortOrder, `Image ${index + 1} sort order`);
-
-    return {
-      assetUrl,
-      ...(assetKey !== undefined ? { assetKey } : {}),
-      ...(altText !== undefined ? { altText } : {}),
-      ...(sortOrder !== undefined ? { sortOrder } : {}),
-    } satisfies ProductImageInput;
-  });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function readRequiredString(value: unknown, label: string) {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${label} must be a non-empty string.`);
+function readRequiredString(value: string, label: string) {
+  if (value.trim().length === 0) {
+    throw new Error(`${label} es obligatorio.`);
   }
 
   return value.trim();
-}
-
-function readOptionalString(value: unknown, label: string) {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-
-  if (typeof value !== "string") {
-    throw new Error(`${label} must be a string.`);
-  }
-
-  return value.trim();
-}
-
-function readOptionalNumber(value: unknown, label: string) {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    throw new Error(`${label} must be a number.`);
-  }
-
-  return value;
 }
