@@ -19,6 +19,12 @@ export function configureApp(app: INestApplication): void {
         return;
       }
 
+      // Also allow any vercel.app preview/production deployments
+      if (requestOrigin?.includes('.vercel.app') || requestOrigin?.includes('vercel.app')) {
+        callback(null, requestOrigin);
+        return;
+      }
+
       callback(
         new Error(`CORS blocked origin: ${requestOrigin ?? 'unknown'}`),
         false,
