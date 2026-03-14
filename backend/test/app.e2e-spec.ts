@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { App } from 'supertest/types';
+import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { AdminSessionGuard } from '../src/domains/auth/guards/admin-session.guard';
+import { OrdersService } from '../src/domains/orders/orders.service';
 import { configureApp } from '../src/platform/configure-app';
 
 describe('Platform foundation (e2e)', () => {
@@ -105,6 +107,16 @@ describe('Platform foundation (e2e)', () => {
       });
   });
 
+  test('/api/admin/orders/:orderId/fulfillment (PATCH) rejects unauthenticated access', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/admin/orders/order-1/fulfillment')
+      .send({ fulfillmentStatus: 'CONFIRMED' })
+      .expect(401)
+      .expect(({ body }) => {
+        assert.equal(body.statusCode, 401);
+      });
+  });
+
   test('/api/orders (POST) validates required contact and shipping fields', async () => {
     await request(app.getHttpServer())
       .post('/api/orders')
@@ -123,5 +135,92 @@ describe('Platform foundation (e2e)', () => {
           /shippingAddress should not be null or undefined/i,
         );
       });
+  });
+});
+
+describe('Admin fulfillment endpoint (authorized)', () => {
+  let app: INestApplication<App>;
+  let receivedCall:
+    | {
+        orderId: string;
+        payload: {
+          fulfillmentStatus: string;
+          fulfillmentNotes?: string;
+          deliveryReference?: string;
+        };
+      }
+    | undefined;
+
+  beforeEach(async () => {
+    receivedCall = undefined;
+
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+      .overrideGuard(AdminSessionGuard)
+      .useValue({ canActivate: () => true })
+      .overrideProvider(OrdersService)
+      .useValue({
+        createOrder: async () => undefined,
+        listOrders: async () => [],
+        findOrderById: async () => null,
+        cancelOrder: async () => undefined,
+        updateOrderFulfillment: async (
+          orderId: string,
+          payload: {
+            fulfillmentStatus: string;
+            fulfillmentNotes?: string;
+            deliveryReference?: string;
+          },
+        ) => {
+          receivedCall = { orderId, payload };
+
+          return {
+            id: orderId,
+            status: 'PAID',
+            fulfillmentStatus: payload.fulfillmentStatus,
+            fulfillmentNotes: payload.fulfillmentNotes ?? null,
+            deliveryReference: payload.deliveryReference ?? null,
+          };
+        },
+      })
+      .compile();
+
+    app = moduleFixture.createNestApplication();
+    configureApp(app);
+    await app.init();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  test('/api/admin/orders/:orderId/fulfillment (PATCH) accepts an authorized next-step transition', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/admin/orders/order-1/fulfillment')
+      .send({
+        fulfillmentStatus: 'CONFIRMED',
+        fulfillmentNotes: 'Picked for dispatch',
+        deliveryReference: 'AMBA-14',
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        assert.deepEqual(body, {
+          id: 'order-1',
+          status: 'PAID',
+          fulfillmentStatus: 'CONFIRMED',
+          fulfillmentNotes: 'Picked for dispatch',
+          deliveryReference: 'AMBA-14',
+        });
+      });
+
+    assert.deepEqual(receivedCall, {
+      orderId: 'order-1',
+      payload: {
+        fulfillmentStatus: 'CONFIRMED',
+        fulfillmentNotes: 'Picked for dispatch',
+        deliveryReference: 'AMBA-14',
+      },
+    });
   });
 });

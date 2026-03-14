@@ -78,3 +78,20 @@ test('order intake captures buyer fulfillment data and enforces AMBA shipping sc
   assert.match(ambaScope, /AMBA_LOCALITIES/);
   assert.match(ambaScope, /buenos aires/);
 });
+
+test('fulfillment operations add a separate AMBA admin workflow', () => {
+  const schema = readProjectFile('prisma/schema.prisma');
+  const ordersController = readProjectFile('src/domains/orders/orders.controller.ts');
+  const ordersService = readProjectFile('src/domains/orders/orders.service.ts');
+  const fulfillmentHelpers = readProjectFile('src/domains/orders/fulfillment-status.ts');
+
+  assert.match(schema, /enum FulfillmentStatus/);
+  assert.match(schema, /fulfillmentStatus\s+FulfillmentStatus/);
+  assert.match(schema, /fulfillmentNotes\s+String\?/);
+  assert.match(schema, /deliveryReference\s+String\?/);
+  assert.match(ordersController, /@Patch\('admin\/orders\/:orderId\/fulfillment'\)/);
+  assert.match(ordersService, /updateOrderFulfillment/);
+  assert.match(ordersService, /must be paid before fulfillment can advance/);
+  assert.match(fulfillmentHelpers, /NEXT_FULFILLMENT_STATUS/);
+  assert.match(fulfillmentHelpers, /OUT_FOR_DELIVERY/);
+});

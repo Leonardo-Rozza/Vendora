@@ -9,6 +9,8 @@ import type {
   CreateCheckoutPreferenceRequest,
   CreateOrderRequest,
   CreatedOrder,
+  ListAdminOrdersQuery,
+  UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 
 export class ApiError extends Error {
@@ -165,15 +167,29 @@ export function updateAdminProduct(productId: string, payload: Partial<AdminProd
   });
 }
 
-export function listAdminOrders(status?: string) {
+export function listAdminOrders(query: ListAdminOrdersQuery = {}) {
   const searchParams = new URLSearchParams();
 
-  if (status?.trim()) {
-    searchParams.set("status", status.trim());
+  if (query.status?.trim()) {
+    searchParams.set("status", query.status.trim());
+  }
+
+  if (query.fulfillmentStatus?.trim()) {
+    searchParams.set("fulfillmentStatus", query.fulfillmentStatus.trim());
   }
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   return requestAdminJson<AdminOrder[]>(`/admin/orders${suffix}`);
+}
+
+export function updateAdminOrderFulfillment(
+  orderId: string,
+  payload: UpdateAdminOrderFulfillmentRequest,
+) {
+  return requestAdminJson<AdminOrder>(`/admin/orders/${orderId}/fulfillment`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function cancelAdminOrder(orderId: string) {

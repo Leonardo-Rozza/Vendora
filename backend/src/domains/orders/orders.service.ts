@@ -4,11 +4,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma, ProductStatus } from '@prisma/client';
+import {
+  FulfillmentStatus as PrismaFulfillmentStatus,
+  OrderStatus as PrismaOrderStatus,
+  Prisma,
+  ProductStatus,
+} from '@prisma/client';
 import { InventoryService } from '../inventory/inventory.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { isWithinAmbaShippingScope } from './amba-shipping';
+import { UpdateOrderFulfillmentDto } from './dto/update-order-fulfillment.dto';
+import {
+  getNextFulfillmentStatus,
+  isValidNextFulfillmentStatus,
+} from './fulfillment-status';
 
 const ORDER_INCLUDE = {
   items: true,
@@ -30,9 +40,18 @@ export class OrdersService {
     });
   }
 
-  listOrders(status?: OrderStatus) {
+  listOrders(
+    status?: PrismaOrderStatus,
+    fulfillmentStatus?: PrismaFulfillmentStatus,
+  ) {
     return this.prisma.order.findMany({
-      where: status ? { status } : undefined,
+      where:
+        status || fulfillmentStatus
+          ? {
+              ...(status ? { status } : {}),
+              ...(fulfillmentStatus ? { fulfillmentStatus } : {}),
+            }
+          : undefined,
       include: ORDER_INCLUDE,
       orderBy: {
         createdAt: 'desc',
@@ -111,7 +130,8 @@ export class OrdersService {
       return client.order.create({
         data: {
           userId: input.userId,
-          status: OrderStatus.PENDING_PAYMENT,
+          status: PrismaOrderStatus.PENDING_PAYMENT,
+          fulfillmentStatus: PrismaFulfillmentStatus.REQUESTED,
           currencyCode,
           subtotalAmount,
           totalAmount: subtotalAmount,
@@ -156,11 +176,11 @@ export class OrdersService {
       throw new NotFoundException(`Order ${orderId} was not found`);
     }
 
-    if (order.status === OrderStatus.PAID || order.isLocked) {
+    if (order.status === PrismaOrderStatus.PAID || order.isLocked) {
       throw new ConflictException(`Order ${orderId} can no longer be changed`);
     }
 
-    if (order.status === OrderStatus.CANCELLED) {
+    if (order.status === PrismaOrderStatus.CANCELLED) {
       return order;
     }
 
@@ -170,10 +190,59 @@ export class OrdersService {
       return client.order.update({
         where: { id: orderId },
         data: {
-          status: OrderStatus.CANCELLED,
+          status: PrismaOrderStatus.CANCELLED,
         },
         include: ORDER_INCLUDE,
       });
+    });
+  }
+
+  async updateOrderFulfillment(
+    orderId: string,
+    input: UpdateOrderFulfillmentDto,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: ORDER_INCLUDE,
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} was not found`);
+    }
+
+    if (order.status === PrismaOrderStatus.CANCELLED) {
+      throw new ConflictException(
+        `Order ${orderId} cannot advance after cancellation`,
+      );
+    }
+
+    if (order.status !== PrismaOrderStatus.PAID) {
+      throw new ConflictException(
+        `Order ${orderId} must be paid before fulfillment can advance`,
+      );
+    }
+
+    if (
+      !isValidNextFulfillmentStatus(
+        order.fulfillmentStatus,
+        input.fulfillmentStatus,
+      )
+    ) {
+      const nextStatus = getNextFulfillmentStatus(order.fulfillmentStatus);
+      const nextStatusLabel = nextStatus ?? 'no further transition';
+
+      throw new ConflictException(
+        `Order ${orderId} can only advance from ${order.fulfillmentStatus} to ${nextStatusLabel}`,
+      );
+    }
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        fulfillmentStatus: input.fulfillmentStatus,
+        ...this.buildFulfillmentMetadataUpdate(input),
+      },
+      include: ORDER_INCLUDE,
     });
   }
 
@@ -191,5 +260,26 @@ export class OrdersService {
       variantId,
       quantity,
     }));
+  }
+
+  private buildFulfillmentMetadataUpdate(input: UpdateOrderFulfillmentDto) {
+    const fulfillmentNotes = this.normalizeOptionalText(input.fulfillmentNotes);
+    const deliveryReference = this.normalizeOptionalText(
+      input.deliveryReference,
+    );
+
+    return {
+      ...(fulfillmentNotes !== undefined ? { fulfillmentNotes } : {}),
+      ...(deliveryReference !== undefined ? { deliveryReference } : {}),
+    };
+  }
+
+  private normalizeOptionalText(value?: string) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const normalizedValue = value.trim();
+    return normalizedValue.length > 0 ? normalizedValue : null;
   }
 }

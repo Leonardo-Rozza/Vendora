@@ -4,6 +4,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -12,6 +13,7 @@ import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersDto } from './dto/list-orders.dto';
 import { OrderParamsDto } from './dto/order-params.dto';
+import { UpdateOrderFulfillmentDto } from './dto/update-order-fulfillment.dto';
 import { OrdersService } from './orders.service';
 
 @Controller()
@@ -26,7 +28,7 @@ export class OrdersController {
   @Get('admin/orders')
   @UseGuards(AdminSessionGuard)
   listOrders(@Query() query: ListOrdersDto) {
-    return this.ordersService.listOrders(query.status);
+    return this.ordersService.listOrders(query.status, query.fulfillmentStatus);
   }
 
   @Get('admin/orders/:orderId')
@@ -45,5 +47,14 @@ export class OrdersController {
   @UseGuards(AdminSessionGuard)
   cancelOrder(@Param() params: OrderParamsDto) {
     return this.ordersService.cancelOrder(params.orderId);
+  }
+
+  @Patch('admin/orders/:orderId/fulfillment')
+  @UseGuards(AdminSessionGuard)
+  updateOrderFulfillment(
+    @Param() params: OrderParamsDto,
+    @Body() body: UpdateOrderFulfillmentDto,
+  ) {
+    return this.ordersService.updateOrderFulfillment(params.orderId, body);
   }
 }

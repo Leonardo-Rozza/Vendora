@@ -21,7 +21,7 @@
     "test:watch": "npm test",
     "test:cov": "npm test",
     "test:debug": "npm test",
-    "test:e2e": "NODE_ENV=test node --test test-js/e2e.test.js",
+    "test:e2e": "NODE_ENV=test node --test test-js/e2e.test.js test-js/fulfillment-endpoint.e2e.test.js",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
   },

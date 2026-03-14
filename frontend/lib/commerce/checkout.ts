@@ -1,4 +1,3 @@
-import { ApiError } from "./api";
 import type { CheckoutFormState, CheckoutSnapshot } from "../contracts";
 
 const CABA_PROVINCES = new Set([
@@ -69,11 +68,18 @@ export function validateCheckoutForm(form: CheckoutFormState) {
 }
 
 export function toCheckoutErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
+  if (isApiError(error)) {
     return error.message;
   }
 
   return "Checkout could not be prepared. Please retry.";
+}
+
+function isApiError(error: unknown): error is Error & { status: number } {
+  return (
+    error instanceof Error &&
+    typeof (error as { status?: unknown }).status === "number"
+  );
 }
 
 export function resolveCheckoutReferences(options: {

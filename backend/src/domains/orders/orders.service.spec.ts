@@ -86,6 +86,39 @@ test('OrdersService lists orders with an optional status filter', async () => {
   });
 });
 
+test('OrdersService lists orders with combined commercial and fulfillment filters', async () => {
+  let receivedArgs: unknown;
+  const service = new OrdersService(
+    {
+      order: {
+        findMany: async (args: unknown) => {
+          receivedArgs = args;
+          return [{ id: 'order-1' }];
+        },
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  const result = await service.listOrders('PAID', 'READY_FOR_DELIVERY');
+
+  assert.deepEqual(result, [{ id: 'order-1' }]);
+  assert.deepEqual(receivedArgs, {
+    where: {
+      status: 'PAID',
+      fulfillmentStatus: 'READY_FOR_DELIVERY',
+    },
+    include: {
+      items: true,
+      payments: true,
+      user: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+});
+
 test('OrdersService creates a pending-payment order from valid cart items', async () => {
   const calls: Record<string, unknown> = {};
   const service = new OrdersService(
@@ -155,6 +188,11 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
   assert.equal(
     (calls.orderCreate as { data: { status: string } }).data.status,
     'PENDING_PAYMENT',
+  );
+  assert.equal(
+    (calls.orderCreate as { data: { fulfillmentStatus: string } }).data
+      .fulfillmentStatus,
+    'REQUESTED',
   );
   assert.equal(
     (calls.orderCreate as { data: { contactEmail: string } }).data.contactEmail,
@@ -407,6 +445,201 @@ test('OrdersService rejects cancellation for paid orders', async () => {
 
   await assert.rejects(
     () => service.cancelOrder('order-1'),
+    (error: unknown) => error instanceof ConflictException,
+  );
+});
+
+test('OrdersService advances paid orders through the next fulfillment state and stores metadata', async () => {
+  let receivedArgs: unknown;
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PAID',
+          fulfillmentStatus: 'REQUESTED',
+          fulfillmentNotes: 'Initial note',
+          deliveryReference: null,
+          isLocked: true,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+        update: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'order-1', fulfillmentStatus: 'CONFIRMED' };
+        },
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  const result = await service.updateOrderFulfillment('order-1', {
+    fulfillmentStatus: 'CONFIRMED',
+    fulfillmentNotes: 'Packed for tomorrow',
+    deliveryReference: 'RUTA-14',
+  });
+
+  assert.deepEqual(result, { id: 'order-1', fulfillmentStatus: 'CONFIRMED' });
+  assert.deepEqual(receivedArgs, {
+    where: { id: 'order-1' },
+    data: {
+      fulfillmentStatus: 'CONFIRMED',
+      fulfillmentNotes: 'Packed for tomorrow',
+      deliveryReference: 'RUTA-14',
+    },
+    include: {
+      items: true,
+      payments: true,
+      user: true,
+    },
+  });
+});
+
+test('OrdersService preserves omitted fulfillment metadata during valid transitions', async () => {
+  let receivedArgs: unknown;
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PAID',
+          fulfillmentStatus: 'CONFIRMED',
+          fulfillmentNotes: 'Keep existing note',
+          deliveryReference: 'REF-1',
+          isLocked: true,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+        update: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'order-1', fulfillmentStatus: 'PREPARING' };
+        },
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await service.updateOrderFulfillment('order-1', {
+    fulfillmentStatus: 'PREPARING',
+  });
+
+  assert.deepEqual(receivedArgs, {
+    where: { id: 'order-1' },
+    data: {
+      fulfillmentStatus: 'PREPARING',
+    },
+    include: {
+      items: true,
+      payments: true,
+      user: true,
+    },
+  });
+});
+
+test('OrdersService rejects skipped fulfillment transitions', async () => {
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PAID',
+          fulfillmentStatus: 'REQUESTED',
+          isLocked: true,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await assert.rejects(
+    () =>
+      service.updateOrderFulfillment('order-1', {
+        fulfillmentStatus: 'OUT_FOR_DELIVERY',
+      }),
+    (error: unknown) => error instanceof ConflictException,
+  );
+});
+
+test('OrdersService rejects backward fulfillment transitions', async () => {
+  const service = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PAID',
+          fulfillmentStatus: 'READY_FOR_DELIVERY',
+          isLocked: true,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await assert.rejects(
+    () =>
+      service.updateOrderFulfillment('order-1', {
+        fulfillmentStatus: 'PREPARING',
+      }),
+    (error: unknown) => error instanceof ConflictException,
+  );
+});
+
+test('OrdersService rejects fulfillment transitions for unpaid or cancelled orders', async () => {
+  const unpaidService = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-1',
+          status: 'PENDING_PAYMENT',
+          fulfillmentStatus: 'REQUESTED',
+          isLocked: false,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await assert.rejects(
+    () =>
+      unpaidService.updateOrderFulfillment('order-1', {
+        fulfillmentStatus: 'CONFIRMED',
+      }),
+    (error: unknown) => error instanceof ConflictException,
+  );
+
+  const cancelledService = new OrdersService(
+    {
+      order: {
+        findUnique: async () => ({
+          id: 'order-2',
+          status: 'CANCELLED',
+          fulfillmentStatus: 'REQUESTED',
+          isLocked: false,
+          items: [],
+          payments: [],
+          user: null,
+        }),
+      },
+    } as never,
+    noopInventoryService,
+  );
+
+  await assert.rejects(
+    () =>
+      cancelledService.updateOrderFulfillment('order-2', {
+        fulfillmentStatus: 'CONFIRMED',
+      }),
     (error: unknown) => error instanceof ConflictException,
   );
 });

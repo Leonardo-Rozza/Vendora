@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError } from "../lib/commerce/api.ts";
+import {
+  ApiError,
+  listAdminOrders,
+  resolveApiBaseUrl,
+  updateAdminOrderFulfillment,
+} from "../lib/commerce/api.ts";
 import { toCatalogErrorMessage } from "../lib/commerce/catalog.ts";
 import {
   canStartCheckout,
@@ -98,4 +103,69 @@ test("checkout validation requires delivery fields and rejects non-AMBA destinat
     isWithinAmbaShippingScope({ locality: "CABA", province: "CABA" }),
     true,
   );
+});
+
+test("admin order helper appends fulfillment filters to the query string", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof global.fetch;
+
+  try {
+    await listAdminOrders({ fulfillmentStatus: "PREPARING" });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(seenRequests.length, 1);
+  assert.match(seenRequests[0]!.url, /\/admin\/orders\?fulfillmentStatus=PREPARING$/);
+  assert.equal(seenRequests[0]!.init?.credentials, "include");
+});
+
+test("admin fulfillment helper sends a patch request with the transition payload", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(JSON.stringify({ id: "order-1", fulfillmentStatus: "CONFIRMED" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof global.fetch;
+
+  try {
+    await updateAdminOrderFulfillment("order-1", {
+      fulfillmentStatus: "CONFIRMED",
+      fulfillmentNotes: "Ready for picker",
+      deliveryReference: "OPS-1",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(seenRequests.length, 1);
+  assert.match(seenRequests[0]!.url, /\/admin\/orders\/order-1\/fulfillment$/);
+  assert.equal(seenRequests[0]!.init?.method, "PATCH");
+  assert.equal(seenRequests[0]!.init?.credentials, "include");
+  assert.match(String(seenRequests[0]!.init?.body), /"fulfillmentStatus":"CONFIRMED"/);
+});
+
+test("api helper resolves the configured API base url without a trailing slash", () => {
+  const originalBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://vendora.example.com/api/";
+
+  try {
+    assert.equal(resolveApiBaseUrl(), "https://vendora.example.com/api");
+  } finally {
+    process.env.NEXT_PUBLIC_API_BASE_URL = originalBaseUrl;
+  }
 });

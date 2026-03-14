@@ -11,17 +11,26 @@ import {
   listAdminOrders,
   listAdminProducts,
   logoutAdmin,
+  updateAdminOrderFulfillment,
   updateAdminProduct,
 } from "@/lib/commerce/api";
 import { ProductEditor } from "@/components/admin/product-editor";
 import { OrderList } from "@/components/admin/order-list";
-import type { AdminOrder, AdminProduct, AdminProductInput, AdminSession } from "@/lib/contracts";
+import type {
+  AdminOrder,
+  AdminProduct,
+  AdminProductInput,
+  AdminSession,
+  FulfillmentStatus,
+  UpdateAdminOrderFulfillmentRequest,
+} from "@/lib/contracts";
 
 export function AdminDashboard() {
   const router = useRouter();
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<FulfillmentStatus | "ALL">("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +42,11 @@ export function AdminDashboard() {
       const currentAdmin = await getCurrentAdmin();
       const [nextProducts, nextOrders] = await Promise.all([
         listAdminProducts(),
-        listAdminOrders(),
+        listAdminOrders(
+          fulfillmentFilter === "ALL"
+            ? {}
+            : { fulfillmentStatus: fulfillmentFilter },
+        ),
       ]);
       setAdminSession(currentAdmin);
       setProducts(nextProducts);
@@ -50,7 +63,7 @@ export function AdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [fulfillmentFilter, router]);
 
   useEffect(() => {
     void loadDashboard();
@@ -82,6 +95,14 @@ export function AdminDashboard() {
 
   async function handleCancelOrder(orderId: string) {
     await cancelAdminOrder(orderId);
+    await loadDashboard();
+  }
+
+  async function handleAdvanceFulfillment(
+    orderId: string,
+    payload: UpdateAdminOrderFulfillmentRequest,
+  ) {
+    await updateAdminOrderFulfillment(orderId, payload);
     await loadDashboard();
   }
 
@@ -131,7 +152,13 @@ export function AdminDashboard() {
 
         <section className="grid gap-5">
           <ProductEditor products={products} onCreate={handleCreateProduct} onUpdate={handleUpdateProduct} />
-          <OrderList orders={orders} onCancel={handleCancelOrder} />
+          <OrderList
+            orders={orders}
+            selectedFulfillmentFilter={fulfillmentFilter}
+            onAdvanceFulfillment={handleAdvanceFulfillment}
+            onCancel={handleCancelOrder}
+            onFulfillmentFilterChange={setFulfillmentFilter}
+          />
         </section>
       </div>
     </main>

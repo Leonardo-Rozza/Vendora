@@ -20,6 +20,15 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum FulfillmentStatus {
+  REQUESTED
+  CONFIRMED
+  PREPARING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
 enum PaymentStatus {
   PENDING
   AUTHORIZED
@@ -110,6 +119,7 @@ model Order {
   id                    String      @id @default(cuid())
   userId                String?
   status                OrderStatus @default(DRAFT)
+  fulfillmentStatus     FulfillmentStatus @default(REQUESTED)
   currencyCode          String      @db.Char(3)
   subtotalAmount        Decimal     @db.Decimal(10, 2)
   totalAmount           Decimal     @db.Decimal(10, 2)
@@ -124,6 +134,8 @@ model Order {
   shippingProvince      String
   shippingPostalCode    String
   shippingDeliveryNotes String?
+  fulfillmentNotes      String?
+  deliveryReference     String?
   paidAt                DateTime?
   isLocked              Boolean     @default(false)
   user                  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -134,6 +146,7 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([fulfillmentStatus])
 }
 
 model OrderItem {

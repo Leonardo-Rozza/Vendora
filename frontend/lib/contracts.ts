@@ -209,9 +209,29 @@ export type AdminProductInput = {
   images?: ProductImageInput[];
 };
 
+export type FulfillmentStatus =
+  | "REQUESTED"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "READY_FOR_DELIVERY"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED";
+
+export type ListAdminOrdersQuery = {
+  status?: string;
+  fulfillmentStatus?: FulfillmentStatus;
+};
+
+export type UpdateAdminOrderFulfillmentRequest = {
+  fulfillmentStatus: FulfillmentStatus;
+  fulfillmentNotes?: string;
+  deliveryReference?: string;
+};
+
 export type AdminOrder = {
   id: string;
   status: string;
+  fulfillmentStatus: FulfillmentStatus;
   currencyCode: string;
   subtotalAmount: string;
   totalAmount: string;
@@ -226,6 +246,9 @@ export type AdminOrder = {
   shippingProvince: string;
   shippingPostalCode: string;
   shippingDeliveryNotes: string | null;
+  fulfillmentNotes: string | null;
+  deliveryReference: string | null;
+  paidAt: string | null;
   createdAt?: string;
   items: Array<{
     id?: string;
