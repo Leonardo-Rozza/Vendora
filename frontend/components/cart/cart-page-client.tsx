@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
+import { CheckoutForm } from "@/components/cart/checkout-form";
 import { createCheckoutPreference, createOrder } from "@/lib/commerce/api";
 import {
   createEmptyCheckoutFormState,
@@ -266,191 +267,14 @@ export function CartPageClient() {
               <p className="mt-2 leading-7">{copy.deliveryScopeDescription}</p>
             </div>
 
-            <div className="mt-5 grid gap-4">
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--accent-sand)]">
-                {copy.contactSection}
-              </p>
-              <label className="block text-sm text-white/76">
-                {copy.fullName}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      fullName: event.target.value,
-                    }))
-                  }
-                  placeholder="Ada Buyer"
-                  value={checkoutForm.fullName}
-                />
-              </label>
-              <label className="block text-sm text-white/76">
-                {copy.email}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                  placeholder="ada@example.com"
-                  type="email"
-                  value={checkoutForm.email}
-                />
-              </label>
-              <label className="block text-sm text-white/76">
-                {copy.phone}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      phone: event.target.value,
-                    }))
-                  }
-                  placeholder="11 5555 5555"
-                  value={checkoutForm.phone}
-                />
-              </label>
-            </div>
-
-            <div className="mt-5 grid gap-4">
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--accent-sand)]">
-                {copy.shippingSection}
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm text-white/76">
-                  {copy.recipientName}
-                  <input
-                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        recipientName: event.target.value,
-                      }))
-                    }
-                    placeholder="Quien recibe el pedido"
-                    value={checkoutForm.recipientName}
-                  />
-                </label>
-                <label className="block text-sm text-white/76">
-                  {copy.shippingPhone}
-                  <input
-                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        shippingPhone: event.target.value,
-                      }))
-                    }
-                    placeholder="Contacto para la entrega"
-                    value={checkoutForm.shippingPhone}
-                  />
-                </label>
-              </div>
-              <label className="block text-sm text-white/76">
-                {copy.streetAddress}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      streetLine1: event.target.value,
-                    }))
-                  }
-                  placeholder={copy.streetAddressHint}
-                  value={checkoutForm.streetLine1}
-                />
-              </label>
-              <label className="block text-sm text-white/76">
-                {copy.addressLine2}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      streetLine2: event.target.value,
-                    }))
-                  }
-                  placeholder="Torre, piso, puerta o referencia extra"
-                  value={checkoutForm.streetLine2}
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <label className="block text-sm text-white/76 sm:col-span-2">
-                  {copy.locality}
-                  <input
-                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        locality: event.target.value,
-                      }))
-                    }
-                    placeholder="CABA, Vicente Lopez, Quilmes..."
-                    value={checkoutForm.locality}
-                  />
-                </label>
-                <label className="block text-sm text-white/76">
-                  {copy.postalCode}
-                  <input
-                    className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        postalCode: event.target.value,
-                      }))
-                    }
-                    placeholder="C1425"
-                    value={checkoutForm.postalCode}
-                  />
-                </label>
-              </div>
-              <label className="block text-sm text-white/76">
-                {copy.province}
-                <input
-                  className="mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      province: event.target.value,
-                    }))
-                  }
-                  placeholder="CABA o Buenos Aires"
-                  value={checkoutForm.province}
-                />
-              </label>
-              <label className="block text-sm text-white/76">
-                {copy.deliveryNotes}
-                <textarea
-                  className="mt-2 min-h-24 w-full rounded-[1.5rem] border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      deliveryNotes: event.target.value,
-                    }))
-                  }
-                  placeholder="Horario, timbre o referencia de entrega"
-                  value={checkoutForm.deliveryNotes}
-                />
-              </label>
-            </div>
-
-            <p className="mt-4 text-xs uppercase tracking-[0.24em] text-white/56">
-              {copy.ambaOnly}
-            </p>
-            {error ? (
-              <p className="mt-4 text-sm text-[var(--accent-sand)]">{error}</p>
-            ) : null}
-            <button
-              className="mt-5 w-full rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
-              disabled={isSubmitting}
-              onClick={() => void handleCheckout()}
-              type="button"
-            >
-              {isSubmitting ? copy.preparing : copy.continueToPayment}
-            </button>
+            <CheckoutForm
+              copy={copy}
+              error={error}
+              isSubmitting={isSubmitting}
+              onChange={setCheckoutForm}
+              onSubmit={() => void handleCheckout()}
+              value={checkoutForm}
+            />
           </div>
         </aside>
       </section>

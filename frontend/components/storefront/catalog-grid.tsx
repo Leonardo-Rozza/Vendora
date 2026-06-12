@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductCard } from "@/lib/contracts";
@@ -33,7 +34,7 @@ export function CatalogGrid({
       />
 
       {error ? (
-        <div className="mt-8 rounded-[1.6rem] border border-[var(--warning-line)] bg-[var(--warning-surface)] p-5 text-sm text-[var(--ink-strong)]">
+        <div role="alert" className="mt-8 rounded-[1.6rem] border border-[var(--warning-line)] bg-[var(--warning-surface)] p-5 text-sm text-[var(--ink-strong)]">
           <p className="font-semibold">{copy.retryTitle}</p>
           <p className="mt-2 text-[var(--ink-muted)]">{error}</p>
           <Button className="mt-4" onClick={onRetry} variant="secondary">
@@ -67,11 +68,13 @@ export function CatalogGrid({
               key={product.id}
               className="overflow-hidden rounded-[1.75rem] border border-[var(--line-soft)] bg-white/82 shadow-[0_14px_60px_rgba(74,54,39,0.08)]"
             >
-              <div className="aspect-[4/3] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
+              <div className="relative aspect-[4/3] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
                 {product.primaryImageUrl ? (
-                  <img
+                  <Image
                     alt={product.primaryImageAlt ?? product.name}
-                    className="h-full w-full object-cover"
+                    className="object-cover"
+                    fill
+                    sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                     src={product.primaryImageUrl}
                   />
                 ) : (

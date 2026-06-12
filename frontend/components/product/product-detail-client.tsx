@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
@@ -61,9 +62,9 @@ export function ProductDetailClient({
 
       <section className="grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
         <article className="overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-white/78 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-          <div className="aspect-[1/1] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
+          <div className="relative aspect-[1/1] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
             {primaryImage ? (
-              <img alt={primaryImage.altText ?? product.name} className="h-full w-full object-cover" src={primaryImage.assetUrl} />
+              <Image alt={primaryImage.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 50vw, 100vw" src={primaryImage.assetUrl} />
             ) : (
               <div className="flex h-full items-end p-6 font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-strong)]">
                 {copy.imagePending}
@@ -73,8 +74,8 @@ export function ProductDetailClient({
           {product.images.length > 1 ? (
             <div className="grid gap-3 border-t border-[var(--line-soft)] p-4 sm:grid-cols-3">
               {product.images.slice(1).map((image) => (
-                <div key={image.id} className="overflow-hidden rounded-[1.2rem] border border-[var(--line-soft)]">
-                  <img alt={image.altText ?? product.name} className="aspect-[4/3] h-full w-full object-cover" src={image.assetUrl} />
+                <div key={image.id} className="relative aspect-[4/3] overflow-hidden rounded-[1.2rem] border border-[var(--line-soft)]">
+                  <Image alt={image.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 17vw, 33vw" src={image.assetUrl} />
                 </div>
               ))}
             </div>
@@ -176,7 +177,11 @@ export function ProductDetailClient({
             >
               {isSelectedVariantUnavailable ? copy.unavailableCta : copy.addToCart}
             </button>
-            {confirmation ? <p className="text-sm text-white/76">{confirmation}</p> : null}
+            {confirmation ? (
+              <p aria-live="polite" role="status" className="text-sm text-white/76">
+                {confirmation}
+              </p>
+            ) : null}
           </div>
         </article>
       </section>

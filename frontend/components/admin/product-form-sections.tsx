@@ -61,17 +61,17 @@ export function ProductFormSections({
       <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
         <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.basics}</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
+          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-name">
             {copy.name}
-            <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setName(event.target.value)} value={name} />
+            <input id="product-name" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setName(event.target.value)} value={name} />
           </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
+          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-slug">
             {copy.slug}
-            <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setSlug(event.target.value)} value={slug} />
+            <input id="product-slug" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setSlug(event.target.value)} value={slug} />
           </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2">
+          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2" htmlFor="product-description">
             {copy.description}
-            <textarea className="mt-2 min-h-28 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setDescription(event.target.value)} value={description} />
+            <textarea id="product-description" className="mt-2 min-h-28 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setDescription(event.target.value)} value={description} />
           </label>
         </div>
       </section>
@@ -79,17 +79,17 @@ export function ProductFormSections({
       <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
         <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.merchandising}</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
+          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-status">
             {copy.status}
-            <select className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setStatus(event.target.value)} value={status}>
+            <select id="product-status" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setStatus(event.target.value)} value={status}>
               <option value="DRAFT">DRAFT</option>
               <option value="ACTIVE">ACTIVE</option>
               <option value="ARCHIVED">ARCHIVED</option>
             </select>
           </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
+          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-category">
             {copy.category}
-            <select className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setCategory(event.target.value as ProductCategory)} value={category}>
+            <select id="product-category" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setCategory(event.target.value as ProductCategory)} value={category}>
               {PRODUCT_CATEGORIES.map((option) => (
                 <option key={option} value={option}>
                   {getProductCategoryLabel(option)}
@@ -119,26 +119,26 @@ export function ProductFormSections({
                 ) : null}
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-name`}>
                   {copy.variantName}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { name: event.target.value }))} value={variant.name} />
+                  <input id={`variant-${index}-name`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { name: event.target.value }))} value={variant.name} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-sku`}>
                   {copy.variantSku}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { sku: event.target.value }))} value={variant.sku} />
+                  <input id={`variant-${index}-sku`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { sku: event.target.value }))} value={variant.sku} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-price`}>
                   {copy.variantPrice}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { priceAmount: event.target.value }))} value={variant.priceAmount} />
+                  <input id={`variant-${index}-price`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { priceAmount: event.target.value }))} value={variant.priceAmount} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-currency`}>
                   {copy.variantCurrency}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { currencyCode: event.target.value.toUpperCase() }))} value={variant.currencyCode} />
+                  <input id={`variant-${index}-currency`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { currencyCode: event.target.value.toUpperCase() }))} value={variant.currencyCode} />
                 </label>
               </div>
-              <label className="mt-4 block text-sm font-medium text-[var(--ink-strong)] md:max-w-52">
+              <label className="mt-4 block text-sm font-medium text-[var(--ink-strong)] md:max-w-52" htmlFor={`variant-${index}-stock`}>
                 {copy.variantStock}
-                <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setVariants((current) => updateVariant(current, index, { availableQuantity: Number(event.target.value || 0) }))} value={String(variant.availableQuantity)} />
+                <input id={`variant-${index}-stock`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setVariants((current) => updateVariant(current, index, { availableQuantity: Number(event.target.value || 0) }))} value={String(variant.availableQuantity)} />
               </label>
             </div>
           ))}
@@ -162,21 +162,21 @@ export function ProductFormSections({
                 </button>
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="text-sm font-medium text-[var(--ink-strong)] xl:col-span-2">
+                <label className="text-sm font-medium text-[var(--ink-strong)] xl:col-span-2" htmlFor={`image-${index}-url`}>
                   {copy.imageUrl}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetUrl: event.target.value }))} value={image.assetUrl} />
+                  <input id={`image-${index}-url`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetUrl: event.target.value }))} value={image.assetUrl} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`image-${index}-key`}>
                   {copy.imageKey}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetKey: event.target.value }))} value={image.assetKey} />
+                  <input id={`image-${index}-key`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetKey: event.target.value }))} value={image.assetKey} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]">
+                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`image-${index}-sort`}>
                   {copy.imageSortOrder}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setImages((current) => updateImage(current, index, { sortOrder: Number(event.target.value || 0) }))} value={String(image.sortOrder)} />
+                  <input id={`image-${index}-sort`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setImages((current) => updateImage(current, index, { sortOrder: Number(event.target.value || 0) }))} value={String(image.sortOrder)} />
                 </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2 xl:col-span-4">
+                <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2 xl:col-span-4" htmlFor={`image-${index}-alt`}>
                   {copy.imageAlt}
-                  <input className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { altText: event.target.value }))} value={image.altText} />
+                  <input id={`image-${index}-alt`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { altText: event.target.value }))} value={image.altText} />
                 </label>
               </div>
             </div>
