@@ -1,6 +1,8 @@
 import { AppConfigService } from './app-config.service';
 
-function buildConfig(env: Record<string, string | undefined>): AppConfigService {
+function buildConfig(
+  env: Record<string, string | undefined>,
+): AppConfigService {
   return new AppConfigService({
     get: <T>(key: string): T | undefined => env[key] as T | undefined,
   } as never);
@@ -13,12 +15,14 @@ test('isAllowedFrontendOrigin trusts only the configured allowlist', () => {
   });
 
   expect(config.isAllowedFrontendOrigin('https://shop.vendora.com')).toBe(true);
-  expect(config.isAllowedFrontendOrigin('https://admin.vendora.com')).toBe(true);
+  expect(config.isAllowedFrontendOrigin('https://admin.vendora.com')).toBe(
+    true,
+  );
   // A wildcard preview from another account must NOT be trusted anymore.
   expect(config.isAllowedFrontendOrigin('https://evil.vercel.app')).toBe(false);
-  expect(config.isAllowedFrontendOrigin('https://shop.vendora.com.evil.com')).toBe(
-    false,
-  );
+  expect(
+    config.isAllowedFrontendOrigin('https://shop.vendora.com.evil.com'),
+  ).toBe(false);
 });
 
 test('isAllowedFrontendOrigin denies all cross-origin requests when unconfigured in production', () => {

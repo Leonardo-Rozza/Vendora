@@ -161,7 +161,9 @@ export function validateEnvironment(
       productionErrors.push(
         'ADMIN_SESSION_SECRET must be set to a strong non-default value in production',
       );
-    } else if (value.ADMIN_SESSION_SECRET.length < MIN_PRODUCTION_SECRET_LENGTH) {
+    } else if (
+      value.ADMIN_SESSION_SECRET.length < MIN_PRODUCTION_SECRET_LENGTH
+    ) {
       productionErrors.push(
         `ADMIN_SESSION_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in production`,
       );
@@ -212,7 +214,7 @@ function readOptionalUrl(
     return value;
   } catch {
     throw new Error(
-      `Environment validation failed: Invalid URL value \"${value}\"`,
+      `Environment validation failed: Invalid URL value "${value}"`,
     );
   }
 }
@@ -263,9 +265,7 @@ function readNodeEnv(input: unknown): 'development' | 'test' | 'production' {
     return value;
   }
 
-  throw new Error(
-    `Environment validation failed: Invalid NODE_ENV \"${value}\"`,
-  );
+  throw new Error(`Environment validation failed: Invalid NODE_ENV "${value}"`);
 }
 
 function readPort(input: unknown): number {
@@ -273,7 +273,7 @@ function readPort(input: unknown): number {
   const port = Number(value);
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`Environment validation failed: Invalid PORT \"${value}\"`);
+    throw new Error(`Environment validation failed: Invalid PORT "${value}"`);
   }
 
   return port;

@@ -65,7 +65,9 @@ export class MercadoPagoRealGateway implements MercadoPagoGateway {
     });
 
     if (!response.id || !response.init_point) {
-      throw new Error('Mercado Pago did not return a usable checkout preference');
+      throw new Error(
+        'Mercado Pago did not return a usable checkout preference',
+      );
     }
 
     return {

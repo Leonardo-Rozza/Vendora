@@ -185,9 +185,7 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
   });
 
   expect(result).toMatchObject({ id: 'order-1', status: 'PENDING_PAYMENT' });
-  expect(calls.reserveItems).toEqual([
-    { variantId: 'variant-1', quantity: 3 },
-  ]);
+  expect(calls.reserveItems).toEqual([{ variantId: 'variant-1', quantity: 3 }]);
   expect(calls.variantFindMany).toEqual({
     where: {
       id: {
@@ -199,9 +197,9 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
       inventoryItem: true,
     },
   });
-  expect(
-    (calls.orderCreate as { data: { status: string } }).data.status,
-  ).toBe('PENDING_PAYMENT');
+  expect((calls.orderCreate as { data: { status: string } }).data.status).toBe(
+    'PENDING_PAYMENT',
+  );
   expect(
     (calls.orderCreate as { data: { fulfillmentStatus: string } }).data
       .fulfillmentStatus,
@@ -497,7 +495,10 @@ test('OrdersService advances paid orders through the next fulfillment state and 
     deliveryReference: 'RUTA-14',
   });
 
-  expect(result).toMatchObject({ id: 'order-1', fulfillmentStatus: 'CONFIRMED' });
+  expect(result).toMatchObject({
+    id: 'order-1',
+    fulfillmentStatus: 'CONFIRMED',
+  });
   expect(receivedArgs).toEqual({
     where: { id: 'order-1' },
     data: {

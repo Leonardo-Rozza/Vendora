@@ -11,8 +11,9 @@ const jsxA11yWarnRules = Object.fromEntries(
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // eslint-config-next already registers the jsx-a11y plugin; only override the
+  // rule severities here (re-registering the plugin would error).
   {
-    ...jsxA11y.flatConfigs.recommended,
     rules: jsxA11yWarnRules,
   },
   // Override default ignores of eslint-config-next.

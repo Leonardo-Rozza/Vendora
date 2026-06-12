@@ -70,25 +70,35 @@
 - Specs nuevos/actualizados (fake gateway, payments.service, e2e). 66 unit + 8 e2e en verde.
 - Pendiente real (cuando haya credenciales): probar contra MP sandbox; Cloudinary ya OK server-side.
 
-### Fase 4 — DB hardening + dominio
-- Migración: `CHECK (availableQuantity >= 0 AND reservedQuantity >= 0)`.
-- Envolver `updateAvailableQuantity` en transacción.
-- Separar `shippingAmount` de `total` (dejar preparado).
+### Fase 4 — DB hardening + dominio ✅ HECHA
+- Migración con CHECK `availableQuantity >= 0` y `reservedQuantity >= 0` (Prisma no expresa CHECK).
+- `updateAvailableQuantity` envuelto en `$transaction`.
+- Columna `Order.shippingAmount` (default 0) preparada para total = subtotal + envío.
+- NOTA: en seco no se aplican las migraciones contra una DB real; quedan escritas y el schema valida.
 
-### Fase 5 — Arquitectura frontend
-- Mover fetch de catálogo y PDP a server components (RSC) con `loading.tsx`/`error.tsx`; islas client para filtros/add-to-cart.
-- Guard admin server-side (`middleware.ts`).
+### Fase 5 — Arquitectura frontend ✅ HECHA
+- Catálogo y PDP ahora se renderizan en el server (RSC): `app/page.tsx` y `app/products/[slug]/page.tsx`
+  hacen el fetch inicial; las islas client mantienen filtros/selección/add-to-cart.
+- PDP: `notFound()` en 404 + `generateMetadata` (deduplicado con React `cache`); `not-found.tsx` y `error.tsx`.
+- Ambas rutas quedan `ƒ Dynamic — server-rendered on demand` (verificado con `next build`).
+- NOTA: el guard admin NO se hace con middleware: la cookie de sesión es cross-site (la setea el backend
+  en su dominio), así que el frontend no puede leerla. Queda el guard client-side + la enforcement del backend.
 
-### Fase 6 — Calidad frontend
-- Descomponer `CartPageClient` → `<CheckoutForm>` + `<Field>` reutilizable.
-- Tipos compartidos + validación Zod en el borde (`requestJson`).
-- `next/image` + `images.remotePatterns` (Cloudinary).
-- Pasada de a11y + `eslint-plugin-jsx-a11y`.
-- Consistencia de idioma, README real, `.env.example`.
+### Fase 6 — Calidad frontend ✅ HECHA
+- `CartPageClient` descompuesto en `<CheckoutForm>` + `<Field>` accesible reutilizable.
+- Validación Zod en el borde para las responses públicas del catálogo (sin `as T` ciego).
+- `<img>` → `next/image` (catálogo + PDP) + `images.remotePatterns` (Cloudinary).
+- Pasada de a11y (labels asociados, `role="alert"`, `aria-live`) + `eslint-plugin-jsx-a11y` (warn).
+- README real del frontend + `.env.example`.
+- Verificado: `tsc`, `vitest` (14) y `next build` en verde.
 
-### Fase 7 — Tooling / CI
-- `lint` con ESLint real (backend); `build` con `nest build`.
-- GitHub Actions: test + build en push/PR.
+### Fase 7 — Tooling / CI ✅ HECHA
+- Backend `lint` ahora corre ESLint real (typed linting con `projectService`) + `typecheck` separado.
+  Arreglados todos los hallazgos (formato + escapes innecesarios). `build` se mantiene en `tsc` (probado).
+- Frontend: `eslint-plugin-jsx-a11y` activo (warn); arreglados 2 errores reales de `react-hooks/error-boundaries`
+  (JSX dentro de try/catch en las páginas de PDP y seguimiento).
+- `.github/workflows/ci.yml`: jobs de backend (lint, typecheck, test, e2e, build) y frontend
+  (lint, test, build) en push a main y en PRs.
 
 ---
 
@@ -97,7 +107,7 @@
 - [x] Fase 1 — Tests reales
 - [x] Fase 2 — Seguridad backend
 - [x] Fase 3 — Integración MP (en seco)
-- [ ] Fase 4 — DB hardening
-- [ ] Fase 5 — Arquitectura frontend
-- [ ] Fase 6 — Calidad frontend
-- [ ] Fase 7 — Tooling / CI
+- [x] Fase 4 — DB hardening
+- [x] Fase 5 — Arquitectura frontend
+- [x] Fase 6 — Calidad frontend
+- [x] Fase 7 — Tooling / CI

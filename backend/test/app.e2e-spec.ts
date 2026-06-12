@@ -86,7 +86,9 @@ describe('Platform foundation (e2e)', () => {
         expect(body.statusCode).toBe(400);
         expect(body.message.join(' ')).toMatch(/eventId must be a string/i);
         expect(body.message.join(' ')).toMatch(/resourceId must be a string/i);
-        expect(body.message.join(' ')).toMatch(/property status should not exist/i);
+        expect(body.message.join(' ')).toMatch(
+          /property status should not exist/i,
+        );
       });
   });
 

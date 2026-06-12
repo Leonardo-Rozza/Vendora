@@ -131,9 +131,8 @@ export class AuthService {
     // cookie-parser (applied in configureApp) populates request.cookies and
     // handles URL-decoding and exact-name matching, avoiding the prefix
     // collisions of manual header splitting.
-    const cookies = (
-      request as Request & { cookies?: Record<string, string> }
-    ).cookies;
+    const cookies = (request as Request & { cookies?: Record<string, string> })
+      .cookies;
 
     return cookies?.[this.configService.adminSessionCookieName] ?? null;
   }

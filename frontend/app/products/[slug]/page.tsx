@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetailClient } from "@/components/product/product-detail-client";
 import { ApiError, getCatalogProduct } from "@/lib/commerce/api";
+import type { CatalogProductDetail } from "@/lib/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -35,15 +36,18 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
 
+  // Keep JSX out of the try/catch: only the fetch is guarded. 404 -> notFound;
+  // transient failures bubble to the route's error boundary.
+  let product: CatalogProductDetail;
   try {
-    const product = await loadProduct(slug);
-    return <ProductDetailClient product={product} />;
+    product = await loadProduct(slug);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       notFound();
     }
 
-    // Transient backend failures bubble to the route's error boundary.
     throw error;
   }
+
+  return <ProductDetailClient product={product} />;
 }

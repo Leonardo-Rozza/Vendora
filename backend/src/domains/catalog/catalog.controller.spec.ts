@@ -68,10 +68,10 @@ test('CatalogController lists storefront-safe active products with filter metada
             id: 'variant-1',
             sku: 'SKU-1',
             name: 'Standard',
-           priceAmount: '12500.00',
-           currencyCode: 'ARS',
-           availableQuantity: 5,
-         },
+            priceAmount: '12500.00',
+            currencyCode: 'ARS',
+            availableQuantity: 5,
+          },
         ],
         images: [
           {
@@ -173,7 +173,7 @@ test('CatalogController rejects missing products', async () => {
   await expect(
     controller.getProductBySlug('missing-product'),
   ).rejects.toBeInstanceOf(NotFoundException);
-  await expect(
-    controller.getProductBySlug('missing-product'),
-  ).rejects.toThrow('Product missing-product was not found');
+  await expect(controller.getProductBySlug('missing-product')).rejects.toThrow(
+    'Product missing-product was not found',
+  );
 });

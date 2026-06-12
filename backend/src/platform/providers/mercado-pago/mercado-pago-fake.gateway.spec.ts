@@ -8,7 +8,9 @@ test('MercadoPagoFakeGateway builds a checkout preference without credentials', 
   const result = await gateway.createCheckoutPreference({
     orderId: 'order-1',
     currencyCode: 'ARS',
-    items: [{ sku: 'sku-1', title: 'Mate', quantity: 2, unitPriceAmount: '12500.00' }],
+    items: [
+      { sku: 'sku-1', title: 'Mate', quantity: 2, unitPriceAmount: '12500.00' },
+    ],
     payerEmail: 'buyer@example.com',
   });
 
