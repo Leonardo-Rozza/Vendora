@@ -22,15 +22,42 @@ const DEFAULT_FILTERS: CatalogFilters = {
   sort: "featured",
 };
 
-export function CatalogExperience() {
+function mapAppliedFilters(
+  applied: CatalogCollectionResponse["filters"]["applied"],
+): CatalogFilters {
+  return {
+    query: applied.query ?? "",
+    category: applied.category ?? undefined,
+    minPriceAmount: applied.minPriceAmount ?? "",
+    maxPriceAmount: applied.maxPriceAmount ?? "",
+    sort: applied.sort,
+  };
+}
+
+export function CatalogExperience({
+  initialCollection = null,
+  initialError = null,
+}: {
+  initialCollection?: CatalogCollectionResponse | null;
+  initialError?: string | null;
+}) {
   const copy = appCopy.storefrontCatalog;
-  const [collection, setCollection] = useState<CatalogCollectionResponse | null>(null);
-  const [products, setProducts] = useState<CatalogProductCard[]>([]);
-  const [draftFilters, setDraftFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
-  const [activeFilters, setActiveFilters] = useState<CatalogFilters>(DEFAULT_FILTERS);
+  const initialAppliedFilters = initialCollection
+    ? mapAppliedFilters(initialCollection.filters.applied)
+    : DEFAULT_FILTERS;
+  const [collection, setCollection] = useState<CatalogCollectionResponse | null>(
+    initialCollection,
+  );
+  const [products, setProducts] = useState<CatalogProductCard[]>(
+    initialCollection
+      ? initialCollection.items.map(normalizeCatalogProductCard)
+      : [],
+  );
+  const [draftFilters, setDraftFilters] = useState<CatalogFilters>(initialAppliedFilters);
+  const [activeFilters, setActiveFilters] = useState<CatalogFilters>(initialAppliedFilters);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
 
   async function loadProducts(nextFilters: CatalogFilters) {
     setIsLoading(true);
@@ -40,20 +67,9 @@ export function CatalogExperience() {
       const nextCollection = await listCatalogProductCollection(nextFilters);
       setCollection(nextCollection);
       setProducts(nextCollection.items.map(normalizeCatalogProductCard));
-      setActiveFilters({
-        query: nextCollection.filters.applied.query ?? "",
-        category: nextCollection.filters.applied.category ?? undefined,
-        minPriceAmount: nextCollection.filters.applied.minPriceAmount ?? "",
-        maxPriceAmount: nextCollection.filters.applied.maxPriceAmount ?? "",
-        sort: nextCollection.filters.applied.sort,
-      });
-      setDraftFilters({
-        query: nextCollection.filters.applied.query ?? "",
-        category: nextCollection.filters.applied.category ?? undefined,
-        minPriceAmount: nextCollection.filters.applied.minPriceAmount ?? "",
-        maxPriceAmount: nextCollection.filters.applied.maxPriceAmount ?? "",
-        sort: nextCollection.filters.applied.sort,
-      });
+      const appliedFilters = mapAppliedFilters(nextCollection.filters.applied);
+      setActiveFilters(appliedFilters);
+      setDraftFilters(appliedFilters);
     } catch (caughtError) {
       setError(toCatalogErrorMessage(caughtError));
       setProducts([]);
@@ -63,7 +79,12 @@ export function CatalogExperience() {
   }
 
   useEffect(() => {
-    void loadProducts(DEFAULT_FILTERS);
+    // The server component already provided the initial catalog (SSR/SEO); only
+    // fetch on mount if it could not, so the page stays resilient.
+    if (!initialCollection && !initialError) {
+      void loadProducts(DEFAULT_FILTERS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeFilterCount = useMemo(() => {
