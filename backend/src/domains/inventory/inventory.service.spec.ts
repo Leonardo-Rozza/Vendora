@@ -29,7 +29,7 @@ test('InventoryService loads inventory by variant id', async () => {
 
 test('InventoryService safely updates available quantity when it does not undercut reserved stock', async () => {
   const calls: Record<string, unknown> = {};
-  const service = new InventoryService({
+  const transactionClient = {
     inventoryItem: {
       findUnique: async () => ({ variantId: 'variant-1', reservedQuantity: 2 }),
       update: async (args: unknown) => {
@@ -37,6 +37,11 @@ test('InventoryService safely updates available quantity when it does not underc
         return { id: 'inventory-1' };
       },
     },
+  };
+  const service = new InventoryService({
+    $transaction: async (
+      callback: (client: typeof transactionClient) => Promise<unknown>,
+    ) => callback(transactionClient),
   } as never);
 
   const result = await service.updateAvailableQuantity('variant-1', 4);
@@ -54,10 +59,15 @@ test('InventoryService safely updates available quantity when it does not underc
 });
 
 test('InventoryService rejects invalid admin adjustments below reserved stock', async () => {
-  const service = new InventoryService({
+  const transactionClient = {
     inventoryItem: {
       findUnique: async () => ({ variantId: 'variant-1', reservedQuantity: 3 }),
     },
+  };
+  const service = new InventoryService({
+    $transaction: async (
+      callback: (client: typeof transactionClient) => Promise<unknown>,
+    ) => callback(transactionClient),
   } as never);
 
   await expect(
