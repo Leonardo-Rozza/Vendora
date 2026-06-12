@@ -192,6 +192,12 @@ test('PaymentsService deduplicates repeated Mercado Pago webhook deliveries', as
       createCheckoutPreference: async () => {
         throw new Error('not used');
       },
+      verifyWebhookSignature: () => true,
+      getPayment: async () => ({
+        id: 'mp-123',
+        status: 'approved' as const,
+        externalReference: 'order-1',
+      }),
     } as never,
     {
       logPaymentEvent: () => undefined,
@@ -206,7 +212,6 @@ test('PaymentsService deduplicates repeated Mercado Pago webhook deliveries', as
   const result = await service.handleMercadoPagoWebhook({
     eventId: 'evt-1',
     resourceId: 'mp-123',
-    status: 'approved',
     topic: 'payment',
   });
 
@@ -281,6 +286,12 @@ test('PaymentsService locks the order when an approved webhook is processed', as
         createCheckoutPreference: async () => {
           throw new Error('not used');
         },
+        verifyWebhookSignature: () => true,
+        getPayment: async () => ({
+          id: 'mp-123',
+          status: 'approved' as const,
+          externalReference: 'order-1',
+        }),
       } as never,
       {
         logPaymentEvent: (event: string, payload: unknown) => {
@@ -304,7 +315,6 @@ test('PaymentsService locks the order when an approved webhook is processed', as
   const result = await service.handleMercadoPagoWebhook({
     eventId: 'evt-1',
     resourceId: 'mp-123',
-    status: 'approved',
     topic: 'payment',
   });
 
@@ -392,6 +402,12 @@ test('PaymentsService ignores duplicate approved webhooks after the payment is a
         createCheckoutPreference: async () => {
           throw new Error('not used');
         },
+        verifyWebhookSignature: () => true,
+        getPayment: async () => ({
+          id: 'mp-123',
+          status: 'approved' as const,
+          externalReference: 'order-1',
+        }),
       } as never,
       {
         logPaymentEvent: () => undefined,
@@ -408,7 +424,6 @@ test('PaymentsService ignores duplicate approved webhooks after the payment is a
   const result = await service.handleMercadoPagoWebhook({
     eventId: 'evt-duplicate-approved',
     resourceId: 'mp-123',
-    status: 'approved',
     topic: 'payment',
   });
 
@@ -474,6 +489,12 @@ test('PaymentsService ignores stale webhook regressions after payment approval',
         createCheckoutPreference: async () => {
           throw new Error('not used');
         },
+        verifyWebhookSignature: () => true,
+        getPayment: async () => ({
+          id: 'mp-123',
+          status: 'pending' as const,
+          externalReference: 'order-1',
+        }),
       } as never,
       {
         logPaymentEvent: () => undefined,
@@ -492,7 +513,6 @@ test('PaymentsService ignores stale webhook regressions after payment approval',
   const result = await service.handleMercadoPagoWebhook({
     eventId: 'evt-stale-pending',
     resourceId: 'mp-123',
-    status: 'pending',
     topic: 'payment',
   });
 

@@ -1,15 +1,21 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   Optional,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { OrderMilestoneType, Prisma } from '@prisma/client';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AppLoggerService } from '../../platform/logging/app-logger.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
-import { MercadoPagoCheckoutProvider } from '../../platform/providers/mercado-pago/mercado-pago-checkout.provider';
+import {
+  MERCADO_PAGO_GATEWAY,
+  type MercadoPagoGateway,
+  type MercadoPagoPaymentStatus,
+} from '../../platform/providers/mercado-pago/mercado-pago.gateway';
 import {
   createMilestoneContent,
   shouldSendNotificationForMilestone,
@@ -26,13 +32,10 @@ type MercadoPagoWebhookInput = {
   eventId: string;
   resourceId: string;
   topic?: string;
-  status?:
-    | 'approved'
-    | 'authorized'
-    | 'pending'
-    | 'rejected'
-    | 'cancelled'
-    | 'refunded';
+  /** Raw `x-signature` header, used to authenticate the notification. */
+  signature?: string;
+  /** Raw `x-request-id` header, part of the signed manifest. */
+  requestId?: string;
 };
 
 type PaymentStatus =
@@ -47,7 +50,8 @@ type PaymentStatus =
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mercadoPagoCheckoutProvider: MercadoPagoCheckoutProvider,
+    @Inject(MERCADO_PAGO_GATEWAY)
+    private readonly mercadoPagoGateway: MercadoPagoGateway,
     private readonly logger: AppLoggerService,
     private readonly inventoryService: InventoryService,
     @Optional()
@@ -87,7 +91,7 @@ export class PaymentsService {
     }
 
     const checkoutPreference =
-      await this.mercadoPagoCheckoutProvider.createCheckoutPreference({
+      await this.mercadoPagoGateway.createCheckoutPreference({
         orderId: order.id,
         currencyCode: order.currencyCode,
         payerEmail: input.payerEmail,
@@ -132,6 +136,23 @@ export class PaymentsService {
       topic: input.topic,
     });
 
+    // Authenticate the notification before doing anything else: an unverifiable
+    // webhook is rejected outright.
+    const isSignatureValid = this.mercadoPagoGateway.verifyWebhookSignature({
+      dataId: input.resourceId,
+      signature: input.signature,
+      requestId: input.requestId,
+    });
+
+    if (!isSignatureValid) {
+      this.logger.logWebhookEvent('payment.webhook.invalid_signature', {
+        eventId: input.eventId,
+        resourceId: input.resourceId,
+      });
+
+      throw new UnauthorizedException('Invalid Mercado Pago webhook signature');
+    }
+
     let delivery: { id: string };
 
     try {
@@ -140,7 +161,11 @@ export class PaymentsService {
           provider: MERCADO_PAGO_PROVIDER,
           providerEventId: input.eventId,
           topic: input.topic,
-          payload: input,
+          payload: {
+            eventId: input.eventId,
+            resourceId: input.resourceId,
+            topic: input.topic ?? null,
+          },
           status: 'PROCESSING',
         },
       });
@@ -156,15 +181,14 @@ export class PaymentsService {
       throw error;
     }
 
-    const payment = await this.prisma.payment.findFirst({
-      where: {
-        provider: MERCADO_PAGO_PROVIDER,
-        providerPaymentId: input.resourceId,
-      },
-      include: {
-        order: true,
-      },
-    });
+    // Fetch the AUTHORITATIVE payment state from Mercado Pago — the request
+    // body never dictates the status.
+    const snapshot = await this.mercadoPagoGateway.getPayment(input.resourceId);
+
+    const payment = await this.findPaymentForWebhook(
+      input.resourceId,
+      snapshot.externalReference,
+    );
 
     if (!payment) {
       await this.prisma.paymentWebhookDelivery.update({
@@ -178,7 +202,7 @@ export class PaymentsService {
       return { status: 'ignored' as const };
     }
 
-    const paymentStatus = this.mapWebhookStatus(input.status);
+    const paymentStatus = this.mapWebhookStatus(snapshot.status);
     const processedAt = this.getNow();
 
     if (!this.shouldApplyWebhookStatus(payment.status, paymentStatus)) {
@@ -223,7 +247,8 @@ export class PaymentsService {
         await transactionClient.payment.update({
           where: { id: payment.id },
           data: {
-            rawPayload: input,
+            providerPaymentId: input.resourceId,
+            rawPayload: snapshot,
             status: paymentStatus,
             ...(paymentStatus === 'APPROVED'
               ? { confirmedAt: processedAt }
@@ -314,9 +339,38 @@ export class PaymentsService {
     );
   }
 
-  private mapWebhookStatus(
-    status: MercadoPagoWebhookInput['status'],
-  ): PaymentStatus {
+  /**
+   * Locates our payment record for an incoming webhook: first by the Mercado
+   * Pago payment id (set on a prior notification), then by the order id carried
+   * in `external_reference` (the first notification links the two).
+   */
+  private async findPaymentForWebhook(
+    providerPaymentId: string,
+    externalReference: string | null,
+  ) {
+    const byPaymentId = await this.prisma.payment.findFirst({
+      where: {
+        provider: MERCADO_PAGO_PROVIDER,
+        providerPaymentId,
+      },
+      include: { order: true },
+    });
+
+    if (byPaymentId || !externalReference) {
+      return byPaymentId;
+    }
+
+    return this.prisma.payment.findFirst({
+      where: {
+        provider: MERCADO_PAGO_PROVIDER,
+        orderId: externalReference,
+      },
+      include: { order: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private mapWebhookStatus(status: MercadoPagoPaymentStatus): PaymentStatus {
     switch (status) {
       case 'approved':
         return 'APPROVED';

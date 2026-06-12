@@ -74,6 +74,9 @@ describe('Platform foundation (e2e)', () => {
   });
 
   test('/api/payments/webhooks/mercado-pago (POST) validates webhook payloads', async () => {
+    // The webhook DTO no longer accepts a `status` field (the status is fetched
+    // from Mercado Pago, never trusted from the body), so it is now rejected as
+    // a non-whitelisted property.
     await request(app.getHttpServer())
       .post('/api/payments/webhooks/mercado-pago')
       .send({ resourceId: null, status: 'unknown' })
@@ -83,9 +86,7 @@ describe('Platform foundation (e2e)', () => {
         expect(body.statusCode).toBe(400);
         expect(body.message.join(' ')).toMatch(/eventId must be a string/i);
         expect(body.message.join(' ')).toMatch(/resourceId must be a string/i);
-        expect(body.message.join(' ')).toMatch(
-          /status must be one of the following values/i,
-        );
+        expect(body.message.join(' ')).toMatch(/property status should not exist/i);
       });
   });
 

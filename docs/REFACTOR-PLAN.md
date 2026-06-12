@@ -58,11 +58,17 @@
 - NOTA: la **firma del webhook de MP** (ignorar `status` del body + validar `x-signature`) se mueve a
   la **Fase 3**, porque está acoplada al provider real de Mercado Pago.
 
-### Fase 3 — Integración Mercado Pago real (estructurada, en seco)
-- Implementar provider real con SDK `mercadopago` detrás de la interfaz actual: `createCheckoutPreference` real + `getPayment(resourceId)` para confirmar estado real en el webhook.
-- **Webhook (movido desde Fase 2):** validar firma `x-signature` con el secret; **ignorar** cualquier `status` del body; obtener el estado real vía `getPayment`. Sacar `status` del DTO.
-- Modo `fake`/`stub` activable por env para dev sin credenciales (default en seco).
-- Revisar Cloudinary (ya OK server-side).
+### Fase 3 — Integración Mercado Pago real (estructurada, en seco) ✅ HECHA
+- Nueva abstracción `MercadoPagoGateway` (token DI `MERCADO_PAGO_GATEWAY`): `createCheckoutPreference`,
+  `getPayment` (estado autoritativo + `externalReference`), `verifyWebhookSignature`.
+- `MercadoPagoRealGateway` con el SDK oficial `mercadopago` (Preference/Payment +
+  `WebhookSignatureValidator` oficial). `MercadoPagoFakeGateway` para dev/en seco.
+  Selección por factory: real si hay credenciales, fake si no.
+- **Webhook seguro:** verifica la firma ANTES de procesar (rechaza con 401 si es inválida);
+  obtiene el estado real vía `getPayment` y **nunca** confía en el body; matchea la orden por
+  `external_reference` y linkea `providerPaymentId`. `status` eliminado del DTO.
+- Specs nuevos/actualizados (fake gateway, payments.service, e2e). 66 unit + 8 e2e en verde.
+- Pendiente real (cuando haya credenciales): probar contra MP sandbox; Cloudinary ya OK server-side.
 
 ### Fase 4 — DB hardening + dominio
 - Migración: `CHECK (availableQuantity >= 0 AND reservedQuantity >= 0)`.
@@ -90,7 +96,7 @@
 - [x] Fase 0 — Limpieza y baseline
 - [x] Fase 1 — Tests reales
 - [x] Fase 2 — Seguridad backend
-- [ ] Fase 3 — Integración MP (en seco)
+- [x] Fase 3 — Integración MP (en seco)
 - [ ] Fase 4 — DB hardening
 - [ ] Fase 5 — Arquitectura frontend
 - [ ] Fase 6 — Calidad frontend
