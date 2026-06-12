@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthService } from './auth.service';
@@ -58,16 +56,17 @@ test('AuthService bootstraps the initial admin and returns an admin session on v
   service.writeSessionCookie(response, session);
 
   const resolvedSession = await service.resolveAdminSession({
-    headers: {
-      cookie: `vendora_admin_session=${calls.cookieValue}`,
+    // cookie-parser populates request.cookies before the request reaches the app.
+    cookies: {
+      vendora_admin_session: calls.cookieValue as string,
     },
   } as never);
 
-  assert.equal(calls.upsertInitialAdmin, 'ops@vendora.local');
-  assert.equal(session.email, 'ops@vendora.local');
-  assert.equal(session.role, 'ADMIN');
-  assert.equal(calls.cookieName, 'vendora_admin_session');
-  assert.equal(resolvedSession?.userId, 'admin-1');
+  expect(calls.upsertInitialAdmin).toBe('ops@vendora.local');
+  expect(session.email).toBe('ops@vendora.local');
+  expect(session.role).toBe('ADMIN');
+  expect(calls.cookieName).toBe('vendora_admin_session');
+  expect(resolvedSession?.userId).toBe('admin-1');
 });
 
 test('AuthService rejects invalid admin credentials', async () => {
@@ -93,8 +92,7 @@ test('AuthService rejects invalid admin credentials', async () => {
     } as never,
   );
 
-  await assert.rejects(
-    () => service.login('ops@vendora.local', 'wrong-password'),
-    (error: unknown) => error instanceof UnauthorizedException,
-  );
+  await expect(
+    service.login('ops@vendora.local', 'wrong-password'),
+  ).rejects.toBeInstanceOf(UnauthorizedException);
 });

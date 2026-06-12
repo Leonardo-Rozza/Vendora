@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { PaymentsController } from './payments.controller';
 
 test('PaymentsController returns the checkout preference contract', async () => {
@@ -19,7 +17,7 @@ test('PaymentsController returns the checkout preference contract', async () => 
     payerEmail: 'buyer@example.com',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     orderId: 'order-1',
     payerEmail: 'buyer@example.com',
     paymentId: 'payment-1',
@@ -44,7 +42,7 @@ test('PaymentsController acknowledges duplicate webhook deliveries', async () =>
     topic: 'payment',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'duplicate',
   });
 });

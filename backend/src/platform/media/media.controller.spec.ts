@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { MediaController } from './media.controller';
 
 test('MediaController returns the product image upload contract', () => {
@@ -17,7 +15,7 @@ test('MediaController returns the product image upload contract', () => {
     productId: 'product-1',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     cloudName: 'vendora',
     apiKey: 'key',
     folder: 'vendora/products/product-1',

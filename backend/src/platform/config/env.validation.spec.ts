@@ -1,68 +1,90 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { validateEnvironment } from './env.validation';
 
 test('validateEnvironment applies safe defaults for the platform baseline', () => {
   const config = validateEnvironment({});
 
-  assert.equal(config.APP_NAME, 'vendora-backend');
-  assert.equal(config.NODE_ENV, 'development');
-  assert.equal(config.PORT, 3000);
+  expect(config.APP_NAME).toBe('vendora-backend');
+  expect(config.NODE_ENV).toBe('development');
+  expect(config.PORT).toBe(3000);
 });
 
 test('validateEnvironment rejects partial Mercado Pago configuration', () => {
-  assert.throws(
-    () =>
-      validateEnvironment({
-        MERCADOPAGO_ACCESS_TOKEN: 'token',
-      }),
-    /Mercado Pago configuration requires both/,
-  );
+  expect(() =>
+    validateEnvironment({
+      MERCADOPAGO_ACCESS_TOKEN: 'token',
+    }),
+  ).toThrow(/Mercado Pago configuration requires both/);
 });
 
 test('validateEnvironment rejects partial Cloudinary configuration', () => {
-  assert.throws(
-    () =>
-      validateEnvironment({
-        CLOUDINARY_CLOUD_NAME: 'vendora',
-        CLOUDINARY_API_KEY: 'key',
-      }),
-    /Cloudinary configuration requires/,
-  );
+  expect(() =>
+    validateEnvironment({
+      CLOUDINARY_CLOUD_NAME: 'vendora',
+      CLOUDINARY_API_KEY: 'key',
+    }),
+  ).toThrow(/Cloudinary configuration requires/);
 });
 
 test('validateEnvironment rejects partial admin bootstrap configuration', () => {
-  assert.throws(
-    () =>
-      validateEnvironment({
-        ADMIN_INITIAL_EMAIL: 'ops@vendora.local',
-      }),
-    /Admin bootstrap requires both/,
-  );
+  expect(() =>
+    validateEnvironment({
+      ADMIN_INITIAL_EMAIL: 'ops@vendora.local',
+    }),
+  ).toThrow(/Admin bootstrap requires both/);
 });
 
 test('validateEnvironment accepts comma-separated frontend origins and production cookie defaults', () => {
   const config = validateEnvironment({
     NODE_ENV: 'production',
+    DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/vendora',
+    ADMIN_SESSION_SECRET: 'a-strong-production-secret-value-32+chars',
     FRONTEND_APP_URL:
       'https://vendora.example.com/, https://admin.vendora.example.com',
   });
 
-  assert.equal(
-    config.FRONTEND_APP_URL,
+  expect(config.FRONTEND_APP_URL).toBe(
     'https://vendora.example.com/,https://admin.vendora.example.com',
   );
-  assert.equal(config.ADMIN_SESSION_COOKIE_SAME_SITE, 'none');
+  expect(config.ADMIN_SESSION_COOKIE_SAME_SITE).toBe('none');
+});
+
+test('validateEnvironment requires critical secrets and frontend origin in production', () => {
+  expect(() => validateEnvironment({ NODE_ENV: 'production' })).toThrow(
+    /DATABASE_URL is required in production/,
+  );
+
+  expect(() =>
+    validateEnvironment({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/vendora',
+      FRONTEND_APP_URL: 'https://vendora.example.com',
+    }),
+  ).toThrow(/ADMIN_SESSION_SECRET must be set to a strong non-default value/);
+
+  expect(() =>
+    validateEnvironment({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/vendora',
+      ADMIN_SESSION_SECRET: 'too-short',
+      FRONTEND_APP_URL: 'https://vendora.example.com',
+    }),
+  ).toThrow(/ADMIN_SESSION_SECRET must be at least 32 characters/);
+
+  expect(() =>
+    validateEnvironment({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/vendora',
+      ADMIN_SESSION_SECRET: 'a-strong-production-secret-value-32+chars',
+    }),
+  ).toThrow(/FRONTEND_APP_URL is required in production/);
 });
 
 test('validateEnvironment rejects partial notification email configuration', () => {
-  assert.throws(
-    () =>
-      validateEnvironment({
-        NOTIFICATION_EMAIL_FROM: 'ops@vendora.local',
-      }),
-    /Notification email configuration requires both/,
-  );
+  expect(() =>
+    validateEnvironment({
+      NOTIFICATION_EMAIL_FROM: 'ops@vendora.local',
+    }),
+  ).toThrow(/Notification email configuration requires both/);
 });
 
 test('validateEnvironment accepts notification email configuration', () => {
@@ -73,12 +95,9 @@ test('validateEnvironment accepts notification email configuration', () => {
     NOTIFICATION_EMAIL_REPLY_TO: 'ayuda@vendora.local',
   });
 
-  assert.equal(config.NOTIFICATION_EMAIL_API_KEY, 'notif-key');
-  assert.equal(config.NOTIFICATION_EMAIL_FROM, 'ops@vendora.local');
-  assert.equal(config.NOTIFICATION_EMAIL_FROM_NAME, 'Vendora');
-  assert.equal(config.NOTIFICATION_EMAIL_REPLY_TO, 'ayuda@vendora.local');
-  assert.equal(
-    config.NOTIFICATION_EMAIL_API_BASE_URL,
-    'https://api.resend.com',
-  );
+  expect(config.NOTIFICATION_EMAIL_API_KEY).toBe('notif-key');
+  expect(config.NOTIFICATION_EMAIL_FROM).toBe('ops@vendora.local');
+  expect(config.NOTIFICATION_EMAIL_FROM_NAME).toBe('Vendora');
+  expect(config.NOTIFICATION_EMAIL_REPLY_TO).toBe('ayuda@vendora.local');
+  expect(config.NOTIFICATION_EMAIL_API_BASE_URL).toBe('https://api.resend.com');
 });

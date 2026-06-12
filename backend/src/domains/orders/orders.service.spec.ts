@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { Prisma } from '@prisma/client';
 import {
   BadRequestException,
@@ -45,8 +43,8 @@ test('OrdersService loads an order with item and payment snapshots', async () =>
 
   const result = await service.findOrderById('order-1');
 
-  assert.deepEqual(result, { id: 'order-1' });
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual({ id: 'order-1' });
+  expect(receivedArgs).toEqual({
     where: { id: 'order-1' },
     include: {
       items: true,
@@ -72,13 +70,18 @@ test('OrdersService lists orders with an optional status filter', async () => {
 
   const result = await service.listOrders('PENDING_PAYMENT');
 
-  assert.deepEqual(result, [{ id: 'order-1' }]);
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual([expect.objectContaining({ id: 'order-1' })]);
+  expect(receivedArgs).toEqual({
     where: { status: 'PENDING_PAYMENT' },
     include: {
       items: true,
       payments: true,
       user: true,
+      milestones: {
+        orderBy: {
+          occurredAt: 'asc',
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -102,8 +105,8 @@ test('OrdersService lists orders with combined commercial and fulfillment filter
 
   const result = await service.listOrders('PAID', 'READY_FOR_DELIVERY');
 
-  assert.deepEqual(result, [{ id: 'order-1' }]);
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual([expect.objectContaining({ id: 'order-1' })]);
+  expect(receivedArgs).toEqual({
     where: {
       status: 'PAID',
       fulfillmentStatus: 'READY_FOR_DELIVERY',
@@ -112,6 +115,11 @@ test('OrdersService lists orders with combined commercial and fulfillment filter
       items: true,
       payments: true,
       user: true,
+      milestones: {
+        orderBy: {
+          occurredAt: 'asc',
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -152,6 +160,12 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
               return { id: 'order-1', status: 'PENDING_PAYMENT' };
             },
           },
+          orderMilestone: {
+            create: async () => ({
+              id: 'milestone-1',
+              type: 'ORDER_CREATED',
+            }),
+          },
         }),
     } as never,
     {
@@ -170,11 +184,11 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
     ...validCheckoutInput,
   });
 
-  assert.deepEqual(result, { id: 'order-1', status: 'PENDING_PAYMENT' });
-  assert.deepEqual(calls.reserveItems, [
+  expect(result).toMatchObject({ id: 'order-1', status: 'PENDING_PAYMENT' });
+  expect(calls.reserveItems).toEqual([
     { variantId: 'variant-1', quantity: 3 },
   ]);
-  assert.deepEqual(calls.variantFindMany, {
+  expect(calls.variantFindMany).toEqual({
     where: {
       id: {
         in: ['variant-1'],
@@ -185,19 +199,16 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
       inventoryItem: true,
     },
   });
-  assert.equal(
+  expect(
     (calls.orderCreate as { data: { status: string } }).data.status,
-    'PENDING_PAYMENT',
-  );
-  assert.equal(
+  ).toBe('PENDING_PAYMENT');
+  expect(
     (calls.orderCreate as { data: { fulfillmentStatus: string } }).data
       .fulfillmentStatus,
-    'REQUESTED',
-  );
-  assert.equal(
+  ).toBe('REQUESTED');
+  expect(
     (calls.orderCreate as { data: { contactEmail: string } }).data.contactEmail,
-    'ada@example.com',
-  );
+  ).toBe('ada@example.com');
 });
 
 test('OrdersService rejects unknown or inactive variants', async () => {
@@ -210,14 +221,12 @@ test('OrdersService rejects unknown or inactive variants', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      missingVariantService.createOrder({
-        items: [{ variantId: 'variant-1', quantity: 1 }],
-        ...validCheckoutInput,
-      }),
-    (error: unknown) => error instanceof NotFoundException,
-  );
+  await expect(
+    missingVariantService.createOrder({
+      items: [{ variantId: 'variant-1', quantity: 1 }],
+      ...validCheckoutInput,
+    }),
+  ).rejects.toBeInstanceOf(NotFoundException);
 
   const inactiveVariantService = new OrdersService(
     {
@@ -243,14 +252,12 @@ test('OrdersService rejects unknown or inactive variants', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      inactiveVariantService.createOrder({
-        items: [{ variantId: 'variant-1', quantity: 1 }],
-        ...validCheckoutInput,
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    inactiveVariantService.createOrder({
+      items: [{ variantId: 'variant-1', quantity: 1 }],
+      ...validCheckoutInput,
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
 });
 
 test('OrdersService rejects mixed-currency carts', async () => {
@@ -282,17 +289,15 @@ test('OrdersService rejects mixed-currency carts', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      service.createOrder({
-        items: [
-          { variantId: 'variant-1', quantity: 1 },
-          { variantId: 'variant-2', quantity: 1 },
-        ],
-        ...validCheckoutInput,
-      }),
-    (error: unknown) => error instanceof BadRequestException,
-  );
+  await expect(
+    service.createOrder({
+      items: [
+        { variantId: 'variant-1', quantity: 1 },
+        { variantId: 'variant-2', quantity: 1 },
+      ],
+      ...validCheckoutInput,
+    }),
+  ).rejects.toBeInstanceOf(BadRequestException);
 });
 
 test('OrdersService propagates insufficient stock failures without creating an order', async () => {
@@ -330,15 +335,13 @@ test('OrdersService propagates insufficient stock failures without creating an o
     } as never,
   );
 
-  await assert.rejects(
-    () =>
-      service.createOrder({
-        items: [{ variantId: 'variant-1', quantity: 2 }],
-        ...validCheckoutInput,
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
-  assert.equal(calls.orderCreate, undefined);
+  await expect(
+    service.createOrder({
+      items: [{ variantId: 'variant-1', quantity: 2 }],
+      ...validCheckoutInput,
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
+  expect(calls.orderCreate).toBeUndefined();
 });
 
 test('OrdersService rejects shipping destinations outside AMBA', async () => {
@@ -361,19 +364,17 @@ test('OrdersService rejects shipping destinations outside AMBA', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      service.createOrder({
-        items: [{ variantId: 'variant-1', quantity: 1 }],
-        ...validCheckoutInput,
-        shippingAddress: {
-          ...validCheckoutInput.shippingAddress,
-          locality: 'Rosario',
-          province: 'Santa Fe',
-        },
-      }),
-    (error: unknown) => error instanceof BadRequestException,
-  );
+  await expect(
+    service.createOrder({
+      items: [{ variantId: 'variant-1', quantity: 1 }],
+      ...validCheckoutInput,
+      shippingAddress: {
+        ...validCheckoutInput.shippingAddress,
+        locality: 'Rosario',
+        province: 'Santa Fe',
+      },
+    }),
+  ).rejects.toBeInstanceOf(BadRequestException);
 });
 
 test('OrdersService cancels unpaid orders and releases reservations', async () => {
@@ -399,6 +400,12 @@ test('OrdersService cancels unpaid orders and releases reservations', async () =
               return { id: 'order-1', status: 'CANCELLED' };
             },
           },
+          orderMilestone: {
+            create: async () => ({
+              id: 'milestone-1',
+              type: 'ORDER_CANCELLED',
+            }),
+          },
         }),
     } as never,
     {
@@ -411,9 +418,9 @@ test('OrdersService cancels unpaid orders and releases reservations', async () =
 
   const result = await service.cancelOrder('order-1');
 
-  assert.deepEqual(result, { id: 'order-1', status: 'CANCELLED' });
-  assert.equal(calls.releasedOrderId, 'order-1');
-  assert.deepEqual(calls.orderUpdate, {
+  expect(result).toEqual({ id: 'order-1', status: 'CANCELLED' });
+  expect(calls.releasedOrderId).toBe('order-1');
+  expect(calls.orderUpdate).toEqual({
     where: { id: 'order-1' },
     data: {
       status: 'CANCELLED',
@@ -443,9 +450,8 @@ test('OrdersService rejects cancellation for paid orders', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () => service.cancelOrder('order-1'),
-    (error: unknown) => error instanceof ConflictException,
+  await expect(service.cancelOrder('order-1')).rejects.toBeInstanceOf(
+    ConflictException,
   );
 });
 
@@ -465,11 +471,22 @@ test('OrdersService advances paid orders through the next fulfillment state and 
           payments: [],
           user: null,
         }),
-        update: async (args: unknown) => {
-          receivedArgs = args;
-          return { id: 'order-1', fulfillmentStatus: 'CONFIRMED' };
-        },
       },
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          order: {
+            update: async (args: unknown) => {
+              receivedArgs = args;
+              return { id: 'order-1', fulfillmentStatus: 'CONFIRMED' };
+            },
+          },
+          orderMilestone: {
+            create: async () => ({
+              id: 'milestone-1',
+              type: 'FULFILLMENT_CONFIRMED',
+            }),
+          },
+        }),
     } as never,
     noopInventoryService,
   );
@@ -480,8 +497,8 @@ test('OrdersService advances paid orders through the next fulfillment state and 
     deliveryReference: 'RUTA-14',
   });
 
-  assert.deepEqual(result, { id: 'order-1', fulfillmentStatus: 'CONFIRMED' });
-  assert.deepEqual(receivedArgs, {
+  expect(result).toMatchObject({ id: 'order-1', fulfillmentStatus: 'CONFIRMED' });
+  expect(receivedArgs).toEqual({
     where: { id: 'order-1' },
     data: {
       fulfillmentStatus: 'CONFIRMED',
@@ -512,11 +529,22 @@ test('OrdersService preserves omitted fulfillment metadata during valid transiti
           payments: [],
           user: null,
         }),
-        update: async (args: unknown) => {
-          receivedArgs = args;
-          return { id: 'order-1', fulfillmentStatus: 'PREPARING' };
-        },
       },
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          order: {
+            update: async (args: unknown) => {
+              receivedArgs = args;
+              return { id: 'order-1', fulfillmentStatus: 'PREPARING' };
+            },
+          },
+          orderMilestone: {
+            create: async () => ({
+              id: 'milestone-1',
+              type: 'FULFILLMENT_PREPARING',
+            }),
+          },
+        }),
     } as never,
     noopInventoryService,
   );
@@ -525,7 +553,7 @@ test('OrdersService preserves omitted fulfillment metadata during valid transiti
     fulfillmentStatus: 'PREPARING',
   });
 
-  assert.deepEqual(receivedArgs, {
+  expect(receivedArgs).toEqual({
     where: { id: 'order-1' },
     data: {
       fulfillmentStatus: 'PREPARING',
@@ -556,13 +584,11 @@ test('OrdersService rejects skipped fulfillment transitions', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      service.updateOrderFulfillment('order-1', {
-        fulfillmentStatus: 'OUT_FOR_DELIVERY',
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    service.updateOrderFulfillment('order-1', {
+      fulfillmentStatus: 'OUT_FOR_DELIVERY',
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
 });
 
 test('OrdersService rejects backward fulfillment transitions', async () => {
@@ -583,13 +609,11 @@ test('OrdersService rejects backward fulfillment transitions', async () => {
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      service.updateOrderFulfillment('order-1', {
-        fulfillmentStatus: 'PREPARING',
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    service.updateOrderFulfillment('order-1', {
+      fulfillmentStatus: 'PREPARING',
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
 });
 
 test('OrdersService rejects fulfillment transitions for unpaid or cancelled orders', async () => {
@@ -610,13 +634,11 @@ test('OrdersService rejects fulfillment transitions for unpaid or cancelled orde
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      unpaidService.updateOrderFulfillment('order-1', {
-        fulfillmentStatus: 'CONFIRMED',
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    unpaidService.updateOrderFulfillment('order-1', {
+      fulfillmentStatus: 'CONFIRMED',
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
 
   const cancelledService = new OrdersService(
     {
@@ -635,11 +657,9 @@ test('OrdersService rejects fulfillment transitions for unpaid or cancelled orde
     noopInventoryService,
   );
 
-  await assert.rejects(
-    () =>
-      cancelledService.updateOrderFulfillment('order-2', {
-        fulfillmentStatus: 'CONFIRMED',
-      }),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    cancelledService.updateOrderFulfillment('order-2', {
+      fulfillmentStatus: 'CONFIRMED',
+    }),
+  ).rejects.toBeInstanceOf(ConflictException);
 });

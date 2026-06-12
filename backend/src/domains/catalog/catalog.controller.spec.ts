@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { NotFoundException } from '@nestjs/common';
 import { CatalogController } from './catalog.controller';
 
@@ -56,7 +54,7 @@ test('CatalogController lists storefront-safe active products with filter metada
 
   const result = await controller.listProducts({ query: 'mate' });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     items: [
       {
         id: 'product-1',
@@ -138,7 +136,7 @@ test('CatalogController returns a storefront-safe product contract', async () =>
 
   const result = await controller.getProductBySlug('mate-gourd');
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     id: 'product-1',
     slug: 'mate-gourd',
     name: 'Mate Gourd',
@@ -172,12 +170,10 @@ test('CatalogController rejects missing products', async () => {
     findProductBySlug: async () => null,
   } as never);
 
-  await assert.rejects(
-    () => controller.getProductBySlug('missing-product'),
-    (error: unknown) => {
-      assert.ok(error instanceof NotFoundException);
-      assert.equal(error.message, 'Product missing-product was not found');
-      return true;
-    },
-  );
+  await expect(
+    controller.getProductBySlug('missing-product'),
+  ).rejects.toBeInstanceOf(NotFoundException);
+  await expect(
+    controller.getProductBySlug('missing-product'),
+  ).rejects.toThrow('Product missing-product was not found');
 });

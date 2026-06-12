@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { MediaService } from './media.service';
 
 test('MediaService creates a product image upload signature via Cloudinary seam', () => {
@@ -21,14 +19,14 @@ test('MediaService creates a product image upload signature via Cloudinary seam'
     productId: 'product-1',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     cloudName: 'vendora',
     apiKey: 'key',
     folder: 'vendora/products/product-1',
     timestamp: 1_700_000_000,
     signature: 'signed',
   });
-  assert.deepEqual(receivedArgs, {
+  expect(receivedArgs).toEqual({
     productId: 'product-1',
   });
 });

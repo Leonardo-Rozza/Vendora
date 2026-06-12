@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { test, expect } from "vitest";
 import {
   ApiError,
   getOrderTracking,
@@ -21,31 +20,25 @@ import {
 import { createEmptyCheckoutFormState } from "../lib/commerce/cart.ts";
 
 test("catalog error helper surfaces retryable API failures", () => {
-  assert.equal(
-    toCatalogErrorMessage(new ApiError("Backend unavailable", 503)),
+  expect(toCatalogErrorMessage(new ApiError("Backend unavailable", 503))).toBe(
     "Backend unavailable",
   );
-  assert.equal(
-    toCatalogErrorMessage(new Error("boom")),
+  expect(toCatalogErrorMessage(new Error("boom"))).toBe(
     "Catalog is temporarily unavailable.",
   );
 });
 
 test("checkout helper blocks duplicate submissions and empty carts", () => {
-  assert.equal(canStartCheckout({ isSubmitting: false, lineCount: 1 }), true);
-  assert.equal(canStartCheckout({ isSubmitting: true, lineCount: 1 }), false);
-  assert.equal(canStartCheckout({ isSubmitting: false, lineCount: 0 }), false);
+  expect(canStartCheckout({ isSubmitting: false, lineCount: 1 })).toBe(true);
+  expect(canStartCheckout({ isSubmitting: true, lineCount: 1 })).toBe(false);
+  expect(canStartCheckout({ isSubmitting: false, lineCount: 0 })).toBe(false);
 });
 
 test("checkout error helper preserves API validation messages", () => {
-  assert.equal(
-    toCheckoutErrorMessage(
-      new ApiError("Quantity must not be less than 1", 400),
-    ),
-    "Quantity must not be less than 1",
-  );
-  assert.equal(
-    toCheckoutErrorMessage(new Error("boom")),
+  expect(
+    toCheckoutErrorMessage(new ApiError("Quantity must not be less than 1", 400)),
+  ).toBe("Quantity must not be less than 1");
+  expect(toCheckoutErrorMessage(new Error("boom"))).toBe(
     "No pudimos preparar el checkout. Intenta nuevamente.",
   );
 });
@@ -74,15 +67,15 @@ test("checkout reference helper prefers redirect params and falls back to snapsh
     snapshot: null,
   });
 
-  assert.deepEqual(withParams, {
+  expect(withParams).toEqual({
     orderReference: "order-live",
     paymentReference: "payment-live",
   });
-  assert.deepEqual(withoutParams, {
+  expect(withoutParams).toEqual({
     orderReference: null,
     paymentReference: null,
   });
-  assert.equal(
+  expect(
     resolveTrackingPath(
       withParams
         ? {
@@ -99,8 +92,7 @@ test("checkout reference helper prefers redirect params and falls back to snapsh
           }
         : null,
     ),
-    "/seguimiento/tracking-live",
-  );
+  ).toBe("/seguimiento/tracking-live");
 });
 
 test("tracking helper requests the buyer-safe tracking endpoint", async () => {
@@ -125,8 +117,8 @@ test("tracking helper requests the buyer-safe tracking endpoint", async () => {
     global.fetch = originalFetch;
   }
 
-  assert.equal(seenRequests.length, 1);
-  assert.match(seenRequests[0]!.url, /\/orders\/tracking\/tracking-1$/);
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/orders\/tracking\/tracking-1$/);
 });
 
 test("checkout validation requires delivery fields and rejects non-AMBA destinations", () => {
@@ -144,23 +136,20 @@ test("checkout validation requires delivery fields and rejects non-AMBA destinat
     postalCode: "B1638",
   };
 
-  assert.equal(
-    validateCheckoutForm(emptyForm),
+  expect(validateCheckoutForm(emptyForm)).toBe(
     "Completa los datos de contacto y entrega antes de continuar.",
   );
-  assert.equal(validateCheckoutForm(validForm), null);
-  assert.equal(
+  expect(validateCheckoutForm(validForm)).toBe(null);
+  expect(
     validateCheckoutForm({
       ...validForm,
       locality: "Rosario",
       province: "Santa Fe",
     }),
-    "Por ahora solo hacemos envios dentro de CABA y AMBA.",
-  );
-  assert.equal(
+  ).toBe("Por ahora solo hacemos envios dentro de CABA y AMBA.");
+  expect(
     isWithinAmbaShippingScope({ locality: "CABA", province: "CABA" }),
-    true,
-  );
+  ).toBe(true);
 });
 
 test("admin order helper appends fulfillment filters to the query string", async () => {
@@ -182,12 +171,11 @@ test("admin order helper appends fulfillment filters to the query string", async
     global.fetch = originalFetch;
   }
 
-  assert.equal(seenRequests.length, 1);
-  assert.match(
-    seenRequests[0]!.url,
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(
     /\/admin\/orders\?fulfillmentStatus=PREPARING$/,
   );
-  assert.equal(seenRequests[0]!.init?.credentials, "include");
+  expect(seenRequests[0]!.init?.credentials).toBe("include");
 });
 
 test("catalog collection helper appends category, price, and sort filters", async () => {
@@ -229,7 +217,7 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       sort: "price-asc",
     });
 
-    assert.deepEqual(response.filters.applied, {
+    expect(response.filters.applied).toEqual({
       query: "mate",
       category: "HOGAR",
       minPriceAmount: "9000",
@@ -240,9 +228,8 @@ test("catalog collection helper appends category, price, and sort filters", asyn
     global.fetch = originalFetch;
   }
 
-  assert.equal(seenRequests.length, 1);
-  assert.match(
-    seenRequests[0]!.url,
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(
     /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc$/,
   );
 });
@@ -266,12 +253,11 @@ test("admin product helper appends category and status filters to the query stri
     global.fetch = originalFetch;
   }
 
-  assert.equal(seenRequests.length, 1);
-  assert.match(
-    seenRequests[0]!.url,
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(
     /\/admin\/catalog\/products\?status=ACTIVE&category=ACCESORIOS$/,
   );
-  assert.equal(seenRequests[0]!.init?.credentials, "include");
+  expect(seenRequests[0]!.init?.credentials).toBe("include");
 });
 
 test("admin fulfillment helper sends a patch request with the transition payload", async () => {
@@ -300,12 +286,11 @@ test("admin fulfillment helper sends a patch request with the transition payload
     global.fetch = originalFetch;
   }
 
-  assert.equal(seenRequests.length, 1);
-  assert.match(seenRequests[0]!.url, /\/admin\/orders\/order-1\/fulfillment$/);
-  assert.equal(seenRequests[0]!.init?.method, "PATCH");
-  assert.equal(seenRequests[0]!.init?.credentials, "include");
-  assert.match(
-    String(seenRequests[0]!.init?.body),
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/admin\/orders\/order-1\/fulfillment$/);
+  expect(seenRequests[0]!.init?.method).toBe("PATCH");
+  expect(seenRequests[0]!.init?.credentials).toBe("include");
+  expect(String(seenRequests[0]!.init?.body)).toMatch(
     /"fulfillmentStatus":"CONFIRMED"/,
   );
 });
@@ -315,7 +300,7 @@ test("api helper resolves the configured API base url without a trailing slash",
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://vendora.example.com/api/";
 
   try {
-    assert.equal(resolveApiBaseUrl(), "https://vendora.example.com/api");
+    expect(resolveApiBaseUrl()).toBe("https://vendora.example.com/api");
   } finally {
     process.env.NEXT_PUBLIC_API_BASE_URL = originalBaseUrl;
   }

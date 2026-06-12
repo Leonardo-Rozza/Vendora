@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import {
   ConfigurationUnavailableError,
   type CapabilityStatus,
@@ -20,7 +18,7 @@ test('CloudinarySigningProvider creates a deterministic product image upload sig
     timestamp: 1_700_000_000,
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     cloudName: 'vendora',
     apiKey: 'key-123',
     folder: 'vendora/products/product-1',
@@ -43,12 +41,10 @@ test('CloudinarySigningProvider fails when Cloudinary is unavailable', () => {
     } as CapabilityStatus,
   } as never);
 
-  assert.throws(
-    () =>
-      provider.createProductImageUploadSignature({
-        productId: 'product-1',
-        timestamp: 1_700_000_000,
-      }),
-    /cloudinary is not configured/,
-  );
+  expect(() =>
+    provider.createProductImageUploadSignature({
+      productId: 'product-1',
+      timestamp: 1_700_000_000,
+    }),
+  ).toThrow(/cloudinary is not configured/);
 });

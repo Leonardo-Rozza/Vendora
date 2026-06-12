@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { Prisma } from '@prisma/client';
 import { PaymentsService } from './payments.service';
 
@@ -45,8 +43,8 @@ test('PaymentsService loads a payment by provider payment id with webhook delive
 
   const result = await service.findByProviderPaymentId('mp-123');
 
-  assert.deepEqual(result, { id: 'payment-1' });
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual({ id: 'payment-1' });
+  expect(receivedArgs).toEqual({
     where: {
       provider: 'mercado-pago',
       providerPaymentId: 'mp-123',
@@ -124,7 +122,7 @@ test('PaymentsService creates a Mercado Pago checkout preference for an unpaid o
     payerEmail: 'buyer@example.com',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     orderId: 'order-1',
     paymentId: 'payment-1',
     provider: 'mercado-pago',
@@ -133,14 +131,14 @@ test('PaymentsService creates a Mercado Pago checkout preference for an unpaid o
       'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
     payerEmail: 'buyer@example.com',
   });
-  assert.deepEqual(calls.orderFind, {
+  expect(calls.orderFind).toEqual({
     where: { id: 'order-1' },
     include: {
       items: true,
       payments: true,
     },
   });
-  assert.deepEqual(calls.paymentCreate, {
+  expect(calls.paymentCreate).toEqual({
     data: {
       orderId: 'order-1',
       provider: 'mercado-pago',
@@ -158,7 +156,7 @@ test('PaymentsService creates a Mercado Pago checkout preference for an unpaid o
       status: 'PENDING',
     },
   });
-  assert.deepEqual(paymentLogs, [
+  expect(paymentLogs).toEqual([
     {
       event: 'payment.checkout_preference.created',
       payload: {
@@ -212,7 +210,7 @@ test('PaymentsService deduplicates repeated Mercado Pago webhook deliveries', as
     topic: 'payment',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'duplicate',
   });
 });
@@ -236,6 +234,12 @@ test('PaymentsService locks the order when an approved webhook is processed', as
       update: async (args: unknown) => {
         calls.orderUpdate = args;
         return args;
+      },
+    },
+    orderMilestone: {
+      create: async (args: unknown) => {
+        calls.milestoneCreate = args;
+        return { id: 'milestone-1', type: 'PAYMENT_CONFIRMED' };
       },
     },
     paymentWebhookDelivery: {
@@ -304,13 +308,13 @@ test('PaymentsService locks the order when an approved webhook is processed', as
     topic: 'payment',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'processed',
     orderId: 'order-1',
     paymentId: 'payment-1',
     paymentStatus: 'APPROVED',
   });
-  assert.deepEqual(calls.paymentFind, {
+  expect(calls.paymentFind).toEqual({
     where: {
       provider: 'mercado-pago',
       providerPaymentId: 'mp-123',
@@ -319,7 +323,7 @@ test('PaymentsService locks the order when an approved webhook is processed', as
       order: true,
     },
   });
-  assert.deepEqual(calls.orderUpdate, {
+  expect(calls.orderUpdate).toEqual({
     where: { id: 'order-1' },
     data: {
       isLocked: true,
@@ -327,7 +331,7 @@ test('PaymentsService locks the order when an approved webhook is processed', as
       status: 'PAID',
     },
   });
-  assert.deepEqual(paymentLogs, [
+  expect(paymentLogs).toEqual([
     {
       event: 'payment.webhook.processed',
       payload: {
@@ -338,8 +342,8 @@ test('PaymentsService locks the order when an approved webhook is processed', as
       },
     },
   ]);
-  assert.equal(inventoryCalls.length, 1);
-  assert.equal(inventoryCalls[0]?.orderId, 'order-1');
+  expect(inventoryCalls.length).toBe(1);
+  expect(inventoryCalls[0]?.orderId).toBe('order-1');
 });
 
 test('PaymentsService ignores duplicate approved webhooks after the payment is already terminal', async () => {
@@ -408,15 +412,15 @@ test('PaymentsService ignores duplicate approved webhooks after the payment is a
     topic: 'payment',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'ignored',
     orderId: 'order-1',
     paymentId: 'payment-1',
     paymentStatus: 'APPROVED',
   });
-  assert.equal(calls.paymentUpdate, undefined);
-  assert.equal(calls.orderUpdate, undefined);
-  assert.deepEqual(calls.deliveryUpdate, {
+  expect(calls.paymentUpdate).toBeUndefined();
+  expect(calls.orderUpdate).toBeUndefined();
+  expect(calls.deliveryUpdate).toEqual({
     where: { id: 'delivery-1' },
     data: {
       paymentId: 'payment-1',
@@ -492,15 +496,15 @@ test('PaymentsService ignores stale webhook regressions after payment approval',
     topic: 'payment',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'ignored',
     orderId: 'order-1',
     paymentId: 'payment-1',
     paymentStatus: 'APPROVED',
   });
-  assert.equal(calls.paymentUpdate, undefined);
-  assert.equal(calls.orderUpdate, undefined);
-  assert.deepEqual(calls.deliveryUpdate, {
+  expect(calls.paymentUpdate).toBeUndefined();
+  expect(calls.orderUpdate).toBeUndefined();
+  expect(calls.deliveryUpdate).toEqual({
     where: { id: 'delivery-1' },
     data: {
       paymentId: 'payment-1',
@@ -508,7 +512,7 @@ test('PaymentsService ignores stale webhook regressions after payment approval',
       status: 'IGNORED',
     },
   });
-  assert.deepEqual(webhookLogs.at(-1), {
+  expect(webhookLogs.at(-1)).toEqual({
     event: 'payment.webhook.ignored_transition',
     payload: {
       eventId: 'evt-stale-pending',

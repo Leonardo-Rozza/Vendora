@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 
@@ -16,8 +14,8 @@ test('InventoryService loads inventory by variant id', async () => {
 
   const result = await service.findByVariantId('variant-1');
 
-  assert.deepEqual(result, { id: 'inventory-1' });
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual({ id: 'inventory-1' });
+  expect(receivedArgs).toEqual({
     where: { variantId: 'variant-1' },
     include: {
       variant: {
@@ -43,8 +41,8 @@ test('InventoryService safely updates available quantity when it does not underc
 
   const result = await service.updateAvailableQuantity('variant-1', 4);
 
-  assert.deepEqual(result, { id: 'inventory-1' });
-  assert.deepEqual(calls.update, {
+  expect(result).toEqual({ id: 'inventory-1' });
+  expect(calls.update).toEqual({
     where: { variantId: 'variant-1' },
     data: {
       availableQuantity: 4,
@@ -62,10 +60,9 @@ test('InventoryService rejects invalid admin adjustments below reserved stock', 
     },
   } as never);
 
-  await assert.rejects(
-    () => service.updateAvailableQuantity('variant-1', 2),
-    (error: unknown) => error instanceof BadRequestException,
-  );
+  await expect(
+    service.updateAvailableQuantity('variant-1', 2),
+  ).rejects.toBeInstanceOf(BadRequestException);
 });
 
 test('InventoryService reserves stock for order creation', async () => {
@@ -84,7 +81,7 @@ test('InventoryService reserves stock for order creation', async () => {
     [{ variantId: 'variant-1', quantity: 2 }],
   );
 
-  assert.deepEqual(calls, [
+  expect(calls).toEqual([
     {
       where: {
         variantId: 'variant-1',
@@ -107,18 +104,16 @@ test('InventoryService reserves stock for order creation', async () => {
 test('InventoryService rejects reservation when stock is insufficient', async () => {
   const service = new InventoryService({} as never);
 
-  await assert.rejects(
-    () =>
-      service.reserveItems(
-        {
-          inventoryItem: {
-            updateMany: async () => ({ count: 0 }),
-          },
-        } as never,
-        [{ variantId: 'variant-1', quantity: 2 }],
-      ),
-    (error: unknown) => error instanceof ConflictException,
-  );
+  await expect(
+    service.reserveItems(
+      {
+        inventoryItem: {
+          updateMany: async () => ({ count: 0 }),
+        },
+      } as never,
+      [{ variantId: 'variant-1', quantity: 2 }],
+    ),
+  ).rejects.toBeInstanceOf(ConflictException);
 });
 
 test('InventoryService releases and consumes order reservations', async () => {
@@ -150,7 +145,7 @@ test('InventoryService releases and consumes order reservations', async () => {
   await service.releaseReservationForOrder(client as never, 'order-1');
   await service.consumeReservationForOrder(client as never, 'order-1');
 
-  assert.deepEqual(calls.release, [
+  expect(calls.release).toEqual([
     {
       where: {
         variantId: 'variant-1',
@@ -168,7 +163,7 @@ test('InventoryService releases and consumes order reservations', async () => {
       },
     },
   ]);
-  assert.deepEqual(calls.consume, [
+  expect(calls.consume).toEqual([
     {
       where: {
         variantId: 'variant-1',

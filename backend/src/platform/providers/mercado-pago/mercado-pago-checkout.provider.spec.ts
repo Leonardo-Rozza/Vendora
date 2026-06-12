@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import {
   ConfigurationUnavailableError,
   type CapabilityStatus,
@@ -29,7 +27,7 @@ test('MercadoPagoCheckoutProvider creates a foundation checkout preference contr
     payerEmail: 'buyer@example.com',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     provider: 'mercado-pago',
     preferenceId: 'pref_order-1',
     initPoint:
@@ -61,13 +59,11 @@ test('MercadoPagoCheckoutProvider fails when Mercado Pago is unavailable', async
     } as CapabilityStatus,
   } as never);
 
-  await assert.rejects(
-    () =>
-      provider.createCheckoutPreference({
-        orderId: 'order-1',
-        currencyCode: 'ARS',
-        items: [],
-      }),
-    /mercadoPago is not configured/,
-  );
+  await expect(
+    provider.createCheckoutPreference({
+      orderId: 'order-1',
+      currencyCode: 'ARS',
+      items: [],
+    }),
+  ).rejects.toThrow(/mercadoPago is not configured/);
 });
