@@ -1,3 +1,13 @@
+/**
+ * Default admin session secret used ONLY in development/test. Production must
+ * provide its own strong secret; see the production guard in
+ * {@link validateEnvironment}.
+ */
+export const DEV_ADMIN_SESSION_SECRET = 'vendora-admin-session-dev-secret';
+
+/** Minimum length enforced for ADMIN_SESSION_SECRET in production. */
+const MIN_PRODUCTION_SECRET_LENGTH = 32;
+
 type EnvironmentVariables = {
   ADMIN_INITIAL_EMAIL?: string;
   ADMIN_INITIAL_PASSWORD?: string;
@@ -37,7 +47,7 @@ export function validateEnvironment(
     ),
     ADMIN_SESSION_SECRET:
       readOptionalString(config.ADMIN_SESSION_SECRET) ??
-      'vendora-admin-session-dev-secret',
+      DEV_ADMIN_SESSION_SECRET,
     ADMIN_SESSION_TTL_HOURS: readPositiveInteger(
       config.ADMIN_SESSION_TTL_HOURS,
       12,
@@ -129,6 +139,43 @@ export function validateEnvironment(
     if (!value.NOTIFICATION_EMAIL_API_KEY || !value.NOTIFICATION_EMAIL_FROM) {
       throw new Error(
         'Environment validation failed: Notification email configuration requires both NOTIFICATION_EMAIL_API_KEY and NOTIFICATION_EMAIL_FROM',
+      );
+    }
+  }
+
+  // In production, critical variables must be present and safe. Mercado Pago /
+  // Cloudinary stay optional (the app degrades to "not configured" for those
+  // capabilities), but secrets that protect the admin surface and the database
+  // connection must be explicitly provided.
+  if (value.NODE_ENV === 'production') {
+    const productionErrors: string[] = [];
+
+    if (!value.DATABASE_URL) {
+      productionErrors.push('DATABASE_URL is required in production');
+    }
+
+    if (
+      !value.ADMIN_SESSION_SECRET ||
+      value.ADMIN_SESSION_SECRET === DEV_ADMIN_SESSION_SECRET
+    ) {
+      productionErrors.push(
+        'ADMIN_SESSION_SECRET must be set to a strong non-default value in production',
+      );
+    } else if (value.ADMIN_SESSION_SECRET.length < MIN_PRODUCTION_SECRET_LENGTH) {
+      productionErrors.push(
+        `ADMIN_SESSION_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in production`,
+      );
+    }
+
+    if (!value.FRONTEND_APP_URL) {
+      productionErrors.push(
+        'FRONTEND_APP_URL is required in production (CORS allowlist and admin CSRF origin checks)',
+      );
+    }
+
+    if (productionErrors.length > 0) {
+      throw new Error(
+        `Environment validation failed: ${productionErrors.join('; ')}`,
       );
     }
   }

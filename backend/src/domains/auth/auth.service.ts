@@ -127,24 +127,15 @@ export class AuthService {
     });
   }
 
-  private readSessionCookie(request: Request) {
-    const cookieHeader = request.headers.cookie;
+  private readSessionCookie(request: Request): string | null {
+    // cookie-parser (applied in configureApp) populates request.cookies and
+    // handles URL-decoding and exact-name matching, avoiding the prefix
+    // collisions of manual header splitting.
+    const cookies = (
+      request as Request & { cookies?: Record<string, string> }
+    ).cookies;
 
-    if (!cookieHeader) {
-      return null;
-    }
-
-    const cookieKey = `${this.configService.adminSessionCookieName}=`;
-    const cookieEntry = cookieHeader
-      .split(';')
-      .map((value) => value.trim())
-      .find((value) => value.startsWith(cookieKey));
-
-    if (!cookieEntry) {
-      return null;
-    }
-
-    return decodeURIComponent(cookieEntry.slice(cookieKey.length));
+    return cookies?.[this.configService.adminSessionCookieName] ?? null;
   }
 
   private signSessionToken(session: AdminSession) {

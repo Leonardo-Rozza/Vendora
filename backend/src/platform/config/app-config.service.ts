@@ -121,17 +121,44 @@ export class AppConfigService {
   }
 
   isAllowedFrontendOrigin(origin: string | undefined): boolean {
+    // Non-browser clients (curl, health checks, server-to-server) send no
+    // Origin header; they are not subject to the browser same-origin policy.
     if (!origin) {
       return true;
     }
 
+    // With no explicit allowlist we stay permissive in development/test for
+    // convenience, but never in production: an unconfigured allowlist there is
+    // a misconfiguration (and env validation already requires FRONTEND_APP_URL).
     if (this.frontendAppUrls.length === 0) {
-      return true;
+      return this.environment !== 'production';
     }
 
     try {
       const normalizedOrigin = this.normalizeOrigin(origin);
       return this.frontendAppUrls.includes(normalizedOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Origin allowlist check for state-changing (unsafe) requests. Because the
+   * admin session is a cross-site cookie (SameSite=None in production), the
+   * primary CSRF defense is verifying that mutations originate from an allowed
+   * frontend. A missing Origin is tolerated outside production (curl, tests).
+   */
+  isAllowedMutationOrigin(origin: string | undefined): boolean {
+    if (!origin) {
+      return this.environment !== 'production';
+    }
+
+    if (this.frontendAppUrls.length === 0) {
+      return this.environment !== 'production';
+    }
+
+    try {
+      return this.frontendAppUrls.includes(this.normalizeOrigin(origin));
     } catch {
       return false;
     }
