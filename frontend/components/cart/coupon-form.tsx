@@ -40,18 +40,21 @@ export function CouponForm({
   }
 
   return (
-    <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-black/10 p-4">
-      <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--accent-sand)]">
+    <div className="mb-[18px]">
+      <label
+        className="mb-[7px] block text-[13px] font-semibold text-ink-strong"
+        htmlFor="checkout-coupon-code"
+      >
         {copy.couponSection}
-      </p>
+      </label>
 
       {applied ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full bg-success-surface px-3 py-1 text-xs font-bold uppercase tracking-[0.04em] text-success-ink">
             {copy.couponApplied}: {applied.code}
           </span>
           <button
-            className="text-sm font-semibold text-[var(--accent-sand)]"
+            className="text-sm font-bold text-brand-deep transition-colors hover:text-brand-hover"
             onClick={onRemove}
             type="button"
           >
@@ -59,13 +62,10 @@ export function CouponForm({
           </button>
         </div>
       ) : (
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <label className="sr-only" htmlFor="checkout-coupon-code">
-            {copy.couponLabel}
-          </label>
+        <div className="flex gap-2">
           <input
             aria-invalid={error ? true : undefined}
-            className="w-full flex-1 rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44"
+            className="min-w-0 flex-1 rounded-[10px] border-[1.5px] border-line-strong bg-surface-panel px-3 py-[10px] text-sm uppercase text-ink-strong outline-none transition placeholder:text-ink-faint focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae]"
             id="checkout-coupon-code"
             onChange={(event) => setCode(event.target.value)}
             onKeyDown={(event) => {
@@ -78,7 +78,7 @@ export function CouponForm({
             value={code}
           />
           <button
-            className="rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+            className="rounded-[10px] border-[1.5px] border-line-strong bg-surface-panel px-4 py-[10px] text-sm font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isValidating || code.trim().length === 0}
             onClick={handleApply}
             type="button"
@@ -89,7 +89,7 @@ export function CouponForm({
       )}
 
       {error ? (
-        <p className="mt-3 text-sm text-[var(--accent-sand)]" role="alert">
+        <p className="mt-2 text-[12.5px] font-semibold text-danger-ink" role="alert">
           {error}
         </p>
       ) : null}

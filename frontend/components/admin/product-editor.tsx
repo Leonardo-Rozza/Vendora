@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProductFormSections, createEmptyImage, createEmptyVariant, type CategoryOption, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
 import { listAttributes, listCategoryTree } from "@/lib/commerce/api";
+import { formatMoney } from "@/lib/commerce/format";
+import { Badge, Button } from "@/components/ui";
 import type {
   AdminProduct,
   AdminProductInput,
@@ -34,8 +36,32 @@ function flattenCategoryTree(tree: CategoryNode[], depth = 0): CategoryOption[] 
   ]);
 }
 
+function productPrice(product: AdminProduct): string {
+  const firstVariant = product.variants[0];
+  if (!firstVariant) {
+    return "—";
+  }
+  return formatMoney(firstVariant.priceAmount, firstVariant.currencyCode);
+}
+
+function productStock(product: AdminProduct): number {
+  return product.variants.reduce(
+    (total, variant) =>
+      total +
+      (variant.inventoryItem?.availableQuantity ??
+        variant.availableQuantity ??
+        0),
+    0,
+  );
+}
+
+const STATUS_TONE: Record<string, "success" | "neutral"> = {
+  ACTIVE: "success",
+};
+
 export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorProps) {
   const copy = appCopy.adminProductEditor;
+  const [view, setView] = useState<"list" | "edit">("list");
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [slug, setSlug] = useState(blankProductPayload.slug);
   const [name, setName] = useState(blankProductPayload.name);
@@ -105,6 +131,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       setImages([createEmptyImage(0)]);
       setSelectedAttributeValueIds(new Set());
       setError(null);
+      setView("edit");
       return;
     }
 
@@ -138,6 +165,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       resolveSelectedValueIds(product.attributes ?? [], attributeOptions),
     );
     setError(null);
+    setView("edit");
   }
 
   function toggleAttributeValue(valueId: string) {
@@ -198,9 +226,8 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
         await onCreate(payload);
       }
 
-      if (!selectedProductId) {
-        populateForm(null);
-      }
+      populateForm(null);
+      setView("list");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "No pudimos guardar el producto.");
     } finally {
@@ -208,124 +235,248 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
     }
   }
 
-  return (
-    <section className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr]" id="admin-productos">
-      <aside className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/78 p-5 xl:sticky xl:top-24 xl:self-start">
-        <div className="flex items-center justify-between gap-4">
+  if (view === "list") {
+    const activeCount = products.filter(
+      (product) => product.status === "ACTIVE",
+    ).length;
+
+    return (
+      <section id="admin-productos">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">{copy.workspaceEyebrow}</p>
-            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">{copy.workspaceTitle}</h3>
-            <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">{copy.workspaceDescription}</p>
+            <h1 className="text-[26px] font-extrabold tracking-[-0.02em] text-ink-strong">
+              {copy.listTitle}
+            </h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              {products.length} {copy.productsSuffix} · {activeCount} {copy.activeSuffix}
+            </p>
           </div>
-          <button className="rounded-full border border-[var(--line-soft)] px-4 py-2 text-sm font-semibold" onClick={() => populateForm(null)} type="button">
-            {copy.newProduct}
-          </button>
+          <Button onClick={() => populateForm(null)} size="sm">
+            + {copy.newProduct}
+          </Button>
         </div>
-        <div className="mt-5 space-y-3">
+
+        <div className="mt-[18px] overflow-hidden rounded-card border border-line-soft bg-surface-panel">
           {products.length === 0 ? (
-            <div className="rounded-[1.2rem] border border-dashed border-[var(--line-soft)] bg-white/70 px-4 py-5 text-sm text-[var(--ink-muted)]">
+            <div className="px-5 py-8 text-sm text-ink-muted">
               {copy.emptyProducts}
             </div>
-          ) : null}
-          {products.map((product) => (
-            <button
-              key={product.id}
-              className={`w-full rounded-[1.2rem] border px-4 py-4 text-left transition ${selectedProduct?.id === product.id ? "border-[var(--brand-deep)] bg-[var(--surface-panel)]" : "border-[var(--line-soft)] bg-white/70"}`}
-              onClick={() => populateForm(product)}
-              type="button"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--ink-strong)]">{product.name}</p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--ink-soft)]">
-                    {product.category?.name ?? "Sin categoria"}
-                  </p>
-                </div>
-                <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
-                  {product.status}
-                </span>
-              </div>
-              <p className="mt-3 text-sm text-[var(--ink-muted)]">{product.variants.length} variantes cargadas</p>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <article className="rounded-[1.75rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">Edicion guiada</p>
-            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">
-              {selectedProduct ? `${copy.editTitle}: ${selectedProduct.name}` : copy.createTitle}
-            </h3>
-          </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-deep)]">
-            {selectedProduct ? selectedProduct.status : copy.draftLabel}
-          </span>
-        </div>
-
-        <ProductFormSections
-          categoryId={categoryId}
-          categoryOptions={categoryOptions}
-          description={description}
-          images={images}
-          name={name}
-          setCategoryId={setCategoryId}
-          setDescription={setDescription}
-          setImages={setImages}
-          setName={setName}
-          setSlug={setSlug}
-          setStatus={setStatus}
-          setVariants={setVariants}
-          slug={slug}
-          status={status}
-          variants={variants}
-        />
-
-        {attributeOptions.length > 0 ? (
-          <div className="mt-5 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/70 p-4">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
-              {copy.attributesTitle}
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {attributeOptions.map((attribute) => (
-                <fieldset key={attribute.id} className="flex flex-col gap-2">
-                  <legend className="text-sm font-semibold text-[var(--ink-strong)]">
-                    {attribute.name}
-                  </legend>
-                  {attribute.values.map((value) => {
-                    const inputId = `admin-attr-${attribute.slug}-${value.slug}`;
-                    return (
-                      <label
-                        key={value.id}
-                        className="flex items-center gap-2 text-sm text-[var(--ink-strong)]"
-                        htmlFor={inputId}
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] border-collapse text-left">
+                <thead>
+                  <tr className="bg-surface-muted/60">
+                    {[
+                      copy.colProduct,
+                      copy.colCategory,
+                      copy.colPrice,
+                      copy.colStock,
+                      copy.colStatus,
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="px-[18px] py-[13px] font-mono text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft"
                       >
-                        <input
-                          checked={selectedAttributeValueIds.has(value.id)}
-                          className="h-4 w-4 rounded border-[var(--line-strong)] accent-[var(--brand-deep)]"
-                          id={inputId}
-                          onChange={() => toggleAttributeValue(value.id)}
-                          type="checkbox"
-                        />
-                        {value.value}
-                      </label>
+                        {heading}
+                      </th>
+                    ))}
+                    <th className="px-[18px] py-[13px]" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => {
+                    const stock = productStock(product);
+                    const isOut = stock === 0;
+                    const isLow = stock > 0 && stock <= 3;
+
+                    return (
+                      <tr
+                        key={product.id}
+                        className="border-t border-line-soft/80"
+                      >
+                        <td className="px-[18px] py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="size-[42px] flex-shrink-0 rounded-[9px] bg-[repeating-linear-gradient(45deg,#f4ede0,#f4ede0_6px,#efe6d6_6px,#efe6d6_12px)]" />
+                            <div>
+                              <div className="text-sm font-bold leading-tight text-ink-strong">
+                                {product.name}
+                              </div>
+                              <div className="mt-0.5 font-mono text-[11px] text-ink-faint">
+                                {product.variants[0]?.sku ?? "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-[18px] py-3 text-[13.5px] text-ink-muted">
+                          {product.category?.name ?? "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-[18px] py-3 text-sm font-bold text-ink-strong">
+                          {productPrice(product)}
+                        </td>
+                        <td className="px-[18px] py-3">
+                          <Badge
+                            tone={isOut ? "danger" : isLow ? "warning" : "success"}
+                          >
+                            {isOut
+                              ? copy.stockOut
+                              : `${stock} ${copy.stockUnit}`}
+                          </Badge>
+                        </td>
+                        <td className="px-[18px] py-3">
+                          <Badge tone={STATUS_TONE[product.status] ?? "neutral"}>
+                            {product.status}
+                          </Badge>
+                        </td>
+                        <td className="px-[18px] py-3 text-right">
+                          <Button
+                            onClick={() => populateForm(product)}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            {copy.edit}
+                          </Button>
+                        </td>
+                      </tr>
                     );
                   })}
-                </fieldset>
-              ))}
+                </tbody>
+              </table>
             </div>
-          </div>
-        ) : null}
-
-        <div className="mt-5 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/70 p-4 text-sm leading-7 text-[var(--ink-muted)]">
-          {copy.helper}
+          )}
         </div>
-        {error ? <p className="mt-4 text-sm text-[var(--brand-deep)]">{error}</p> : null}
-        <button className="mt-5 rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)] disabled:opacity-60" disabled={isSaving} onClick={() => void handleSave()} type="button">
-          {isSaving ? copy.saving : selectedProduct ? copy.saveChanges : copy.createProduct}
-        </button>
-      </article>
+      </section>
+    );
+  }
+
+  return (
+    <section id="admin-productos">
+      <button
+        className="mb-4 text-sm font-bold text-brand-deep outline-none focus-visible:underline"
+        onClick={() => {
+          populateForm(null);
+          setView("list");
+        }}
+        type="button"
+      >
+        ← {copy.backToList}
+      </button>
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-ink-strong">
+          {selectedProduct ? selectedProduct.name : copy.createTitle}
+        </h1>
+        <div className="flex items-center gap-2.5">
+          <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status}</Badge>
+          <Button
+            onClick={() => {
+              populateForm(null);
+              setView("list");
+            }}
+            variant="secondary"
+          >
+            {copy.cancel}
+          </Button>
+          <Button disabled={isSaving} onClick={() => void handleSave()}>
+            {isSaving
+              ? copy.saving
+              : selectedProduct
+                ? copy.saveChanges
+                : copy.createProduct}
+          </Button>
+        </div>
+      </div>
+
+      <ProductFormSections
+        categoryId={categoryId}
+        categoryOptions={categoryOptions}
+        description={description}
+        images={images}
+        name={name}
+        setCategoryId={setCategoryId}
+        setDescription={setDescription}
+        setImages={setImages}
+        setName={setName}
+        setSlug={setSlug}
+        setStatus={setStatus}
+        setVariants={setVariants}
+        slug={slug}
+        status={status}
+        variants={variants}
+      />
+
+      {attributeOptions.length > 0 ? (
+        <div className="mt-5 rounded-card border border-line-soft bg-surface-panel p-[22px]">
+          <h2 className="text-base font-extrabold text-ink-strong">
+            {copy.attributesTitle}
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {attributeOptions.map((attribute) => (
+              <fieldset key={attribute.id} className="flex flex-col gap-2">
+                <legend className="text-sm font-semibold text-ink-strong">
+                  {attribute.name}
+                </legend>
+                {attribute.values.map((value) => {
+                  const inputId = `admin-attr-${attribute.slug}-${value.slug}`;
+                  return (
+                    <label
+                      key={value.id}
+                      className="flex items-center gap-2 text-sm text-ink-strong"
+                      htmlFor={inputId}
+                    >
+                      <input
+                        checked={selectedAttributeValueIds.has(value.id)}
+                        className="size-4 rounded border-line-strong accent-brand-deep"
+                        id={inputId}
+                        onChange={() => toggleAttributeValue(value.id)}
+                        type="checkbox"
+                      />
+                      {value.value}
+                    </label>
+                  );
+                })}
+              </fieldset>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-5 rounded-card border border-line-soft bg-surface-panel p-[22px] text-sm leading-7 text-ink-muted">
+        {copy.helper}
+      </p>
+
+      {error ? (
+        <p
+          className="mt-4 flex items-center gap-1.5 text-[12.5px] font-medium text-danger-ink"
+          role="alert"
+        >
+          <span
+            aria-hidden
+            className="grid size-3.5 flex-shrink-0 place-items-center rounded-full bg-danger-ink text-[10px] font-bold text-white"
+          >
+            !
+          </span>
+          {error}
+        </p>
+      ) : null}
+
+      <div className="mt-5 flex flex-wrap justify-end gap-2.5">
+        <Button
+          onClick={() => {
+            populateForm(null);
+            setView("list");
+          }}
+          variant="secondary"
+        >
+          {copy.cancel}
+        </Button>
+        <Button disabled={isSaving} onClick={() => void handleSave()}>
+          {isSaving
+            ? copy.saving
+            : selectedProduct
+              ? copy.saveChanges
+              : copy.createProduct}
+        </Button>
+      </div>
     </section>
   );
 }

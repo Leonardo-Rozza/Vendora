@@ -12,6 +12,26 @@ import { formatItemCount, formatMoney } from "@/lib/commerce/format";
 import type { CheckoutStatusRoute } from "@/lib/contracts";
 import { appCopy } from "@/lib/copy/es-ar";
 
+type StatusVisual = {
+  icon: string;
+  iconClassName: string;
+};
+
+const STATUS_VISUALS: Record<CheckoutStatusRoute, StatusVisual> = {
+  success: {
+    icon: "✓",
+    iconClassName: "bg-success-surface text-success-ink",
+  },
+  pending: {
+    icon: "⏳",
+    iconClassName: "bg-warning-surface text-warning-line",
+  },
+  failure: {
+    icon: "×",
+    iconClassName: "bg-danger-surface text-danger-ink",
+  },
+};
+
 export function CheckoutStatusClient({
   status,
 }: {
@@ -26,6 +46,7 @@ export function CheckoutStatusClient({
     snapshot: cartState.lastCheckout,
   });
   const trackingPath = resolveTrackingPath(cartState.lastCheckout);
+  const visual = STATUS_VISUALS[status];
 
   useEffect(() => {
     if (status === "success") {
@@ -34,67 +55,71 @@ export function CheckoutStatusClient({
   }, [clearCart, status]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12 sm:px-8 lg:px-12">
-      <section className="rounded-[2rem] border border-[var(--line-soft)] bg-white/80 p-8 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-        <p className="font-mono text-xs uppercase tracking-[0.34em] text-[var(--ink-soft)]">
-          {content.eyebrow}
+    <main className="mx-auto w-full max-w-[620px] px-5 py-12 sm:py-16">
+      <section className="animate-vd-pop rounded-[22px] border border-line-soft bg-surface-panel px-8 py-11 text-center shadow-soft">
+        <div
+          className={`mx-auto grid h-[76px] w-[76px] place-items-center rounded-full text-[38px] font-extrabold ${visual.iconClassName}`}
+          aria-hidden="true"
+        >
+          {visual.icon}
+        </div>
+
+        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+          {copy.orderReference}: {orderReference ?? copy.fallbackOrder}
         </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[var(--ink-strong)]">
+        <h1 className="mt-2 text-[28px] font-extrabold tracking-[-0.02em] text-ink-strong">
           {content.title}
         </h1>
-        <p className="mt-4 text-sm leading-7 text-[var(--ink-muted)]">
+        <p className="mx-auto mt-3 max-w-[42ch] text-[15.5px] leading-relaxed text-ink-muted">
           {content.description}
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
-              {copy.orderReference}
-            </p>
-            <p className="mt-3 text-lg font-semibold text-[var(--ink-strong)]">
-              {orderReference ?? copy.fallbackOrder}
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
+        <div className="mt-7 rounded-[14px] bg-surface-sand px-5 py-4 text-left">
+          <div className="flex items-baseline justify-between gap-3.5 text-sm">
+            <span className="whitespace-nowrap text-ink-muted">
               {copy.paymentReference}
-            </p>
-            <p className="mt-3 text-lg font-semibold text-[var(--ink-strong)]">
+            </span>
+            <span className="whitespace-nowrap font-bold text-ink-strong">
               {paymentReference ?? copy.fallbackPayment}
-            </p>
+            </span>
           </div>
+          {cartState.lastCheckout ? (
+            <div className="mt-2.5 flex items-baseline justify-between gap-3.5 text-sm">
+              <span className="whitespace-nowrap text-ink-muted">
+                {copy.snapshotLabel}
+              </span>
+              <span className="text-right font-semibold text-ink-strong">
+                {formatItemCount(cartState.lastCheckout.itemCount)} ·{" "}
+                {formatMoney(
+                  cartState.lastCheckout.totalAmount,
+                  cartState.lastCheckout.currencyCode,
+                )}
+              </span>
+            </div>
+          ) : null}
         </div>
 
-        {cartState.lastCheckout ? (
-          <div className="mt-4 rounded-[1.5rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5 text-sm text-[var(--ink-muted)]">
-            {copy.snapshotLabel}:{" "}
-            {formatItemCount(cartState.lastCheckout.itemCount)} ·{" "}
-            {formatMoney(
-              cartState.lastCheckout.totalAmount,
-              cartState.lastCheckout.currencyCode,
-            )}
-          </div>
-        ) : null}
-
-        <div className="mt-6 rounded-[1.5rem] border border-[var(--line-soft)] bg-[linear-gradient(160deg,rgba(210,120,55,0.1),rgba(24,80,104,0.07))] p-5 text-sm text-[var(--ink-muted)]">
-          <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--brand-deep)]">
+        <div className="mt-6 rounded-[14px] border border-line-soft bg-surface-base px-5 py-4 text-left">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-brand-deep">
             {copy.trackingCardTitle}
           </p>
-          <p className="mt-3 leading-7">{copy.trackingCardDescription}</p>
-          <p className="mt-3 text-xs text-[var(--ink-soft)]">
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+            {copy.trackingCardDescription}
+          </p>
+          <p className="mt-2 text-xs text-ink-soft">
             {trackingPath ? trackingPath : copy.trackingPendingHint}
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link
-            className="rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)]"
+            className="inline-flex items-center justify-center gap-2 rounded-field bg-brand-deep px-6 py-3 text-[15px] font-bold text-surface-base transition-colors duration-150 hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
             href={trackingPath ?? content.actionHref}
           >
             {trackingPath ? copy.trackingButton : content.actionLabel}
           </Link>
           <Link
-            className="rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)]"
+            className="inline-flex items-center justify-center gap-2 rounded-field border-2 border-line-strong bg-surface-panel px-6 py-3 text-[15px] font-bold text-brand-deep transition-colors duration-150 hover:border-brand-deep hover:bg-surface-base focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
             href="/"
           >
             {copy.browseCatalog}

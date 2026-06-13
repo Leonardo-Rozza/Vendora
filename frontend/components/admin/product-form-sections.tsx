@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { appCopy } from "@/lib/copy/es-ar";
 
 export type CategoryOption = {
@@ -43,6 +44,10 @@ type ProductFormSectionsProps = {
   variants: EditableVariant[];
 };
 
+const CARD_CLASSNAME =
+  "rounded-card border border-line-soft bg-surface-panel p-[22px]";
+const HEADING_CLASSNAME = "mb-[18px] text-base font-extrabold text-ink-strong";
+
 export function ProductFormSections({
   categoryId,
   categoryOptions,
@@ -63,128 +68,251 @@ export function ProductFormSections({
   const copy = appCopy.adminProductEditor;
 
   return (
-    <div className="mt-6 space-y-5">
-      <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
-        <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.basics}</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-name">
-            {copy.name}
-            <input id="product-name" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setName(event.target.value)} value={name} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-slug">
-            {copy.slug}
-            <input id="product-slug" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setSlug(event.target.value)} value={slug} />
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2" htmlFor="product-description">
-            {copy.description}
-            <textarea id="product-description" className="mt-2 min-h-28 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setDescription(event.target.value)} value={description} />
-          </label>
+    <div className="flex flex-col gap-[18px]">
+      <section className={CARD_CLASSNAME}>
+        <h2 className={HEADING_CLASSNAME}>{copy.basics}</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field id="product-name" label={copy.name}>
+            <Input
+              onChange={(event) => setName(event.target.value)}
+              value={name}
+            />
+          </Field>
+          <Field id="product-slug" label={copy.slug}>
+            <Input
+              onChange={(event) => setSlug(event.target.value)}
+              value={slug}
+            />
+          </Field>
+          <Field className="md:col-span-2" id="product-description" label={copy.description}>
+            <Textarea
+              onChange={(event) => setDescription(event.target.value)}
+              rows={3}
+              value={description}
+            />
+          </Field>
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
-        <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.merchandising}</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-status">
-            {copy.status}
-            <select id="product-status" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setStatus(event.target.value)} value={status}>
+      <section className={CARD_CLASSNAME}>
+        <h2 className={HEADING_CLASSNAME}>{copy.merchandising}</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field id="product-status" label={copy.status}>
+            <Select
+              onChange={(event) => setStatus(event.target.value)}
+              value={status}
+            >
               <option value="DRAFT">DRAFT</option>
               <option value="ACTIVE">ACTIVE</option>
               <option value="ARCHIVED">ARCHIVED</option>
-            </select>
-          </label>
-          <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-category">
-            {copy.category}
-            <select id="product-category" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setCategoryId(event.target.value)} value={categoryId}>
+            </Select>
+          </Field>
+          <Field id="product-category" label={copy.category}>
+            <Select
+              onChange={(event) => setCategoryId(event.target.value)}
+              value={categoryId}
+            >
               <option value="">Sin categoria</option>
               {categoryOptions.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {`${"  ".repeat(option.depth)}${option.name}`}
+                  {`${"  ".repeat(option.depth)}${option.name}`}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Field>
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.variants}</p>
-          <button className="rounded-full border border-[var(--line-soft)] px-4 py-2 text-sm font-semibold" onClick={() => setVariants((current) => [...current, createEmptyVariant()])} type="button">
+      <section className={CARD_CLASSNAME}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-extrabold text-ink-strong">{copy.variants}</h2>
+          <Button
+            onClick={() => setVariants((current) => [...current, createEmptyVariant()])}
+            size="sm"
+            variant="secondary"
+          >
             {copy.addVariant}
-          </button>
+          </Button>
         </div>
-        <div className="mt-4 space-y-4">
+        <div className="flex flex-col gap-3">
           {variants.map((variant, index) => (
-            <div key={variant.id ?? `variant-${index}`} className="rounded-[1.25rem] border border-[var(--line-soft)] bg-white p-4">
+            <div
+              key={variant.id ?? `variant-${index}`}
+              className="rounded-field border border-line-soft bg-surface-sand p-4"
+            >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-[var(--ink-strong)]">Variante {index + 1}</p>
+                <p className="text-sm font-bold text-ink-strong">
+                  Variante {index + 1}
+                </p>
                 {variants.length > 1 ? (
-                  <button className="text-sm font-semibold text-[var(--ink-muted)]" onClick={() => setVariants((current) => current.filter((_, currentIndex) => currentIndex !== index))} type="button">
+                  <button
+                    className="text-sm font-semibold text-ink-muted outline-none hover:text-brand-deep focus-visible:underline"
+                    onClick={() =>
+                      setVariants((current) =>
+                        current.filter((_, currentIndex) => currentIndex !== index),
+                      )
+                    }
+                    type="button"
+                  >
                     {copy.removeVariant}
                   </button>
                 ) : null}
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-name`}>
-                  {copy.variantName}
-                  <input id={`variant-${index}-name`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { name: event.target.value }))} value={variant.name} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-sku`}>
-                  {copy.variantSku}
-                  <input id={`variant-${index}-sku`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { sku: event.target.value }))} value={variant.sku} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-price`}>
-                  {copy.variantPrice}
-                  <input id={`variant-${index}-price`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { priceAmount: event.target.value }))} value={variant.priceAmount} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`variant-${index}-currency`}>
-                  {copy.variantCurrency}
-                  <input id={`variant-${index}-currency`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setVariants((current) => updateVariant(current, index, { currencyCode: event.target.value.toUpperCase() }))} value={variant.currencyCode} />
-                </label>
+                <Field id={`variant-${index}-name`} label={copy.variantName}>
+                  <Input
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        updateVariant(current, index, { name: event.target.value }),
+                      )
+                    }
+                    value={variant.name}
+                  />
+                </Field>
+                <Field id={`variant-${index}-sku`} label={copy.variantSku}>
+                  <Input
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        updateVariant(current, index, { sku: event.target.value }),
+                      )
+                    }
+                    value={variant.sku}
+                  />
+                </Field>
+                <Field id={`variant-${index}-price`} label={copy.variantPrice}>
+                  <Input
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        updateVariant(current, index, {
+                          priceAmount: event.target.value,
+                        }),
+                      )
+                    }
+                    value={variant.priceAmount}
+                  />
+                </Field>
+                <Field id={`variant-${index}-currency`} label={copy.variantCurrency}>
+                  <Input
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        updateVariant(current, index, {
+                          currencyCode: event.target.value.toUpperCase(),
+                        }),
+                      )
+                    }
+                    value={variant.currencyCode}
+                  />
+                </Field>
               </div>
-              <label className="mt-4 block text-sm font-medium text-[var(--ink-strong)] md:max-w-52" htmlFor={`variant-${index}-stock`}>
-                {copy.variantStock}
-                <input id={`variant-${index}-stock`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setVariants((current) => updateVariant(current, index, { availableQuantity: Number(event.target.value || 0) }))} value={String(variant.availableQuantity)} />
-              </label>
+              <Field
+                className="mt-4 md:max-w-52"
+                id={`variant-${index}-stock`}
+                label={copy.variantStock}
+              >
+                <Input
+                  inputMode="numeric"
+                  onChange={(event) =>
+                    setVariants((current) =>
+                      updateVariant(current, index, {
+                        availableQuantity: Number(event.target.value || 0),
+                      }),
+                    )
+                  }
+                  value={String(variant.availableQuantity)}
+                />
+              </Field>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-[var(--line-soft)] bg-white/72 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.images}</p>
-          <button className="rounded-full border border-[var(--line-soft)] px-4 py-2 text-sm font-semibold" onClick={() => setImages((current) => [...current, createEmptyImage(current.length)])} type="button">
+      <section className={CARD_CLASSNAME}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-extrabold text-ink-strong">{copy.images}</h2>
+          <Button
+            onClick={() =>
+              setImages((current) => [...current, createEmptyImage(current.length)])
+            }
+            size="sm"
+            variant="secondary"
+          >
             {copy.addImage}
-          </button>
+          </Button>
         </div>
-        <div className="mt-4 space-y-4">
+        <div className="flex flex-col gap-3">
           {images.map((image, index) => (
-            <div key={`${image.assetUrl}-${index}`} className="rounded-[1.25rem] border border-[var(--line-soft)] bg-white p-4">
+            <div
+              key={`${image.assetUrl}-${index}`}
+              className="rounded-field border border-line-soft bg-surface-sand p-4"
+            >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-[var(--ink-strong)]">Imagen {index + 1}</p>
-                <button className="text-sm font-semibold text-[var(--ink-muted)]" onClick={() => setImages((current) => current.filter((_, currentIndex) => currentIndex !== index))} type="button">
+                <p className="text-sm font-bold text-ink-strong">
+                  Imagen {index + 1}
+                </p>
+                <button
+                  className="text-sm font-semibold text-ink-muted outline-none hover:text-brand-deep focus-visible:underline"
+                  onClick={() =>
+                    setImages((current) =>
+                      current.filter((_, currentIndex) => currentIndex !== index),
+                    )
+                  }
+                  type="button"
+                >
                   {copy.removeImage}
                 </button>
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="text-sm font-medium text-[var(--ink-strong)] xl:col-span-2" htmlFor={`image-${index}-url`}>
-                  {copy.imageUrl}
-                  <input id={`image-${index}-url`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetUrl: event.target.value }))} value={image.assetUrl} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`image-${index}-key`}>
-                  {copy.imageKey}
-                  <input id={`image-${index}-key`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { assetKey: event.target.value }))} value={image.assetKey} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor={`image-${index}-sort`}>
-                  {copy.imageSortOrder}
-                  <input id={`image-${index}-sort`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" inputMode="numeric" onChange={(event) => setImages((current) => updateImage(current, index, { sortOrder: Number(event.target.value || 0) }))} value={String(image.sortOrder)} />
-                </label>
-                <label className="text-sm font-medium text-[var(--ink-strong)] md:col-span-2 xl:col-span-4" htmlFor={`image-${index}-alt`}>
-                  {copy.imageAlt}
-                  <input id={`image-${index}-alt`} className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3" onChange={(event) => setImages((current) => updateImage(current, index, { altText: event.target.value }))} value={image.altText} />
-                </label>
+                <Field
+                  className="xl:col-span-2"
+                  id={`image-${index}-url`}
+                  label={copy.imageUrl}
+                >
+                  <Input
+                    onChange={(event) =>
+                      setImages((current) =>
+                        updateImage(current, index, { assetUrl: event.target.value }),
+                      )
+                    }
+                    value={image.assetUrl}
+                  />
+                </Field>
+                <Field id={`image-${index}-key`} label={copy.imageKey}>
+                  <Input
+                    onChange={(event) =>
+                      setImages((current) =>
+                        updateImage(current, index, { assetKey: event.target.value }),
+                      )
+                    }
+                    value={image.assetKey}
+                  />
+                </Field>
+                <Field id={`image-${index}-sort`} label={copy.imageSortOrder}>
+                  <Input
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      setImages((current) =>
+                        updateImage(current, index, {
+                          sortOrder: Number(event.target.value || 0),
+                        }),
+                      )
+                    }
+                    value={String(image.sortOrder)}
+                  />
+                </Field>
+                <Field
+                  className="md:col-span-2 xl:col-span-4"
+                  id={`image-${index}-alt`}
+                  label={copy.imageAlt}
+                >
+                  <Input
+                    onChange={(event) =>
+                      setImages((current) =>
+                        updateImage(current, index, { altText: event.target.value }),
+                      )
+                    }
+                    value={image.altText}
+                  />
+                </Field>
               </div>
             </div>
           ))}

@@ -46,12 +46,12 @@ export function Pagination({
 
   const pages = buildPageWindow(page, pageCount);
   const itemClass =
-    "inline-flex min-w-9 items-center justify-center rounded-full border px-3 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-45";
+    "inline-flex size-9.5 items-center justify-center rounded-field border-[1.5px] text-sm font-semibold transition outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand disabled:cursor-not-allowed disabled:opacity-45";
 
   return (
     <nav aria-label="Paginación" className={cn("flex items-center gap-2", className)}>
       <button
-        className={cn(itemClass, "border-line-soft bg-surface-panel text-ink-strong")}
+        className={cn(itemClass, "border-line-strong bg-surface-panel text-ink-soft hover:border-brand-deep")}
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         type="button"
@@ -74,8 +74,8 @@ export function Pagination({
             className={cn(
               itemClass,
               value === page
-                ? "border-transparent bg-ink-strong text-surface-base"
-                : "border-line-soft bg-surface-panel text-ink-strong",
+                ? "border-transparent bg-brand-deep font-bold text-surface-base"
+                : "border-line-strong bg-surface-panel text-ink-strong hover:border-brand-deep",
             )}
             key={value}
             onClick={() => onPageChange(value)}
@@ -87,7 +87,7 @@ export function Pagination({
       )}
 
       <button
-        className={cn(itemClass, "border-line-soft bg-surface-panel text-ink-strong")}
+        className={cn(itemClass, "border-line-strong bg-surface-panel text-ink-soft hover:border-brand-deep")}
         disabled={page >= pageCount}
         onClick={() => onPageChange(page + 1)}
         type="button"

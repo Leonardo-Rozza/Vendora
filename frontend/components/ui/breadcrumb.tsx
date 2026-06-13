@@ -16,7 +16,7 @@ export function Breadcrumb({
 }) {
   return (
     <nav aria-label="Migas de pan" className={className}>
-      <ol className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+      <ol className="flex flex-wrap items-center gap-2 text-[13.5px] text-ink-soft">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 
@@ -24,7 +24,7 @@ export function Breadcrumb({
             <Fragment key={`${item.label}-${index}`}>
               <li>
                 {item.href && !isLast ? (
-                  <Link className="hover:text-ink-strong" href={item.href}>
+                  <Link className="transition-colors hover:text-ink-strong" href={item.href}>
                     {item.label}
                   </Link>
                 ) : (
@@ -37,8 +37,8 @@ export function Breadcrumb({
                 )}
               </li>
               {!isLast ? (
-                <li aria-hidden className="text-ink-soft">
-                  /
+                <li aria-hidden className="text-line-strong">
+                  ›
                 </li>
               ) : null}
             </Fragment>

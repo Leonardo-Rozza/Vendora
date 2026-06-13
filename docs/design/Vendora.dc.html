@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #1E2022; background: #FFF9F0; -webkit-font-smoothing: antialiased; }
+    a { text-decoration: none; color: inherit; }
+  </style>
+</helmet>
+
+<div style="max-width: 1080px; margin: 0 auto; padding: 0 24px 100px;">
+
+  <header style="background: #173747; color: #FBEFD9; border-radius: 0 0 28px 28px; margin: 0 -24px 48px; padding: 44px 40px 48px;">
+    <div style="display: flex; align-items: center; gap: 13px; margin-bottom: 30px;">
+      <div style="width: 46px; height: 46px; border-radius: 13px; background: #8C4B26; display: grid; place-items: center; color: #FFF9F0; font-weight: 800; font-size: 24px;">V</div>
+      <div>
+        <div style="font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1;">Vendora</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #D8B690; margin-top: 5px;">Diseño de producto · es-AR</div>
+      </div>
+    </div>
+    <h1 style="margin: 0 0 12px; font-size: clamp(30px, 5vw, 48px); font-weight: 800; letter-spacing: -.025em; line-height: 1.05; max-width: 20ch;">Tienda completa, de la vidriera al panel.</h1>
+    <p style="margin: 0; max-width: 56ch; font-size: clamp(15px, 2vw, 18px); line-height: 1.6; color: #C9D6DB;">Siete entregables de alta fidelidad con una identidad cálida y confiable. Mobile-first, responsive y accesible (WCAG AA). Tocá cualquiera para abrirlo.</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
+    <sc-for list="{{ screens }}" as="s" hint-placeholder-count="7">
+      <a href="{{ s.href }}" style="display: flex; flex-direction: column; background: #fff; border: 1px solid #E6DAC6; border-radius: 18px; overflow: hidden; transition: all .18s;" style-hover="border-color: #D8B690; box-shadow: 0 14px 34px rgba(110,58,29,.14); transform: translateY(-3px);">
+        <div style="{{ s.bannerStyle }}">
+          <span style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .12em; color: rgba(255,249,240,.7);">{{ s.tag }}</span>
+        </div>
+        <div style="padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 9px;">
+            <span style="font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; color: #8C4B26;">{{ s.num }}</span>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em;">{{ s.title }}</h2>
+          </div>
+          <p style="margin: 0 0 14px; font-size: 14px; color: #5B554E; line-height: 1.55;">{{ s.desc }}</p>
+          <span style="font-size: 14px; font-weight: 700; color: #8C4B26;">Abrir →</span>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+
+  <div style="margin-top: 40px; background: #F4EDE0; border: 1px solid #E6DAC6; border-radius: 18px; padding: 24px 26px; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+    <div style="font-size: 24px;">💡</div>
+    <div style="flex: 1; min-width: 240px;">
+      <div style="font-weight: 800; font-size: 16px; margin-bottom: 6px;">Cómo recorrer el prototipo</div>
+      <p style="margin: 0; font-size: 14px; color: #5B554E; line-height: 1.6;">El flujo de compra está enlazado: desde el <strong>Storefront</strong> entrás al producto, agregás al carrito y llegás al checkout. Las pantallas con interruptor de <em>“estado demo”</em> (catálogo, checkout, seguimiento) te dejan previsualizar cargando/vacío/error y los resultados de pago. El <strong>Admin</strong> arranca en el login — ya viene precargado, solo tocá “Ingresar”.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const banner = (c1, c2) => 'height:96px;display:flex;align-items:flex-end;padding:14px 18px;background:repeating-linear-gradient(45deg,'+c1+','+c1+' 12px,'+c2+' 12px,'+c2+' 24px);';
+    return {
+      screens: [
+        { num:'01', title:'Sistema de diseño', tag:'tokens + componentes', desc:'Color, tipografía, espaciado, radios, sombras y la librería de componentes con todos sus estados.', href:'Sistema de Diseño.dc.html', bannerStyle: banner('#173747','#1d4655') },
+        { num:'02', title:'Storefront / Catálogo', tag:'interactivo', desc:'Hero, grilla, búsqueda, categorías con subcategorías, filtros con contadores, orden y paginación. Estados loading/vacío/error.', href:'Storefront.dc.html', bannerStyle: banner('#8C4B26','#7a4120') },
+        { num:'03', title:'Detalle de producto', tag:'interactivo', desc:'Galería, selector de variantes, precio, stock, especificaciones, breadcrumb y relacionados.', href:'Producto.dc.html', bannerStyle: banner('#21505F','#1d4655') },
+        { num:'04', title:'Carrito', tag:'interactivo', desc:'Líneas con cantidad editable, aviso de stock por línea, cupón y resumen con totales.', href:'Carrito.dc.html', bannerStyle: banner('#8C4B26','#7a4120') },
+        { num:'05', title:'Checkout invitado', tag:'+ resultados', desc:'Contacto y dirección AMBA, resumen y pago con Mercado Pago. Pantallas de éxito, pendiente y fallo.', href:'Checkout.dc.html', bannerStyle: banner('#173747','#1d4655') },
+        { num:'06', title:'Seguimiento', tag:'por token, sin login', desc:'Timeline de estados: pago confirmado → preparando → en camino → entregado.', href:'Seguimiento.dc.html', bannerStyle: banner('#21505F','#1d4655') },
+        { num:'07', title:'Admin', tag:'login + gestión', desc:'Login, listado y edición de productos (variantes, stock, imágenes, atributos) y órdenes con fulfillment.', href:'Admin.dc.html', bannerStyle: banner('#173747','#1d4655') },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

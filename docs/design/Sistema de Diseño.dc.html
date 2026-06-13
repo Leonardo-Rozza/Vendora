@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #1E2022; background: #FFF9F0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    @keyframes vd-shimmer { 0% { background-position: -420px 0; } 100% { background-position: 420px 0; } }
+    @keyframes vd-toastin { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes vd-fadein { from { opacity: 0; } to { opacity: 1; } }
+    ::selection { background: #E7CFAE; color: #1E2022; }
+  </style>
+</helmet>
+
+<div style="max-width: 1180px; margin: 0 auto; padding: 0 24px 120px;">
+
+  <!-- ===== HEADER ===== -->
+  <header style="background: #173747; color: #FBEFD9; border-radius: 0 0 28px 28px; margin: 0 -24px 56px; padding: 40px 40px 44px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: #8C4B26; display: grid; place-items: center; color: #FFF9F0; font-weight: 800; font-size: 24px; box-shadow: inset 0 0 0 1px rgba(255,249,240,.18);">V</div>
+        <div>
+          <div style="font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1;">Vendora</div>
+          <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #D8B690; margin-top: 5px;">Sistema de diseño · v1</div>
+        </div>
+      </div>
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9FB6BE; text-align: right; line-height: 1.7;">
+        es-AR · mobile-first<br>WCAG AA · Next.js + Tailwind v4
+      </div>
+    </div>
+    <h1 style="margin: 32px 0 10px; font-size: clamp(30px, 5vw, 50px); font-weight: 800; letter-spacing: -.025em; line-height: 1.02; max-width: 18ch;">Cálido, prolijo y confiable.</h1>
+    <p style="margin: 0; max-width: 56ch; font-size: clamp(15px, 2vw, 18px); line-height: 1.6; color: #C9D6DB;">Los tokens y componentes base de Vendora — una boutique premium que se siente cercana, pero transmite seguridad en cada paso donde hay plata y datos de por medio.</p>
+  </header>
+
+  <!-- ===== REASONING / ASSUMPTIONS ===== -->
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 72px;">
+    <div style="background: #FFFFFF; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8C4B26; margin-bottom: 10px;">01 · Premisa</div>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #5B554E;">Confianza primero. Cada decisión visual —contraste, foco visible, copy honesto— busca que comprar como invitado se sienta seguro.</p>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8C4B26; margin-bottom: 10px;">02 · Tono</div>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #5B554E;">Boutique de barrio premium: cremas cálidas, terracota artesanal y verde petróleo profundo para los momentos serios.</p>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8C4B26; margin-bottom: 10px;">03 · Sistema</div>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #5B554E;">Tokens claros y componentes con todos sus estados (hover/focus/disabled/error) listos para mapear a Tailwind v4.</p>
+    </div>
+  </section>
+
+  <!-- ===== COLOR ===== -->
+  <div style="margin-bottom: 18px;">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Tokens</div>
+    <h2 style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em;">Color</h2>
+    <div style="height: 1px; background: #E6DAC6; margin-top: 18px;"></div>
+  </div>
+
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 28px 0 12px;">Marca</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 32px;">
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;">
+      <div style="height: 88px; background: #8C4B26;"></div>
+      <div style="padding: 12px 14px;"><div style="font-weight: 700; font-size: 14px;">Terracota</div><div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #8C847A; margin-top: 2px;">#8C4B26</div><div style="font-family: 'Space Mono', monospace; font-size: 10.5px; color: #B7AE9F; margin-top: 4px;">brand · primary</div></div>
+    </div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;">
+      <div style="height: 88px; background: #6E3A1D;"></div>
+      <div style="padding: 12px 14px;"><div style="font-weight: 700; font-size: 14px;">Terracota oscuro</div><div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #8C847A; margin-top: 2px;">#6E3A1D</div><div style="font-family: 'Space Mono', monospace; font-size: 10.5px; color: #B7AE9F; margin-top: 4px;">brand · hover</div></div>
+    </div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;">
+      <div style="height: 88px; background: #D8B690;"></div>
+      <div style="padding: 12px 14px;"><div style="font-weight: 700; font-size: 14px;">Arena</div><div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #8C847A; margin-top: 2px;">#D8B690</div><div style="font-family: 'Space Mono', monospace; font-size: 10.5px; color: #B7AE9F; margin-top: 4px;">accent</div></div>
+    </div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;">
+      <div style="height: 88px; background: #173747;"></div>
+      <div style="padding: 12px 14px;"><div style="font-weight: 700; font-size: 14px;">Petróleo</div><div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #8C847A; margin-top: 2px;">#173747</div><div style="font-family: 'Space Mono', monospace; font-size: 10.5px; color: #B7AE9F; margin-top: 4px;">deep · trust</div></div>
+    </div>
+  </div>
+
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 0 0 12px;">Neutros cálidos</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 14px; margin-bottom: 32px;">
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #FFF9F0;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Paper</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#FFF9F0</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #F4EDE0;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Crema</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#F4EDE0</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #fff; box-shadow: inset 0 0 0 1px #E6DAC6;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Card</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#FFFFFF</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #E6DAC6;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Borde</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#E6DAC6</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #5B554E;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px; color: #1E2022;">Ink 2</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#5B554E</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 72px; background: #1E2022;"></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Ink</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#1E2022</div></div></div>
+  </div>
+
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 0 0 12px;">Semánticos</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 72px;">
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 64px; background: #1F7A4D; display: flex; align-items: center; padding: 0 14px;"><span style="background: #E3F0E7; color: #1F7A4D; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px;">En stock</span></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Éxito</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#1F7A4D</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 64px; background: #9A6512; display: flex; align-items: center; padding: 0 14px;"><span style="background: #F6EAD2; color: #9A6512; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px;">Pendiente</span></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Aviso</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#9A6512</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 64px; background: #A8362B; display: flex; align-items: center; padding: 0 14px;"><span style="background: #F6E2DD; color: #A8362B; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px;">Sin stock</span></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Error</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#A8362B</div></div></div>
+    <div style="border: 1px solid #E6DAC6; border-radius: 14px; overflow: hidden; background: #fff;"><div style="height: 64px; background: #21505F; display: flex; align-items: center; padding: 0 14px;"><span style="background: #E0EAED; color: #21505F; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px;">En camino</span></div><div style="padding: 11px 13px;"><div style="font-weight: 700; font-size: 13px;">Info</div><div style="font-family: 'Space Mono', monospace; font-size: 11.5px; color: #8C847A;">#21505F</div></div></div>
+  </div>
+
+  <!-- ===== TYPOGRAPHY ===== -->
+  <div style="margin-bottom: 18px;">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Tokens</div>
+    <h2 style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em;">Tipografía</h2>
+    <div style="height: 1px; background: #E6DAC6; margin-top: 18px;"></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 28px 0 28px;">
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 24px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C4B26; margin-bottom: 14px;">Sans · UI + Display</div>
+      <div style="font-size: 56px; font-weight: 800; letter-spacing: -.03em; line-height: 1;">Aa</div>
+      <div style="font-size: 18px; font-weight: 700; margin-top: 8px;">Hanken Grotesk</div>
+      <div style="font-size: 13.5px; color: #5B554E; margin-top: 4px;">Humanista, cálida y legible. 400 · 500 · 600 · 700 · 800</div>
+    </div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 24px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C4B26; margin-bottom: 14px;">Mono · Detalles</div>
+      <div style="font-family: 'Space Mono', monospace; font-size: 52px; font-weight: 700; line-height: 1;">Aa</div>
+      <div style="font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; margin-top: 8px;">Space Mono</div>
+      <div style="font-size: 13.5px; color: #5B554E; margin-top: 4px;">Eyebrows, precios, SKU, etiquetas técnicas. 400 · 700</div>
+    </div>
+  </div>
+
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 28px 30px; margin-bottom: 72px;">
+    <div style="display: flex; align-items: baseline; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #E6DAC6;"><span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; width: 96px; flex-shrink: 0;">Display / 800</span><span style="font-size: clamp(34px,5vw,52px); font-weight: 800; letter-spacing: -.03em; line-height: 1.05;">Envíos a todo AMBA</span></div>
+    <div style="display: flex; align-items: baseline; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #E6DAC6;"><span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; width: 96px; flex-shrink: 0;">H1 / 700</span><span style="font-size: 34px; font-weight: 700; letter-spacing: -.02em;">Auriculares y audio</span></div>
+    <div style="display: flex; align-items: baseline; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #E6DAC6;"><span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; width: 96px; flex-shrink: 0;">H2 / 700</span><span style="font-size: 26px; font-weight: 700; letter-spacing: -.01em;">Productos relacionados</span></div>
+    <div style="display: flex; align-items: baseline; gap: 14px; padding: 14px 0; border-bottom: 1px dashed #E6DAC6;"><span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; width: 96px; flex-shrink: 0;">Body / 400</span><span style="font-size: 16px; line-height: 1.6; color: #5B554E; max-width: 52ch;">Cuerpo de texto para descripciones y ayudas. Buscamos una lectura cómoda y un interlineado generoso en mobile.</span></div>
+    <div style="display: flex; align-items: baseline; gap: 14px; padding: 14px 0 0;"><span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; width: 96px; flex-shrink: 0;">Eyebrow</span><span style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Electrónica › Audio</span></div>
+  </div>
+
+  <!-- ===== SPACING / RADII / SHADOWS ===== -->
+  <div style="margin-bottom: 18px;">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Tokens</div>
+    <h2 style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em;">Espaciado, radios y sombras</h2>
+    <div style="height: 1px; background: #E6DAC6; margin-top: 18px;"></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 28px 0 72px;">
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 24px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C4B26; margin-bottom: 18px;">Escala · base 4px</div>
+      <div style="display: flex; flex-direction: column; gap: 11px;">
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 4px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">4 · xs</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 8px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">8 · sm</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 12px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">12 · md</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 16px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">16 · lg</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 24px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">24 · xl</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 32px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">32 · 2xl</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 48px; height: 16px; background: #8C4B26; border-radius: 2px;"></div><span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #5B554E;">48 · 3xl</span></div>
+      </div>
+    </div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 24px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C4B26; margin-bottom: 18px;">Radios</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+        <div style="text-align: center;"><div style="width: 64px; height: 52px; background: #F4EDE0; border: 1px solid #D8C7AC; border-radius: 8px;"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 7px;">8 · input</div></div>
+        <div style="text-align: center;"><div style="width: 64px; height: 52px; background: #F4EDE0; border: 1px solid #D8C7AC; border-radius: 12px;"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 7px;">12 · btn</div></div>
+        <div style="text-align: center;"><div style="width: 64px; height: 52px; background: #F4EDE0; border: 1px solid #D8C7AC; border-radius: 16px;"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 7px;">16 · card</div></div>
+        <div style="text-align: center;"><div style="width: 64px; height: 52px; background: #F4EDE0; border: 1px solid #D8C7AC; border-radius: 999px;"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 7px;">full · chip</div></div>
+      </div>
+    </div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 24px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C4B26; margin-bottom: 18px;">Sombras · tinte cálido</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 18px;">
+        <div style="text-align: center;"><div style="width: 76px; height: 56px; background: #fff; border-radius: 12px; box-shadow: 0 1px 2px rgba(110,58,29,.08);"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 9px;">sm</div></div>
+        <div style="text-align: center;"><div style="width: 76px; height: 56px; background: #fff; border-radius: 12px; box-shadow: 0 4px 14px rgba(110,58,29,.10);"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 9px;">md</div></div>
+        <div style="text-align: center;"><div style="width: 76px; height: 56px; background: #fff; border-radius: 12px; box-shadow: 0 12px 32px rgba(110,58,29,.16);"></div><div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #8C847A; margin-top: 9px;">lg</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COMPONENTS ===== -->
+  <div style="margin-bottom: 18px;">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Librería</div>
+    <h2 style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em;">Componentes</h2>
+    <div style="height: 1px; background: #E6DAC6; margin-top: 18px;"></div>
+  </div>
+
+  <!-- Buttons -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 28px 0 14px;">Botones · variantes</p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 13px 22px; cursor: pointer; transition: background .15s;" style-hover="background: #6E3A1D;">Agregar al carrito</button>
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #8C4B26; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 12px; padding: 12px 22px; cursor: pointer; transition: border-color .15s, background .15s;" style-hover="border-color: #8C4B26; background: #FFF9F0;">Seguir comprando</button>
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #8C4B26; background: transparent; border: none; border-radius: 12px; padding: 13px 16px; cursor: pointer; transition: background .15s;" style-hover="background: #F4EDE0;">Ver detalle</button>
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #A8362B; border: none; border-radius: 12px; padding: 13px 22px; cursor: pointer; transition: background .15s;" style-hover="background: #8C2A21;">Eliminar</button>
+    <button disabled style="font-family: inherit; font-size: 15px; font-weight: 700; color: #B7AE9F; background: #F4EDE0; border: none; border-radius: 12px; padding: 13px 22px; cursor: not-allowed;">Sin stock</button>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-bottom: 16px; padding: 0 4px;">
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">primary</span>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">secondary</span>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">ghost</span>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">danger</span>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">disabled</span>
+  </div>
+
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Botones · tamaños</p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+    <button style="font-family: inherit; font-size: 13px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 9px; padding: 8px 14px; cursor: pointer;">Small</button>
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer;">Medium</button>
+    <button style="font-family: inherit; font-size: 17px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 14px; padding: 16px 28px; cursor: pointer;">Large</button>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F;">+ foco visible →</span>
+    <button style="font-family: inherit; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer; outline: 3px solid #D8B690; outline-offset: 2px;">Focus ring</button>
+  </div>
+
+  <!-- Form fields -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Campos de formulario · estados</p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px;">
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #1E2022; margin-bottom: 7px;">Email <span style="color: #8C847A; font-weight: 400;">(default)</span></label>
+      <input type="email" placeholder="nombre@correo.com" style="font-family: inherit; width: 100%; font-size: 15px; color: #1E2022; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px;">
+      <p style="font-size: 12.5px; color: #8C847A; margin: 7px 0 0;">Te mandamos el seguimiento acá.</p>
+    </div>
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #1E2022; margin-bottom: 7px;">Nombre <span style="color: #8C4B26; font-weight: 400;">(focus)</span></label>
+      <input type="text" value="María" style="font-family: inherit; width: 100%; font-size: 15px; color: #1E2022; background: #fff; border: 1.5px solid #8C4B26; border-radius: 10px; padding: 12px 14px; outline: 3px solid #E7CFAE; outline-offset: 0;">
+      <p style="font-size: 12.5px; color: #8C847A; margin: 7px 0 0;">&nbsp;</p>
+    </div>
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #1E2022; margin-bottom: 7px;">CP / Código postal</label>
+      <input type="text" value="C100AAB" style="font-family: inherit; width: 100%; font-size: 15px; color: #A8362B; background: #fff; border: 1.5px solid #A8362B; border-radius: 10px; padding: 12px 14px;">
+      <p style="font-size: 12.5px; color: #A8362B; margin: 7px 0 0; display: flex; align-items: center; gap: 6px;"><span style="width: 14px; height: 14px; border-radius: 50%; background: #A8362B; color: #fff; font-size: 10px; display: grid; place-items: center; flex-shrink: 0;">!</span>Ingresá un CP válido de AMBA.</p>
+    </div>
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #1E2022; margin-bottom: 7px;">Provincia <span style="color: #8C847A; font-weight: 400;">(select)</span></label>
+      <div style="position: relative;">
+        <select style="font-family: inherit; width: 100%; font-size: 15px; color: #1E2022; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 38px 12px 14px; appearance: none; cursor: pointer;"><option>Buenos Aires</option><option>CABA</option></select>
+        <span style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #8C847A; pointer-events: none; font-size: 12px;">▼</span>
+      </div>
+    </div>
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #8C847A; margin-bottom: 7px;">DNI <span style="font-weight: 400;">(disabled)</span></label>
+      <input type="text" value="—" disabled style="font-family: inherit; width: 100%; font-size: 15px; color: #B7AE9F; background: #F4EDE0; border: 1.5px solid #E6DAC6; border-radius: 10px; padding: 12px 14px; cursor: not-allowed;">
+    </div>
+    <div>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #1E2022; margin-bottom: 7px;">Notas <span style="color: #8C847A; font-weight: 400;">(textarea)</span></label>
+      <textarea rows="2" placeholder="Indicaciones para la entrega…" style="font-family: inherit; width: 100%; font-size: 15px; color: #1E2022; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; resize: vertical;"></textarea>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Badges</p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <span style="font-size: 12px; font-weight: 700; color: #1F7A4D; background: #E3F0E7; padding: 5px 11px; border-radius: 7px;">En stock</span>
+    <span style="font-size: 12px; font-weight: 700; color: #9A6512; background: #F6EAD2; padding: 5px 11px; border-radius: 7px;">Últimas 3 unidades</span>
+    <span style="font-size: 12px; font-weight: 700; color: #A8362B; background: #F6E2DD; padding: 5px 11px; border-radius: 7px;">Sin stock</span>
+    <span style="font-size: 12px; font-weight: 700; color: #fff; background: #8C4B26; padding: 5px 11px; border-radius: 7px;">-20% OFF</span>
+    <span style="font-size: 12px; font-weight: 700; color: #21505F; background: #E0EAED; padding: 5px 11px; border-radius: 7px;">Envío gratis</span>
+    <span style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: #5B554E; background: #F4EDE0; padding: 5px 11px; border-radius: 7px; letter-spacing: .04em;">SKU AUD-204</span>
+  </div>
+
+  <!-- Product card + breadcrumb + pagination -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Card de producto · breadcrumb · paginación</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; overflow: hidden; max-width: 280px;">
+      <div style="position: relative; aspect-ratio: 1; background: repeating-linear-gradient(45deg, #F4EDE0, #F4EDE0 9px, #EFE6D6 9px, #EFE6D6 18px); display: grid; place-items: center;">
+        <span style="position: absolute; top: 12px; left: 12px; font-size: 11px; font-weight: 700; color: #fff; background: #8C4B26; padding: 4px 9px; border-radius: 7px;">-20%</span>
+        <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; letter-spacing: .1em;">[ product shot ]</span>
+      </div>
+      <div style="padding: 16px;">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #8C4B26;">Audio</div>
+        <div style="font-weight: 700; font-size: 15.5px; margin: 6px 0 8px; line-height: 1.3;">Auriculares inalámbricos Onda</div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-weight: 800; font-size: 19px; letter-spacing: -.01em;">$ 89.900</span>
+          <span style="font-size: 13px; color: #B7AE9F; text-decoration: line-through;">$ 112.000</span>
+        </div>
+        <div style="margin-top: 10px;"><span style="font-size: 12px; font-weight: 700; color: #1F7A4D; background: #E3F0E7; padding: 4px 9px; border-radius: 7px;">En stock</span></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 24px; justify-content: center;">
+      <div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; margin-bottom: 8px;">breadcrumb</div>
+        <nav style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13.5px;">
+          <a href="#" style="color: #8C847A; text-decoration: none;">Inicio</a><span style="color: #D8C7AC;">›</span>
+          <a href="#" style="color: #8C847A; text-decoration: none;">Electrónica</a><span style="color: #D8C7AC;">›</span>
+          <a href="#" style="color: #8C847A; text-decoration: none;">Audio</a><span style="color: #D8C7AC;">›</span>
+          <span style="color: #1E2022; font-weight: 600;">Auriculares Onda</span>
+        </nav>
+      </div>
+      <div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #B7AE9F; margin-bottom: 8px;">paginación</div>
+        <div style="display: flex; gap: 7px; align-items: center;">
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #D8C7AC; background: #fff; color: #8C847A; cursor: pointer; font-size: 15px;">‹</button>
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: none; background: #8C4B26; color: #FFF9F0; cursor: pointer; font-weight: 700; font-size: 14px;">1</button>
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #D8C7AC; background: #fff; color: #1E2022; cursor: pointer; font-weight: 600; font-size: 14px;">2</button>
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #D8C7AC; background: #fff; color: #1E2022; cursor: pointer; font-weight: 600; font-size: 14px;">3</button>
+          <span style="color: #B7AE9F; padding: 0 4px;">…</span>
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #D8C7AC; background: #fff; color: #1E2022; cursor: pointer; font-weight: 600; font-size: 14px;">8</button>
+          <button style="font-family: inherit; width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid #D8C7AC; background: #fff; color: #1E2022; cursor: pointer; font-size: 15px;">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog + Toast triggers -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 40px 0 14px;">Dialog · toast <span style="color: #8C4B26;">(interactivos — probalos)</span></p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 40px; display: flex; flex-wrap: wrap; gap: 14px;">
+    <button onClick="{{ openDialog }}" style="font-family: inherit; font-size: 15px; font-weight: 700; color: #8C4B26; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 12px; padding: 12px 22px; cursor: pointer;">Abrir dialog</button>
+    <button onClick="{{ showToast }}" style="font-family: inherit; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 13px 22px; cursor: pointer;">Mostrar toast</button>
+  </div>
+
+  <!-- Skeletons -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Skeletons · loading</p>
+  <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 26px; margin-bottom: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px;">
+    <div>
+      <div style="aspect-ratio: 1; border-radius: 12px; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 12px; border-radius: 6px; margin-top: 14px; width: 50%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 14px; border-radius: 6px; margin-top: 10px; width: 85%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 18px; border-radius: 6px; margin-top: 12px; width: 40%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+    </div>
+    <div>
+      <div style="aspect-ratio: 1; border-radius: 12px; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 12px; border-radius: 6px; margin-top: 14px; width: 50%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 14px; border-radius: 6px; margin-top: 10px; width: 85%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 18px; border-radius: 6px; margin-top: 12px; width: 40%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+    </div>
+    <div>
+      <div style="aspect-ratio: 1; border-radius: 12px; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 12px; border-radius: 6px; margin-top: 14px; width: 50%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 14px; border-radius: 6px; margin-top: 10px; width: 85%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+      <div style="height: 18px; border-radius: 6px; margin-top: 12px; width: 40%; background: linear-gradient(90deg, #F0E8DA 25%, #E7DCC9 37%, #F0E8DA 63%); background-size: 420px 100%; animation: vd-shimmer 1.3s infinite linear;"></div>
+    </div>
+  </div>
+
+  <!-- Empty + error states -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Estado vacío · error</p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 40px;">
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 38px 26px; text-align: center;">
+      <div style="width: 56px; height: 56px; border-radius: 16px; background: #F4EDE0; display: grid; place-items: center; margin: 0 auto 16px; font-size: 24px;">🔍</div>
+      <div style="font-weight: 700; font-size: 17px;">Sin resultados</div>
+      <p style="font-size: 14px; color: #5B554E; margin: 8px auto 18px; max-width: 32ch; line-height: 1.55;">No encontramos productos para “auriculares rojos”. Probá con menos filtros.</p>
+      <button style="font-family: inherit; font-size: 14px; font-weight: 700; color: #8C4B26; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 10px 18px; cursor: pointer;">Limpiar filtros</button>
+    </div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 38px 26px; text-align: center;">
+      <div style="width: 56px; height: 56px; border-radius: 16px; background: #F6E2DD; color: #A8362B; display: grid; place-items: center; margin: 0 auto 16px; font-size: 26px; font-weight: 800;">!</div>
+      <div style="font-weight: 700; font-size: 17px;">No pudimos cargar</div>
+      <p style="font-size: 14px; color: #5B554E; margin: 8px auto 18px; max-width: 32ch; line-height: 1.55;">Hubo un problema al traer los productos. Reintentá en unos segundos.</p>
+      <button style="font-family: inherit; font-size: 14px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer;">Reintentar</button>
+    </div>
+  </div>
+
+  <!-- Trust signals -->
+  <p style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8C847A; margin: 24px 0 14px;">Señales de confianza</p>
+  <div style="background: #173747; border-radius: 16px; padding: 26px; margin-bottom: 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 22px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px; flex-shrink: 0;">🔒</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Pago seguro</div><div style="color: #9FB6BE; font-size: 12.5px; margin-top: 2px;">Cifrado · Mercado Pago</div></div></div>
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px; flex-shrink: 0;">🚚</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Envío a AMBA</div><div style="color: #9FB6BE; font-size: 12.5px; margin-top: 2px;">24–72 hs hábiles</div></div></div>
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px; flex-shrink: 0;">↩️</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Devolución</div><div style="color: #9FB6BE; font-size: 12.5px; margin-top: 2px;">10 días corridos</div></div></div>
+    <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px; flex-shrink: 0;">💬</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Soporte real</div><div style="color: #9FB6BE; font-size: 12.5px; margin-top: 2px;">Lun a Sáb · WhatsApp</div></div></div>
+  </div>
+
+  <!-- Accessibility -->
+  <div style="margin-bottom: 18px;">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #8C4B26;">Lineamientos</div>
+    <h2 style="margin: 6px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -.02em;">Accesibilidad (WCAG AA)</h2>
+    <div style="height: 1px; background: #E6DAC6; margin-top: 18px;"></div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 28px;">
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;"><div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;">Contraste ≥ 4.5:1</div><p style="margin: 0; font-size: 14px; color: #5B554E; line-height: 1.55;">Texto ink sobre cremas y blanco sobre terracota/petróleo cumplen AA. Nunca texto arena claro sobre crema.</p></div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;"><div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;">Foco siempre visible</div><p style="margin: 0; font-size: 14px; color: #5B554E; line-height: 1.55;">Ring arena (#D8B690) de 3px con offset en todo elemento interactivo. Nunca <code style="font-family: 'Space Mono', monospace; font-size: 12px;">outline: none</code> sin reemplazo.</p></div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;"><div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;">Estado ≠ solo color</div><p style="margin: 0; font-size: 14px; color: #5B554E; line-height: 1.55;">Stock, errores y estados de orden siempre llevan texto/ícono además del color.</p></div>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;"><div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;">Hit targets ≥ 44px</div><p style="margin: 0; font-size: 14px; color: #5B554E; line-height: 1.55;">Botones y controles táctiles cómodos en mobile. Labels asociados a cada input.</p></div>
+  </div>
+
+  <!-- DIALOG OVERLAY -->
+  <sc-if value="{{ dialogOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDialog }}" style="position: fixed; inset: 0; background: rgba(30,32,34,.55); display: grid; place-items: center; padding: 24px; z-index: 80; animation: vd-fadein .15s ease;">
+      <div style="background: #FFF9F0; border-radius: 20px; max-width: 420px; width: 100%; padding: 28px; box-shadow: 0 24px 60px rgba(110,58,29,.32);">
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8C4B26; margin-bottom: 8px;">Confirmar</div>
+        <h3 style="margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.02em;">¿Vaciar el carrito?</h3>
+        <p style="margin: 0 0 22px; font-size: 14.5px; color: #5B554E; line-height: 1.55;">Vas a eliminar los 3 productos de tu carrito. Esta acción no se puede deshacer.</p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button onClick="{{ closeDialog }}" style="font-family: inherit; font-size: 15px; font-weight: 700; color: #8C4B26; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 12px; padding: 11px 20px; cursor: pointer;">Cancelar</button>
+          <button onClick="{{ closeDialog }}" style="font-family: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #A8362B; border: none; border-radius: 12px; padding: 11px 20px; cursor: pointer;">Sí, vaciar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; animation: vd-toastin .25s ease;">
+      <div style="display: flex; align-items: center; gap: 12px; background: #173747; color: #FBEFD9; padding: 14px 18px; border-radius: 14px; box-shadow: 0 16px 40px rgba(23,55,71,.4); min-width: 280px;">
+        <span style="width: 24px; height: 24px; border-radius: 50%; background: #1F7A4D; color: #fff; display: grid; place-items: center; font-size: 13px; flex-shrink: 0;">✓</span>
+        <div style="flex: 1;"><div style="font-weight: 700; font-size: 14.5px;">Agregado al carrito</div><div style="font-size: 12.5px; color: #9FB6BE; margin-top: 1px;">Auriculares Onda · Negro</div></div>
+        <button onClick="{{ hideToast }}" style="font-family: inherit; background: none; border: none; color: #9FB6BE; cursor: pointer; font-size: 18px; padding: 0 4px;">×</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { toast: false, dialog: false };
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    return {
+      toastOpen: this.state.toast,
+      dialogOpen: this.state.dialog,
+      openDialog: () => this.setState({ dialog: true }),
+      closeDialog: () => this.setState({ dialog: false }),
+      showToast: () => {
+        this.setState({ toast: true });
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.setState({ toast: false }), 2800);
+      },
+      hideToast: () => { clearTimeout(this._t); this.setState({ toast: false }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #1E2022; background: #FFF9F0; -webkit-font-smoothing: antialiased; }
+    @keyframes vd-toastin { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    input::placeholder { color: #B7AE9F; }
+  </style>
+</helmet>
+
+<div style="min-height: 100vh;">
+
+  <!-- HEADER -->
+  <header style="position: sticky; top: 0; z-index: 50; background: #FFF9F0; border-bottom: 1px solid #E6DAC6;">
+    <div style="background: #173747; color: #C9D6DB; font-size: 12.5px; text-align: center; padding: 7px 16px; font-weight: 500;">Envío gratis en AMBA en compras desde $120.000 · <span style="color: #D8B690;">Pagá con Mercado Pago</span></div>
+    <div style="max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 16px;">
+      <a href="Storefront.dc.html" style="display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0;">
+        <div style="width: 40px; height: 40px; border-radius: 11px; background: #8C4B26; display: grid; place-items: center; color: #FFF9F0; font-weight: 800; font-size: 21px;">V</div>
+        <span style="font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: #1E2022;">Vendora</span>
+      </a>
+      <div style="flex: 1; position: relative; min-width: 0;">
+        <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #8C847A; font-size: 15px; pointer-events: none;">⌕</span>
+        <input placeholder="Buscar productos…" aria-label="Buscar productos" style="font-family: inherit; width: 100%; font-size: 15px; color: #1E2022; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 11px; padding: 11px 14px 11px 38px;">
+      </div>
+      <a href="Carrito.dc.html" aria-label="Carrito" style="position: relative; text-decoration: none; flex-shrink: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border-radius: 11px; padding: 11px 16px;">
+        <span style="font-size: 16px;">🛒</span><span style="min-width: 12px; text-align: center;">{{ cartCount }}</span>
+      </a>
+    </div>
+  </header>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 22px 20px 0;">
+    <nav aria-label="Ubicación" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px;">
+      <a href="Storefront.dc.html" style="color: #8C847A; text-decoration: none;">Inicio</a><span style="color: #D8C7AC;">›</span>
+      <a href="Storefront.dc.html" style="color: #8C847A; text-decoration: none;">Electrónica</a><span style="color: #D8C7AC;">›</span>
+      <a href="Storefront.dc.html" style="color: #8C847A; text-decoration: none;">Audio</a><span style="color: #D8C7AC;">›</span>
+      <span style="color: #1E2022; font-weight: 600;">Auriculares Onda</span>
+    </nav>
+  </div>
+
+  <!-- MAIN: gallery + info -->
+  <div style="max-width: 1240px; margin: 0 auto; padding: 22px 20px 0; display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;">
+
+    <!-- GALLERY -->
+    <div style="flex: 1; min-width: 300px; position: sticky; top: 150px;">
+      <div style="aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: repeating-linear-gradient(45deg, #F4EDE0, #F4EDE0 12px, #EFE6D6 12px, #EFE6D6 24px); display: grid; place-items: center; position: relative;">
+        <span style="position: absolute; top: 16px; left: 16px; font-size: 12px; font-weight: 700; color: #fff; background: #8C4B26; padding: 5px 11px; border-radius: 8px;">-20%</span>
+        <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #B7AE9F; letter-spacing: .12em;">[ {{ mainLabel }} ]</span>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 14px;">
+        <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="4">
+          <button onClick="{{ t.go }}" aria-label="Ver imagen" style="{{ t.style }}">
+            <span style="font-family: 'Space Mono', monospace; font-size: 9px; color: #B7AE9F;">{{ t.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div style="flex: 1; min-width: 300px;">
+      <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #8C4B26; margin-bottom: 10px;">Audio · Auriculares</div>
+      <h1 style="margin: 0 0 12px; font-size: clamp(26px, 4vw, 36px); font-weight: 800; letter-spacing: -.025em; line-height: 1.08;">Auriculares inalámbricos Onda</h1>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap;">
+        <span style="{{ stockBadgeStyle }}">{{ stockLabel }}</span>
+        <span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #8C847A;">SKU AUD-204</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap;">
+        <span style="font-weight: 800; font-size: 34px; letter-spacing: -.02em; white-space: nowrap;">{{ priceFmt }}</span>
+        <span style="font-size: 17px; color: #B7AE9F; text-decoration: line-through;">$ 112.000</span>
+        <span style="font-size: 13px; font-weight: 700; color: #fff; background: #8C4B26; padding: 4px 10px; border-radius: 7px;">-20%</span>
+      </div>
+      <p style="font-size: 13.5px; color: #5B554E; margin: 0 0 24px;">Hasta 12 cuotas · o $ 76.415 con transferencia (-15%)</p>
+
+      <p style="font-size: 15.5px; color: #5B554E; line-height: 1.6; margin: 0 0 26px; max-width: 50ch;">Cancelación de ruido híbrida, 32 hs de batería con el estuche y emparejamiento instantáneo. Livianos y cómodos para todo el día.</p>
+
+      <!-- variant -->
+      <div style="margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px;">
+          <span style="font-size: 13.5px; font-weight: 700;">Color</span>
+          <span style="font-size: 13.5px; color: #5B554E;">{{ colorName }}</span>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <sc-for list="{{ variants }}" as="v" hint-placeholder-count="2">
+            <button onClick="{{ v.go }}" aria-label="{{ v.name }}" style="{{ v.style }}">
+              <span style="width: 26px; height: 26px; border-radius: 7px; background: {{ v.hex }}; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);"></span>
+              <span style="font-size: 14px; font-weight: 600;">{{ v.name }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- quantity + add -->
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; border: 1.5px solid #D8C7AC; border-radius: 12px; overflow: hidden; background: #fff;">
+          <button onClick="{{ dec }}" aria-label="Restar" style="font-family: inherit; width: 46px; height: 50px; border: none; background: #fff; color: #8C4B26; font-size: 22px; cursor: pointer; line-height: 1;">–</button>
+          <span style="min-width: 40px; text-align: center; font-weight: 700; font-size: 17px;">{{ qty }}</span>
+          <button onClick="{{ inc }}" aria-label="Sumar" style="font-family: inherit; width: 46px; height: 50px; border: none; background: #fff; color: #8C4B26; font-size: 22px; cursor: pointer; line-height: 1;">+</button>
+        </div>
+        <button onClick="{{ add }}" style="font-family: inherit; flex: 1; min-width: 200px; font-size: 16px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 15px 24px; cursor: pointer; transition: background .15s;" style-hover="background: #6E3A1D;">Agregar al carrito</button>
+      </div>
+      <a href="Checkout.dc.html" style="display: block; text-align: center; text-decoration: none; font-size: 16px; font-weight: 700; color: #173747; background: #D8B690; border-radius: 12px; padding: 15px 24px; margin-bottom: 24px;">Comprar ahora</a>
+
+      <!-- trust mini -->
+      <div style="border: 1px solid #E6DAC6; border-radius: 14px; background: #fff; padding: 6px 4px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #F0E8DA;"><span style="font-size: 17px;">🚚</span><div><div style="font-size: 14px; font-weight: 700;">Llega en 24–72 hs</div><div style="font-size: 12.5px; color: #8C847A;">Envío a CABA y AMBA</div></div></div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid #F0E8DA;"><span style="font-size: 17px;">🔒</span><div><div style="font-size: 14px; font-weight: 700;">Pago protegido</div><div style="font-size: 12.5px; color: #8C847A;">Mercado Pago · cifrado</div></div></div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px;"><span style="font-size: 17px;">↩️</span><div><div style="font-size: 14px; font-weight: 700;">Devolución gratis</div><div style="font-size: 12.5px; color: #8C847A;">10 días corridos</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPECS -->
+  <div style="max-width: 1240px; margin: 0 auto; padding: 56px 20px 0;">
+    <h2 style="margin: 0 0 20px; font-size: 24px; font-weight: 800; letter-spacing: -.02em;">Especificaciones</h2>
+    <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+      <sc-for list="{{ specs }}" as="s" hint-placeholder-count="8">
+        <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid #F0E8DA;">
+          <span style="font-size: 14px; color: #8C847A;">{{ s.k }}</span>
+          <span style="font-size: 14px; font-weight: 600; text-align: right;">{{ s.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- RELATED -->
+  <div style="max-width: 1240px; margin: 0 auto; padding: 56px 20px 0;">
+    <h2 style="margin: 0 0 20px; font-size: 24px; font-weight: 800; letter-spacing: -.02em;">Productos relacionados</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px;">
+      <sc-for list="{{ related }}" as="p" hint-placeholder-count="4">
+        <a href="Producto.dc.html" style="text-decoration: none; color: inherit; background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; overflow: hidden; transition: all .18s; display: block;" style-hover="border-color: #D8B690; box-shadow: 0 12px 30px rgba(110,58,29,.13); transform: translateY(-3px);">
+          <div style="aspect-ratio: 1; background: repeating-linear-gradient(45deg, #F4EDE0, #F4EDE0 9px, #EFE6D6 9px, #EFE6D6 18px); display: grid; place-items: center;"><span style="font-family: 'Space Mono', monospace; font-size: 10.5px; color: #B7AE9F; letter-spacing: .1em;">[ {{ p.shot }} ]</span></div>
+          <div style="padding: 15px;">
+            <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #8C4B26;">{{ p.cat }}</div>
+            <div style="font-weight: 700; font-size: 15px; margin: 6px 0 9px; line-height: 1.3; min-height: 39px;">{{ p.name }}</div>
+            <span style="font-weight: 800; font-size: 18px; letter-spacing: -.01em; white-space: nowrap;">{{ p.priceFmt }}</span>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="background: #173747; margin-top: 64px;">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 30px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 22px;">
+      <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px;">🔒</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Pago seguro</div><div style="color: #9FB6BE; font-size: 12.5px;">Mercado Pago</div></div></div>
+      <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px;">🚚</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Envío a AMBA</div><div style="color: #9FB6BE; font-size: 12.5px;">24–72 hs</div></div></div>
+      <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px;">↩️</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Devolución</div><div style="color: #9FB6BE; font-size: 12.5px;">10 días</div></div></div>
+      <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(216,182,144,.16); display: grid; place-items: center; font-size: 18px;">💬</div><div><div style="color: #FBEFD9; font-weight: 700; font-size: 14px;">Soporte real</div><div style="color: #9FB6BE; font-size: 12.5px;">Lun a Sáb</div></div></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; animation: vd-toastin .25s ease;">
+      <div style="display: flex; align-items: center; gap: 12px; background: #173747; color: #FBEFD9; padding: 14px 18px; border-radius: 14px; box-shadow: 0 16px 40px rgba(23,55,71,.4); min-width: 270px;">
+        <span style="width: 24px; height: 24px; border-radius: 50%; background: #1F7A4D; color: #fff; display: grid; place-items: center; font-size: 13px; flex-shrink: 0;">✓</span>
+        <div style="flex: 1;"><div style="font-weight: 700; font-size: 14.5px;">Agregado al carrito</div><div style="font-size: 12.5px; color: #9FB6BE;">{{ toastMsg }}</div></div>
+        <a href="Carrito.dc.html" style="text-decoration: none; color: #D8B690; font-weight: 700; font-size: 13px;">Ver →</a>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { img:0, color:'Negro', qty:1, cart:0, toast:false, toastMsg:'' };
+  componentWillUnmount() { clearTimeout(this._t); }
+  fmt(n){ return '$ ' + Math.round(n).toLocaleString('es-AR'); }
+  renderVals() {
+    const S = this.state;
+    const VAR = { 'Negro':'#2B2B2B', 'Blanco':'#F2EDE3' };
+    const imgs = ['frente','perfil','detalle','estuche'];
+    const thumbs = imgs.map((label,i) => ({
+      label, 
+      style: 'font-family:inherit;width:72px;height:72px;border-radius:12px;cursor:pointer;display:grid;place-items:center;background:repeating-linear-gradient(45deg,#F4EDE0,#F4EDE0 7px,#EFE6D6 7px,#EFE6D6 14px);border:2px solid '+(S.img===i?'#8C4B26':'#E6DAC6')+';',
+      go: () => this.setState({ img:i }),
+    }));
+    const variants = Object.keys(VAR).map(name => ({
+      name, hex:VAR[name],
+      style: 'font-family:inherit;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:12px;padding:8px 14px 8px 9px;background:#fff;transition:border-color .15s;border:1.5px solid '+(S.color===name?'#8C4B26':'#D8C7AC')+';'+(S.color===name?'box-shadow:inset 0 0 0 1px #8C4B26;':''),
+      go: () => this.setState({ color:name }),
+    }));
+    const related = [
+      { name:'Parlante portátil Brisa', cat:'Audio', shot:'audio', priceFmt:this.fmt(64900) },
+      { name:'Auriculares over-ear Sierra', cat:'Audio', shot:'audio', priceFmt:this.fmt(134900) },
+      { name:'Webcam HD Faro', cat:'Computación', shot:'computación', priceFmt:this.fmt(56900) },
+      { name:'Cargador rápido Chispa', cat:'Computación', shot:'computación', priceFmt:this.fmt(17900) },
+    ];
+    const specs = [
+      { k:'Marca', v:'Vendora' }, { k:'Conectividad', v:'Bluetooth 5.3' },
+      { k:'Batería', v:'8 hs + 24 hs estuche' }, { k:'Cancelación de ruido', v:'Híbrida (ANC)' },
+      { k:'Resistencia', v:'IPX4 · salpicaduras' }, { k:'Peso', v:'4,8 g por auricular' },
+      { k:'Material', v:'Plástico ABS reciclado' }, { k:'Garantía', v:'12 meses oficial' },
+    ];
+    return {
+      cartCount: S.cart,
+      mainLabel: imgs[S.img] + ' · ' + S.color.toLowerCase(),
+      thumbs, variants, related, specs,
+      colorName: S.color,
+      qty: S.qty,
+      priceFmt: this.fmt(89900),
+      stockLabel: 'En stock · 12 unidades',
+      stockBadgeStyle: 'font-size:12px;font-weight:700;color:#1F7A4D;background:#E3F0E7;padding:5px 11px;border-radius:7px;',
+      inc: () => this.setState(s => ({ qty: Math.min(12, s.qty+1) })),
+      dec: () => this.setState(s => ({ qty: Math.max(1, s.qty-1) })),
+      add: () => { this.setState(s => ({ cart: s.cart + s.qty, toast:true, toastMsg: 'Auriculares Onda · '+s.color+' · x'+s.qty })); clearTimeout(this._t); this._t = setTimeout(()=>this.setState({toast:false}), 2800); },
+      toastOpen: S.toast,
+      toastMsg: S.toastMsg,
+    };
+  }
+}
+</script>
+</body>
+</html>

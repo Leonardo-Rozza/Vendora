@@ -1,14 +1,15 @@
 import type { CatalogFilters } from "@/lib/contracts";
 import { appCopy, getCatalogSortLabel } from "@/lib/copy/es-ar";
 import { CATALOG_SORT_OPTIONS } from "@/lib/contracts";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/ui/pill";
 
 type CatalogToolbarProps = {
   activeFilterCount: number;
+  activeLabel: string;
+  resultLabel: string;
   filters: CatalogFilters;
   isLoading: boolean;
-  onClear: () => void;
   onQueryChange: (value: string) => void;
   onSubmit: () => void;
   onToggleFilters: () => void;
@@ -18,9 +19,10 @@ type CatalogToolbarProps = {
 
 export function CatalogToolbar({
   activeFilterCount,
+  activeLabel,
+  resultLabel,
   filters,
   isLoading,
-  onClear,
   onQueryChange,
   onSubmit,
   onToggleFilters,
@@ -30,25 +32,73 @@ export function CatalogToolbar({
   const copy = appCopy.storefrontCatalog;
 
   return (
-    <div className="flex flex-col gap-4 rounded-[1.5rem] border border-[var(--line-soft)] bg-white/70 p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <label className="flex-1">
-          <span className="sr-only">{copy.searchPlaceholder}</span>
+    <div className="grid gap-4" id="vd-grid-top">
+      {/* Search bar */}
+      <form
+        className="flex flex-col gap-3 sm:flex-row sm:items-center"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+        role="search"
+      >
+        <div className="relative flex-1">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-ink-soft"
+          >
+            ⌕
+          </span>
+          <label className="sr-only" htmlFor="catalog-search">
+            {copy.searchPlaceholder}
+          </label>
           <input
-            className="catalog-field w-full rounded-full px-5 py-3 text-sm outline-none transition focus:border-[var(--brand-deep)]"
+            className="catalog-field rounded-field border-[1.5px] border-line-strong bg-surface-panel py-2.5 pl-9 pr-4 text-[15px] outline-none transition focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
+            id="catalog-search"
             name="query"
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={copy.searchPlaceholder}
             value={filters.query ?? ""}
           />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] lg:min-w-[28rem]">
-          <label className="text-sm font-medium text-[var(--ink-strong)]">
-            <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)]">
-              {copy.sortLabel}
-            </span>
+        </div>
+        <Button className="sm:w-auto" disabled={isLoading} type="submit">
+          {isLoading ? copy.searchPending : copy.searchSubmit}
+        </Button>
+      </form>
+
+      <Breadcrumb
+        items={[{ label: copy.browse, href: "/" }, { label: activeLabel }]}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-[clamp(22px,3vw,28px)] font-extrabold tracking-[-0.02em] text-ink-strong">
+            {activeLabel}
+          </h2>
+          <p className="mt-1.5 text-[13.5px] text-ink-soft">{resultLabel}</p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            className="lg:hidden"
+            onClick={onToggleFilters}
+            size="sm"
+            variant="secondary"
+          >
+            <span aria-hidden>⚙</span>
+            {showFilters ? copy.filterClose : copy.filterToggle}
+            {activeFilterCount > 0 ? (
+              <span className="rounded-[6px] bg-brand-deep px-1.5 py-px text-[11px] font-bold text-surface-base">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </Button>
+
+          <label className="relative inline-flex">
+            <span className="sr-only">{copy.sortLabel}</span>
             <select
-              className="catalog-field w-full rounded-full px-4 py-3 outline-none transition focus:border-[var(--brand-deep)]"
+              aria-label={copy.sortLabel}
+              className="catalog-field cursor-pointer appearance-none rounded-field border-[1.5px] border-line-strong bg-surface-panel py-2.5 pl-3.5 pr-9 text-sm font-semibold text-ink-strong outline-none transition focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
               onChange={(event) => onSortChange(event.target.value as CatalogFilters["sort"])}
               value={filters.sort ?? "featured"}
             >
@@ -58,34 +108,14 @@ export function CatalogToolbar({
                 </option>
               ))}
             </select>
-          </label>
-          <div className="flex items-end">
-            <Button className="w-full sm:w-auto" onClick={onToggleFilters} variant="secondary">
-              {showFilters ? copy.filterClose : copy.filterToggle}
-            </Button>
-          </div>
-          <div className="flex items-end">
-            <Button className="w-full sm:w-auto" disabled={isLoading} onClick={onSubmit}>
-              {isLoading ? copy.searchPending : copy.searchSubmit}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <Pill className="text-[var(--brand-deep)]">{copy.activeFiltersTitle}</Pill>
-          {activeFilterCount === 0 ? (
-            <span className="text-sm text-[var(--ink-muted)]">{copy.allProducts}</span>
-          ) : (
-            <span className="text-sm text-[var(--ink-muted)]">
-              {activeFilterCount} filtros aplicados
+            <span
+              aria-hidden
+              className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-soft"
+            >
+              ▼
             </span>
-          )}
+          </label>
         </div>
-        <Button onClick={onClear} variant="ghost">
-          {copy.clearFilters}
-        </Button>
       </div>
     </div>
   );

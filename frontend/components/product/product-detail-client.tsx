@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductDetail } from "@/lib/contracts";
@@ -21,7 +21,18 @@ export function ProductDetailClient({
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     product.variants[0]?.id ?? "",
   );
+  const [activeImage, setActiveImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) {
+        clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
 
   const selectedVariant = useMemo(
     () =>
@@ -32,10 +43,13 @@ export function ProductDetailClient({
 
   if (!selectedVariant) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-6 py-12 sm:px-8 lg:px-12">
-        <div className="rounded-[2rem] border border-[var(--warning-line)] bg-[var(--warning-surface)] p-8 text-[var(--ink-strong)] shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
+      <main className="mx-auto w-full max-w-4xl px-5 py-12 sm:px-8 lg:px-12">
+        <div className="rounded-panel border border-warning-line bg-warning-surface p-8 text-ink-strong shadow-strong">
           <p className="font-semibold">{copy.temporaryError}</p>
-          <Link className="mt-6 inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold" href="/">
+          <Link
+            className="mt-6 inline-flex rounded-field border-2 border-line-strong px-5 py-3 text-sm font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-surface-base"
+            href="/"
+          >
             {copy.backToCatalog}
           </Link>
         </div>
@@ -44,15 +58,28 @@ export function ProductDetailClient({
   }
 
   const primaryImage = product.images[0] ?? null;
+  const activeImageRef = product.images[activeImage] ?? primaryImage;
   const stockCopy = describeVariantStock(selectedVariant.availableQuantity, copy);
+  const stockTone = describeStockTone(selectedVariant.availableQuantity);
   const isSelectedVariantUnavailable =
-    selectedVariant.availableQuantity !== undefined && selectedVariant.availableQuantity <= 0;
+    selectedVariant.availableQuantity !== undefined &&
+    selectedVariant.availableQuantity <= 0;
+
+  const maxQuantity =
+    selectedVariant.availableQuantity !== undefined &&
+    selectedVariant.availableQuantity > 0
+      ? Math.min(selectedVariant.availableQuantity, 99)
+      : 99;
+
+  // Clamp during render so switching to a lower-stock variant never lets the
+  // displayed/added quantity exceed what's available.
+  const effectiveQuantity = Math.min(quantity, maxQuantity);
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12">
+    <main className="mx-auto w-full max-w-[1240px] px-5 py-6 sm:px-8 sm:py-8">
       {product.category ? (
         <Breadcrumb
-          className="mb-6"
+          className="mb-5"
           items={[
             { label: "Inicio", href: "/" },
             {
@@ -63,138 +90,161 @@ export function ProductDetailClient({
           ]}
         />
       ) : null}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-sm text-[var(--ink-muted)]">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/">{copy.backToCatalog}</Link>
-          <span>•</span>
-          <Link href="/cart">{copy.reviewCart}</Link>
-        </div>
-        {product.category ? (
-          <span className="rounded-full border border-[var(--line-soft)] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
-            {copy.categoryLabel}: {product.category.name}
-          </span>
-        ) : null}
-      </div>
 
-      <section className="grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
-        <article className="overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-white/78 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-          <div className="relative aspect-[1/1] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
-            {primaryImage ? (
-              <Image alt={primaryImage.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 50vw, 100vw" src={primaryImage.assetUrl} />
+      {/* MAIN: gallery + info */}
+      <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
+        {/* GALLERY */}
+        <div className="w-full lg:flex-1 lg:sticky lg:top-24">
+          <div className="relative aspect-square overflow-hidden rounded-[20px] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
+            {activeImageRef ? (
+              <Image
+                alt={activeImageRef.altText ?? product.name}
+                className="object-cover"
+                fill
+                priority
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                src={activeImageRef.assetUrl}
+              />
             ) : (
-              <div className="flex h-full items-end p-6 font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-strong)]">
+              <div className="flex h-full items-end p-6 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
                 {copy.imagePending}
               </div>
             )}
           </div>
           {product.images.length > 1 ? (
-            <div className="grid gap-3 border-t border-[var(--line-soft)] p-4 sm:grid-cols-3">
-              {product.images.slice(1).map((image) => (
-                <div key={image.id} className="relative aspect-[4/3] overflow-hidden rounded-[1.2rem] border border-[var(--line-soft)]">
-                  <Image alt={image.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 17vw, 33vw" src={image.assetUrl} />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </article>
-
-        <article className="rounded-[2rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-8 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-          <p className="font-mono text-xs uppercase tracking-[0.32em] text-[var(--brand-deep)]">{copy.detailEyebrow}</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[var(--ink-strong)]">{product.name}</h1>
-          <p className="mt-5 text-base leading-8 text-[var(--ink-muted)]">
-            {product.description ?? "Producto listo para sumarse al flujo de compra de la tienda."}
-          </p>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">{copy.selectedPrice}</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--ink-strong)]">
-                {formatMoney(selectedVariant.priceAmount, selectedVariant.currencyCode)}
-              </p>
-            </div>
-            <div className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">{copy.variantSku}</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--ink-strong)]">{selectedVariant.sku}</p>
-            </div>
-            <div className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">{copy.stockLabel}</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--ink-strong)]">{stockCopy}</p>
-            </div>
-          </div>
-
-          <div className="mt-8 rounded-[1.6rem] border border-[var(--line-soft)] bg-white/75 p-5">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">{copy.chooseVariant}</p>
-            <div className="mt-4 grid gap-3">
-              {product.variants.map((variant) => {
-                const isSelected = variant.id === selectedVariantId;
-                const variantStock = describeVariantStock(variant.availableQuantity, copy);
+            <div className="mt-3.5 flex flex-wrap gap-3">
+              {product.images.map((image, index) => {
+                const isActive = index === activeImage;
 
                 return (
                   <button
-                    key={variant.id}
-                    className={`rounded-[1.2rem] border px-4 py-4 text-left transition ${
-                      isSelected
-                        ? "border-[var(--brand-deep)] bg-[rgba(140,75,38,0.08)]"
-                        : "border-[var(--line-soft)] bg-[var(--surface-panel)] hover:bg-white"
+                    aria-label={image.altText ?? `${product.name} ${index + 1}`}
+                    aria-pressed={isActive}
+                    className={`relative h-[72px] w-[72px] overflow-hidden rounded-[12px] border-2 bg-surface-sand transition-colors ${
+                      isActive ? "border-brand-deep" : "border-line-soft"
                     }`}
-                    onClick={() => setSelectedVariantId(variant.id)}
+                    key={image.id}
+                    onClick={() => setActiveImage(index)}
                     type="button"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <span className="block font-semibold text-[var(--ink-strong)]">{variant.name}</span>
-                        <span className="mt-1 block text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">{variant.sku}</span>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <span className="block text-sm font-semibold text-[var(--ink-strong)]">
-                          {formatMoney(variant.priceAmount, variant.currencyCode)}
-                        </span>
-                        <span className="mt-1 block text-xs text-[var(--ink-muted)]">{variantStock}</span>
-                      </div>
-                    </div>
+                    <Image
+                      alt={image.altText ?? product.name}
+                      className="object-cover"
+                      fill
+                      sizes="72px"
+                      src={image.assetUrl}
+                    />
                   </button>
                 );
               })}
             </div>
+          ) : null}
+        </div>
+
+        {/* INFO */}
+        <div className="w-full lg:flex-1">
+          <p className="mb-2.5 font-mono text-xs uppercase tracking-[0.16em] text-brand-deep">
+            {product.category ? product.category.name : copy.detailEyebrow}
+          </p>
+          <h1 className="mb-3 text-[clamp(26px,4vw,36px)] font-extrabold leading-[1.08] tracking-[-0.025em] text-ink-strong">
+            {product.name}
+          </h1>
+
+          <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
+            <span
+              className={`rounded-[7px] px-2.5 py-[5px] text-xs font-bold ${stockTone}`}
+            >
+              {stockCopy}
+            </span>
+            <span className="font-mono text-xs text-ink-soft">
+              {copy.variantSku} {selectedVariant.sku}
+            </span>
           </div>
 
-          {product.attributes.length > 0 ? (
-            <div className="mt-8 rounded-[1.6rem] border border-[var(--line-soft)] bg-white/75 p-5">
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
-                {copy.specificationsTitle}
-              </p>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                {product.attributes.map((attribute) => (
-                  <div
-                    key={`${attribute.attributeId}-${attribute.valueSlug}`}
-                    className="flex items-baseline justify-between gap-3 border-b border-[var(--line-soft)] pb-2"
-                  >
-                    <dt className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]">
-                      {attribute.attributeName}
-                    </dt>
-                    <dd className="text-sm font-semibold text-[var(--ink-strong)]">
-                      {attribute.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+          <div className="mb-1.5 flex flex-wrap items-baseline gap-3">
+            <span className="text-[34px] font-extrabold tracking-[-0.02em] whitespace-nowrap text-ink-strong">
+              {formatMoney(
+                selectedVariant.priceAmount,
+                selectedVariant.currencyCode,
+              )}
+            </span>
+          </div>
+
+          <p className="mb-6 mt-5 max-w-[50ch] text-[15.5px] leading-[1.6] text-ink-muted">
+            {product.description ??
+              "Producto listo para sumarse al flujo de compra de la tienda."}
+          </p>
+
+          {/* variant selector */}
+          {product.variants.length > 1 ? (
+            <div className="mb-6">
+              <div className="mb-[11px] flex items-center justify-between">
+                <span className="text-[13.5px] font-bold text-ink-strong">
+                  {copy.chooseVariant}
+                </span>
+                <span className="text-[13.5px] text-ink-muted">
+                  {selectedVariant.name}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {product.variants.map((variant) => {
+                  const isSelected = variant.id === selectedVariantId;
+
+                  return (
+                    <button
+                      aria-label={variant.name}
+                      aria-pressed={isSelected}
+                      className={`flex items-center gap-2.5 rounded-field border-[1.5px] bg-surface-panel px-3.5 py-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-brand-deep shadow-[inset_0_0_0_1px_var(--brand-deep)]"
+                          : "border-line-strong hover:border-brand-deep"
+                      }`}
+                      key={variant.id}
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      type="button"
+                    >
+                      <span className="text-sm font-semibold text-ink-strong">
+                        {variant.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 
-          <div className="mt-8 flex flex-col gap-4 rounded-[1.6rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(26,58,73,0.96),rgba(18,39,52,0.98))] p-6 text-[var(--surface-base)]">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--accent-sand)]">{copy.selectedPrice}</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
-                  {formatMoney(selectedVariant.priceAmount, selectedVariant.currencyCode)}
-                </p>
-              </div>
-              <Link className="text-sm font-semibold text-white/76 underline-offset-4 hover:underline" href="/cart">
-                {copy.goToCart}
-              </Link>
+          {/* quantity + add to cart */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center overflow-hidden rounded-[12px] border-[1.5px] border-line-strong bg-surface-panel">
+              <button
+                aria-label="Restar"
+                className="h-[50px] w-[46px] text-[22px] leading-none text-brand-deep disabled:text-ink-faint"
+                disabled={effectiveQuantity <= 1}
+                onClick={() => setQuantity(Math.max(1, effectiveQuantity - 1))}
+                type="button"
+              >
+                –
+              </button>
+              <span
+                aria-live="polite"
+                className="min-w-10 text-center text-[17px] font-bold text-ink-strong"
+              >
+                {effectiveQuantity}
+              </span>
+              <button
+                aria-label="Sumar"
+                className="h-[50px] w-[46px] text-[22px] leading-none text-brand-deep disabled:text-ink-faint"
+                disabled={effectiveQuantity >= maxQuantity}
+                onClick={() =>
+                  setQuantity(Math.min(maxQuantity, effectiveQuantity + 1))
+                }
+                type="button"
+              >
+                +
+              </button>
             </div>
             <button
-              className="rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-55"
+              className="min-w-[200px] flex-1 rounded-[12px] bg-brand-deep px-6 py-[15px] text-base font-bold text-surface-base transition-colors hover:bg-brand-hover outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand disabled:cursor-not-allowed disabled:bg-surface-sand disabled:text-ink-faint"
               disabled={isSelectedVariantUnavailable}
               onClick={() => {
                 addToCart({
@@ -208,40 +258,99 @@ export function ProductDetailClient({
                   currencyCode: selectedVariant.currencyCode,
                   imageUrl: primaryImage?.assetUrl ?? null,
                   imageAlt: primaryImage?.altText ?? product.name,
-                  quantity: 1,
+                  quantity: effectiveQuantity,
                 });
-                setConfirmation(`${product.name} (${selectedVariant.name}) ${copy.addedToCart}.`);
+                setConfirmation(
+                  `${product.name} (${selectedVariant.name}) ${copy.addedToCart}.`,
+                );
+                if (toastTimer.current) {
+                  clearTimeout(toastTimer.current);
+                }
+                toastTimer.current = setTimeout(
+                  () => setConfirmation(null),
+                  2800,
+                );
               }}
               type="button"
             >
               {isSelectedVariantUnavailable ? copy.unavailableCta : copy.addToCart}
             </button>
-            {confirmation ? (
-              <p aria-live="polite" role="status" className="text-sm text-white/76">
-                {confirmation}
-              </p>
-            ) : null}
           </div>
-        </article>
-      </section>
+          <Link
+            className="mb-6 block rounded-[12px] bg-accent-sand px-6 py-[15px] text-center text-base font-bold text-brand-ink transition-colors hover:brightness-95"
+            href="/cart"
+          >
+            {copy.goToCart}
+          </Link>
 
+          {/* trust mini */}
+          <div className="rounded-[14px] border border-line-soft bg-surface-panel px-1 py-1.5">
+            {TRUST_SIGNALS.map((signal, index) => (
+              <div
+                className={`flex items-center gap-3 px-3.5 py-[11px] ${
+                  index < TRUST_SIGNALS.length - 1
+                    ? "border-b border-surface-muted"
+                    : ""
+                }`}
+                key={signal.title}
+              >
+                <span aria-hidden className="text-[17px]">
+                  {signal.icon}
+                </span>
+                <div>
+                  <div className="text-sm font-bold text-ink-strong">
+                    {signal.title}
+                  </div>
+                  <div className="text-[12.5px] text-ink-soft">
+                    {signal.subtitle}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SPECS */}
+      {product.attributes.length > 0 ? (
+        <section className="pt-14">
+          <h2 className="mb-5 text-2xl font-extrabold tracking-[-0.02em] text-ink-strong">
+            {copy.specificationsTitle}
+          </h2>
+          <dl className="grid overflow-hidden rounded-card border border-line-soft bg-surface-panel sm:grid-cols-2">
+            {product.attributes.map((attribute) => (
+              <div
+                className="flex items-baseline justify-between gap-4 border-b border-surface-muted px-5 py-3.5"
+                key={`${attribute.attributeId}-${attribute.valueSlug}`}
+              >
+                <dt className="text-sm text-ink-soft">{attribute.attributeName}</dt>
+                <dd className="text-right text-sm font-semibold text-ink-strong">
+                  {attribute.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+
+      {/* RELATED */}
       {related.length > 0 ? (
-        <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink-strong">
+        <section className="pt-14">
+          <h2 className="mb-5 text-2xl font-extrabold tracking-[-0.02em] text-ink-strong">
             Productos relacionados
           </h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
             {related.map((item) => {
               const image = item.images[0] ?? null;
               const firstVariant = item.variants[0] ?? null;
 
               return (
                 <Link
-                  className="group rounded-card border border-line-soft bg-surface-panel p-3 transition hover:-translate-y-0.5 hover:shadow-soft"
+                  className="group block overflow-hidden rounded-card border border-line-soft bg-surface-panel transition duration-200 hover:-translate-y-[3px] hover:border-accent-sand hover:shadow-medium"
                   href={`/products/${item.slug}`}
                   key={item.id}
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-[linear-gradient(160deg,rgba(210,120,55,0.18),rgba(24,80,104,0.12))]">
+                  <div className="relative aspect-square bg-[linear-gradient(160deg,rgba(210,120,55,0.18),rgba(24,80,104,0.12))]">
                     {image ? (
                       <Image
                         alt={image.altText ?? item.name}
@@ -252,25 +361,91 @@ export function ProductDetailClient({
                       />
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-ink-strong">
-                    {item.name}
-                  </p>
-                  {firstVariant ? (
-                    <p className="mt-1 text-sm text-ink-muted">
-                      {formatMoney(
-                        firstVariant.priceAmount,
-                        firstVariant.currencyCode,
-                      )}
-                    </p>
-                  ) : null}
+                  <div className="p-[15px]">
+                    {item.category ? (
+                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-brand-deep">
+                        {item.category.name}
+                      </div>
+                    ) : null}
+                    <div className="mb-2 mt-1.5 min-h-[39px] text-[15px] font-bold leading-[1.3] text-ink-strong">
+                      {item.name}
+                    </div>
+                    {firstVariant ? (
+                      <span className="whitespace-nowrap text-lg font-extrabold tracking-[-0.01em] text-ink-strong">
+                        {formatMoney(
+                          firstVariant.priceAmount,
+                          firstVariant.currencyCode,
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
                 </Link>
               );
             })}
           </div>
         </section>
       ) : null}
+
+      {/* TOAST confirmation */}
+      {confirmation ? (
+        <div
+          aria-live="polite"
+          className="fixed bottom-7 left-1/2 z-90 -translate-x-1/2"
+          role="status"
+        >
+          <div className="flex min-w-[270px] items-center gap-3 rounded-[14px] bg-brand-ink px-[18px] py-3.5 text-[#FBEFD9] shadow-strong">
+            <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-success-ink text-[13px] text-white">
+              ✓
+            </span>
+            <div className="flex-1">
+              <div className="text-[14.5px] font-bold">Agregado al carrito</div>
+              <div className="text-[12.5px] text-accent-sky">{confirmation}</div>
+            </div>
+            <Link
+              className="text-[13px] font-bold text-accent-sand"
+              href="/cart"
+            >
+              Ver →
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
+}
+
+const TRUST_SIGNALS = [
+  {
+    icon: "🚚",
+    title: "Llega en 24–72 hs",
+    subtitle: "Envío a CABA y AMBA",
+  },
+  {
+    icon: "🔒",
+    title: "Pago protegido",
+    subtitle: "Mercado Pago · cifrado",
+  },
+  {
+    icon: "↩️",
+    title: "Devolución gratis",
+    subtitle: "10 días corridos",
+  },
+] as const;
+
+function describeStockTone(availableQuantity: number | undefined) {
+  if (availableQuantity === undefined) {
+    return "bg-[#e0eaed] text-[#21505f]";
+  }
+
+  if (availableQuantity <= 0) {
+    return "bg-danger-surface text-danger-ink";
+  }
+
+  if (availableQuantity <= 3) {
+    return "bg-warning-surface text-warning-line";
+  }
+
+  return "bg-success-surface text-success-ink";
 }
 
 function describeVariantStock(

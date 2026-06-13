@@ -14,10 +14,10 @@ type CheckoutFieldProps = {
 };
 
 const inputClassName =
-  "mt-2 w-full rounded-full border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44";
+  "mt-[7px] w-full rounded-[10px] border-[1.5px] border-line-strong bg-surface-panel px-[14px] py-3 text-[15px] text-ink-strong outline-none transition placeholder:text-ink-faint focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae] aria-[invalid]:border-danger-ink aria-[invalid]:text-danger-ink";
 
 const textareaClassName =
-  "mt-2 min-h-24 w-full rounded-[1.5rem] border border-white/14 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/44";
+  "mt-[7px] min-h-24 w-full resize-y rounded-[10px] border-[1.5px] border-line-strong bg-surface-panel px-[14px] py-3 text-[15px] text-ink-strong outline-none transition placeholder:text-ink-faint focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae] aria-[invalid]:border-danger-ink aria-[invalid]:text-danger-ink";
 
 export function Field({
   id,
@@ -35,7 +35,10 @@ export function Field({
 
   return (
     <div className={className}>
-      <label className="block text-sm text-white/76" htmlFor={id}>
+      <label
+        className="block text-[13px] font-semibold text-ink-strong"
+        htmlFor={id}
+      >
         {label}
         {multiline ? (
           <textarea
@@ -64,7 +67,7 @@ export function Field({
       </label>
       {error ? (
         <p
-          className="mt-2 text-sm text-[var(--accent-sand)]"
+          className="mt-[7px] flex items-center gap-[6px] text-[12.5px] font-semibold text-danger-ink"
           id={errorId}
           role="alert"
         >
