@@ -1,133 +1,146 @@
 import { Prisma } from '@prisma/client';
 import { CatalogService } from './catalog.service';
 
-test('CatalogService lists active catalog products with filter metadata and search filters', async () => {
+const HOGAR = {
+  id: 'cat_hogar',
+  name: 'Hogar',
+  slug: 'hogar',
+  parentId: null,
+  sortOrder: 1,
+};
+
+const categoriesStub = (categories: Array<typeof HOGAR> = []) =>
+  ({ listAll: async () => categories }) as never;
+
+const PRODUCT_INCLUDE = {
+  category: true,
+  attributeValues: {
+    include: { attributeValue: { include: { attribute: true } } },
+  },
+  variants: { include: { inventoryItem: true } },
+  images: { orderBy: { sortOrder: 'asc' } },
+};
+
+const DISCOVERY_INCLUDE = {
+  variants: { select: { priceAmount: true } },
+  attributeValues: {
+    include: { attributeValue: { include: { attribute: true } } },
+  },
+};
+
+test('CatalogService lists products with category/attribute facets, search and pagination', async () => {
   let receivedArgs: unknown;
   let metadataArgs: unknown;
-  const service = new CatalogService({
-    product: {
-      findMany: async (args: unknown) => {
-        if (!metadataArgs) {
-          metadataArgs = args;
+  const service = new CatalogService(
+    {
+      product: {
+        findMany: async (args: unknown) => {
+          if (!metadataArgs) {
+            metadataArgs = args;
+            return [
+              {
+                categoryId: 'cat_hogar',
+                variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
+                attributeValues: [
+                  {
+                    attributeValue: {
+                      id: 'av_negro',
+                      value: 'Negro',
+                      slug: 'negro',
+                      attribute: {
+                        id: 'attr_color',
+                        name: 'Color',
+                        slug: 'color',
+                      },
+                    },
+                  },
+                ],
+              },
+            ];
+          }
+
+          receivedArgs = args;
           return [
             {
-              category: 'HOGAR',
+              id: 'product-1',
+              createdAt: new Date('2026-03-14T00:00:00.000Z'),
               variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
             },
           ];
-        }
-
-        receivedArgs = args;
-        return [
-          {
-            id: 'product-1',
-            createdAt: new Date('2026-03-14T00:00:00.000Z'),
-            variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
-          },
-        ];
+        },
       },
-    },
-  } as never);
+    } as never,
+    categoriesStub([HOGAR]),
+  );
 
   const result = await service.listProducts({
     query: 'mate',
-    category: 'HOGAR',
+    category: 'hogar',
+    attributes: 'color:negro',
     minPriceAmount: '9000',
     maxPriceAmount: '12000',
     sort: 'price-asc',
   });
 
-  expect(result).toEqual({
-    items: [
-      {
-        id: 'product-1',
-        createdAt: new Date('2026-03-14T00:00:00.000Z'),
-        variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
-      },
-    ],
-    filters: {
-      categories: [{ value: 'HOGAR', count: 1 }],
-      priceRange: {
-        minAmount: '9900.00',
-        maxAmount: '9900.00',
-      },
-      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
-      applied: {
-        query: 'mate',
-        category: 'HOGAR',
-        minPriceAmount: '9000',
-        maxPriceAmount: '12000',
-        sort: 'price-asc',
-      },
+  expect(result.items).toEqual([
+    {
+      id: 'product-1',
+      createdAt: new Date('2026-03-14T00:00:00.000Z'),
+      variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
     },
+  ]);
+  expect(result.pagination).toEqual({
+    page: 1,
+    pageSize: 12,
+    total: 1,
+    totalPages: 1,
   });
-  expect(metadataArgs).toEqual({
-    where: {
-      AND: [
-        { status: 'ACTIVE' },
-        {
-          OR: [
-            {
-              name: {
-                contains: 'mate',
-                mode: 'insensitive',
-              },
-            },
-            {
-              slug: {
-                contains: 'mate',
-                mode: 'insensitive',
-              },
-            },
-            {
-              variants: {
-                some: {
-                  sku: {
-                    contains: 'mate',
-                    mode: 'insensitive',
-                  },
-                },
-              },
-            },
-          ],
-        },
-      ],
+  expect(result.filters.categories).toEqual([
+    { id: 'cat_hogar', name: 'Hogar', slug: 'hogar', parentId: null, count: 1 },
+  ]);
+  expect(result.filters.attributes).toEqual([
+    {
+      id: 'attr_color',
+      name: 'Color',
+      slug: 'color',
+      values: [{ id: 'av_negro', value: 'Negro', slug: 'negro', count: 1 }],
     },
-    include: {
-      variants: {
-        select: {
-          priceAmount: true,
-        },
-      },
-    },
+  ]);
+  expect(result.filters.applied).toEqual({
+    query: 'mate',
+    category: 'hogar',
+    attributes: [{ slug: 'color', values: ['negro'] }],
+    minPriceAmount: '9000',
+    maxPriceAmount: '12000',
+    sort: 'price-asc',
   });
+
+  expect((metadataArgs as { include: unknown }).include).toEqual(
+    DISCOVERY_INCLUDE,
+  );
   expect(receivedArgs).toEqual({
     where: {
       AND: [
         { status: 'ACTIVE' },
-        { category: 'HOGAR' },
+        { categoryId: { in: ['cat_hogar'] } },
+        {
+          attributeValues: {
+            some: {
+              attributeValue: {
+                attribute: { slug: 'color' },
+                slug: { in: ['negro'] },
+              },
+            },
+          },
+        },
         {
           OR: [
-            {
-              name: {
-                contains: 'mate',
-                mode: 'insensitive',
-              },
-            },
-            {
-              slug: {
-                contains: 'mate',
-                mode: 'insensitive',
-              },
-            },
+            { name: { contains: 'mate', mode: 'insensitive' } },
+            { slug: { contains: 'mate', mode: 'insensitive' } },
+            { description: { contains: 'mate', mode: 'insensitive' } },
             {
               variants: {
-                some: {
-                  sku: {
-                    contains: 'mate',
-                    mode: 'insensitive',
-                  },
-                },
+                some: { sku: { contains: 'mate', mode: 'insensitive' } },
               },
             },
           ],
@@ -144,103 +157,90 @@ test('CatalogService lists active catalog products with filter metadata and sear
         },
       ],
     },
-    include: {
-      variants: {
-        include: {
-          inventoryItem: true,
-        },
-      },
-      images: {
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-    },
+    include: PRODUCT_INCLUDE,
   });
 });
 
 test('CatalogService returns an empty collection when no active products match the search', async () => {
   let readCount = 0;
-  const service = new CatalogService({
-    product: {
-      findMany: async () => {
-        readCount += 1;
-        return [];
+  const service = new CatalogService(
+    {
+      product: {
+        findMany: async () => {
+          readCount += 1;
+          return [];
+        },
       },
-    },
-  } as never);
+    } as never,
+    categoriesStub([]),
+  );
 
   const result = await service.listProducts({ query: 'missing' });
 
   expect(readCount).toBe(2);
-  expect(result).toEqual({
-    items: [],
-    filters: {
-      categories: [],
-      priceRange: {
-        minAmount: null,
-        maxAmount: null,
-      },
-      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
-      applied: {
-        query: 'missing',
-        category: null,
-        minPriceAmount: null,
-        maxPriceAmount: null,
-        sort: 'featured',
-      },
-    },
+  expect(result.items).toEqual([]);
+  expect(result.pagination).toEqual({
+    page: 1,
+    pageSize: 12,
+    total: 0,
+    totalPages: 0,
+  });
+  expect(result.filters.categories).toEqual([]);
+  expect(result.filters.attributes).toEqual([]);
+  expect(result.filters.applied).toEqual({
+    query: 'missing',
+    category: null,
+    attributes: [],
+    minPriceAmount: null,
+    maxPriceAmount: null,
+    sort: 'featured',
   });
 });
 
 test('CatalogService loads an active product aggregate by slug', async () => {
   let receivedArgs: unknown;
-  const service = new CatalogService({
-    product: {
-      findFirst: async (args: unknown) => {
-        receivedArgs = args;
-        return { id: 'product-1' };
+  const service = new CatalogService(
+    {
+      product: {
+        findFirst: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'product-1' };
+        },
       },
-    },
-  } as never);
+    } as never,
+    categoriesStub(),
+  );
 
   const result = await service.findProductBySlug('mate-gourd');
 
   expect(result).toEqual({ id: 'product-1' });
   expect(receivedArgs).toEqual({
     where: { slug: 'mate-gourd', status: 'ACTIVE' },
-    include: {
-      variants: {
-        include: {
-          inventoryItem: true,
-        },
-      },
-      images: {
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-    },
+    include: PRODUCT_INCLUDE,
   });
 });
 
 test('CatalogService creates a product with category, variants, inventory, and images', async () => {
   let receivedArgs: unknown;
-  const service = new CatalogService({
-    product: {
-      create: async (args: unknown) => {
-        receivedArgs = args;
-        return { id: 'product-1' };
+  const service = new CatalogService(
+    {
+      product: {
+        create: async (args: unknown) => {
+          receivedArgs = args;
+          return { id: 'product-1' };
+        },
       },
-    },
-  } as never);
+    } as never,
+    categoriesStub(),
+  );
 
   const result = await service.createProduct({
     slug: 'mate-gourd',
     name: 'Mate Gourd',
     description: 'Classic mate.',
     status: 'ACTIVE',
-    category: 'HOGAR',
+    categoryId: 'cat_hogar',
+    attributeValueIds: ['av_negro'],
     variants: [
       {
         sku: 'SKU-1',
@@ -263,93 +263,83 @@ test('CatalogService creates a product with category, variants, inventory, and i
   expect(result).toEqual({ id: 'product-1' });
   const createArgs = receivedArgs as {
     data: {
-      slug: string;
-      name: string;
-      description: string;
-      status: string;
-      category: string;
+      categoryId: string;
+      attributeValues: { create: Array<{ attributeValueId: string }> };
       variants: {
         create: Array<{ priceAmount: Prisma.Decimal; currencyCode: string }>;
       };
-      images: { create: Array<{ assetUrl: string }> };
     };
   };
-  expect(createArgs.data.slug).toBe('mate-gourd');
-  expect(createArgs.data.name).toBe('Mate Gourd');
-  expect(createArgs.data.description).toBe('Classic mate.');
-  expect(createArgs.data.status).toBe('ACTIVE');
-  expect(createArgs.data.category).toBe('HOGAR');
+  expect(createArgs.data.categoryId).toBe('cat_hogar');
+  expect(createArgs.data.attributeValues.create).toEqual([
+    { attributeValueId: 'av_negro' },
+  ]);
   expect(createArgs.data.variants.create[0]?.currencyCode).toBe('ARS');
   expect(createArgs.data.variants.create[0]?.priceAmount.toString()).toBe(
     '12500',
   );
-  expect(createArgs.data.images.create[0]?.assetUrl).toBe(
-    'https://cdn.example.com/mate.jpg',
-  );
 });
 
-test('CatalogService updates product fields and existing variants', async () => {
+test('CatalogService updates product fields, attribute links and existing variants', async () => {
   const calls: Record<string, unknown> = {};
   let readCount = 0;
-  const service = new CatalogService({
-    $transaction: async (callback: (client: any) => Promise<unknown>) =>
-      callback({
-        product: {
-          findUnique: async (args: unknown) => {
-            readCount += 1;
-            if (readCount === 1) {
-              calls.productRead = args;
-              return {
-                id: 'product-1',
-                variants: [{ id: 'variant-1' }],
-              };
-            }
+  const service = new CatalogService(
+    {
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          product: {
+            findUnique: async (args: unknown) => {
+              readCount += 1;
+              if (readCount === 1) {
+                calls.productRead = args;
+                return {
+                  id: 'product-1',
+                  variants: [{ id: 'variant-1' }],
+                };
+              }
 
-            calls.productReadAfter = args;
-            return { id: 'product-1', variants: [], images: [] };
+              return { id: 'product-1', variants: [], images: [] };
+            },
+            update: async (args: unknown) => {
+              calls.productUpdate = args;
+              return args;
+            },
           },
-          update: async (args: unknown) => {
-            calls.productUpdate = args;
-            return args;
+          productAttributeValue: {
+            deleteMany: async (args: unknown) => {
+              calls.attributeDeleteMany = args;
+              return args;
+            },
+            createMany: async (args: unknown) => {
+              calls.attributeCreateMany = args;
+              return args;
+            },
           },
-        },
-        productImage: {
-          deleteMany: async (args: unknown) => {
-            calls.imageDeleteMany = args;
-            return args;
+          productImage: {
+            deleteMany: async () => undefined,
+            createMany: async () => undefined,
           },
-          createMany: async (args: unknown) => {
-            calls.imageCreateMany = args;
-            return args;
+          productVariant: {
+            update: async (args: unknown) => {
+              calls.variantUpdate = args;
+              return args;
+            },
+            create: async () => ({ id: 'variant-2' }),
           },
-        },
-        productVariant: {
-          update: async (args: unknown) => {
-            calls.variantUpdate = args;
-            return args;
+          inventoryItem: {
+            findUnique: async () => ({ variantId: 'variant-1' }),
+            update: async () => undefined,
+            create: async () => undefined,
           },
-          create: async (args: unknown) => {
-            calls.variantCreate = args;
-            return { id: 'variant-2' };
-          },
-        },
-        inventoryItem: {
-          findUnique: async () => ({ variantId: 'variant-1' }),
-          update: async (args: unknown) => {
-            calls.inventoryUpdate = args;
-            return args;
-          },
-          create: async (args: unknown) => {
-            calls.inventoryCreate = args;
-            return args;
-          },
-        },
-      }),
-  } as never);
+        }),
+    } as never,
+    categoriesStub(),
+  );
 
-  const result = await service.updateProduct('product-1', {
+  await service.updateProduct('product-1', {
     name: 'Updated Mate Gourd',
-    category: 'ACCESORIOS',
+    categoryId: 'cat_accesorios',
+    attributeValueIds: ['av_azul'],
     variants: [
       {
         id: 'variant-1',
@@ -360,17 +350,8 @@ test('CatalogService updates product fields and existing variants', async () => 
         availableQuantity: 8,
       },
     ],
-    images: [
-      {
-        assetUrl: 'https://cdn.example.com/mate-2.jpg',
-        assetKey: 'mate-2.jpg',
-        altText: 'Updated mate',
-        sortOrder: 1,
-      },
-    ],
   });
 
-  expect(result).toEqual({ id: 'product-1', variants: [], images: [] });
   expect(calls.productUpdate).toEqual({
     where: { id: 'product-1' },
     data: {
@@ -378,8 +359,14 @@ test('CatalogService updates product fields and existing variants', async () => 
       name: 'Updated Mate Gourd',
       description: undefined,
       status: undefined,
-      category: 'ACCESORIOS',
+      categoryId: 'cat_accesorios',
     },
+  });
+  expect(calls.attributeDeleteMany).toEqual({
+    where: { productId: 'product-1' },
+  });
+  expect(calls.attributeCreateMany).toEqual({
+    data: [{ productId: 'product-1', attributeValueId: 'av_azul' }],
   });
   expect(calls.variantUpdate).toEqual({
     where: { id: 'variant-1' },
@@ -390,24 +377,108 @@ test('CatalogService updates product fields and existing variants', async () => 
       currencyCode: 'ARS',
     },
   });
-  expect(calls.inventoryUpdate).toEqual({
-    where: { variantId: 'variant-1' },
-    data: {
-      availableQuantity: 8,
-    },
-  });
-  expect(calls.imageDeleteMany).toEqual({
-    where: { productId: 'product-1' },
-  });
-  expect(calls.imageCreateMany).toEqual({
-    data: [
-      {
-        productId: 'product-1',
-        assetUrl: 'https://cdn.example.com/mate-2.jpg',
-        assetKey: 'mate-2.jpg',
-        altText: 'Updated mate',
-        sortOrder: 1,
+});
+
+test('CatalogService finds related active products in the same category', async () => {
+  const calls: Record<string, unknown> = {};
+  const service = new CatalogService(
+    {
+      product: {
+        findFirst: async () => ({ id: 'product-1', categoryId: 'cat_hogar' }),
+        findMany: async (args: unknown) => {
+          calls.findMany = args;
+          return [{ id: 'product-2' }];
+        },
       },
-    ],
+    } as never,
+    categoriesStub(),
+  );
+
+  const result = await service.findRelatedProducts('mate-gourd');
+
+  expect(result).toEqual([{ id: 'product-2' }]);
+  expect(calls.findMany).toEqual({
+    where: {
+      status: 'ACTIVE',
+      categoryId: 'cat_hogar',
+      id: { not: 'product-1' },
+    },
+    include: PRODUCT_INCLUDE,
+    orderBy: { createdAt: 'desc' },
+    take: 4,
   });
+});
+
+test('CatalogService returns no related products without a category', async () => {
+  const service = new CatalogService(
+    {
+      product: {
+        findFirst: async () => ({ id: 'product-1', categoryId: null }),
+      },
+    } as never,
+    categoriesStub(),
+  );
+
+  expect(await service.findRelatedProducts('mate-gourd')).toEqual([]);
+});
+
+test('CatalogService reports live stock availability per cart line', async () => {
+  const service = new CatalogService(
+    {
+      productVariant: {
+        findMany: async () => [
+          {
+            id: 'variant-1',
+            product: { status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 5 },
+          },
+          {
+            id: 'variant-2',
+            product: { status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 1 },
+          },
+          {
+            id: 'variant-3',
+            product: { status: 'ARCHIVED' },
+            inventoryItem: { availableQuantity: 10 },
+          },
+        ],
+      },
+    } as never,
+    categoriesStub(),
+  );
+
+  const result = await service.checkAvailability([
+    { variantId: 'variant-1', quantity: 3 },
+    { variantId: 'variant-2', quantity: 2 },
+    { variantId: 'variant-3', quantity: 1 },
+    { variantId: 'variant-missing', quantity: 1 },
+  ]);
+
+  expect(result).toEqual([
+    {
+      variantId: 'variant-1',
+      requestedQuantity: 3,
+      availableQuantity: 5,
+      available: true,
+    },
+    {
+      variantId: 'variant-2',
+      requestedQuantity: 2,
+      availableQuantity: 1,
+      available: false,
+    },
+    {
+      variantId: 'variant-3',
+      requestedQuantity: 1,
+      availableQuantity: 10,
+      available: false,
+    },
+    {
+      variantId: 'variant-missing',
+      requestedQuantity: 1,
+      availableQuantity: 0,
+      available: false,
+    },
+  ]);
 });

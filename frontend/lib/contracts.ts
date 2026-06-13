@@ -1,10 +1,22 @@
-export const PRODUCT_CATEGORIES = [
-  "ELECTRONICA",
-  "HOGAR",
-  "ACCESORIOS",
-] as const;
+/** Category reference embedded in a product. */
+export type CategoryRef = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
-export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+/** A category in the catalog facet, with its product count. */
+export type CategoryFacet = CategoryRef & {
+  parentId: string | null;
+  count: number;
+};
+
+/** A node in the category tree (GET /catalog/categories). */
+export type CategoryNode = CategoryRef & {
+  parentId: string | null;
+  sortOrder: number;
+  children: CategoryNode[];
+};
 
 export const CATALOG_SORT_OPTIONS = [
   "featured",
@@ -27,9 +39,56 @@ export type CatalogVariantPreview = {
 export type CatalogImageReference = {
   id: string;
   assetUrl: string;
-  assetKey: string;
+  assetKey: string | null;
   altText: string | null;
   sortOrder: number;
+};
+
+/** An attribute value assigned to a product (e.g. Color: Negro). */
+export type ProductAttribute = {
+  attributeId: string;
+  attributeName: string;
+  attributeSlug: string;
+  value: string;
+  valueSlug: string;
+};
+
+/** A single attribute value facet with its discovery-set product count. */
+export type AttributeValueFacet = {
+  id: string;
+  value: string;
+  slug: string;
+  count: number;
+};
+
+/** An attribute facet, grouping its value facets. */
+export type AttributeFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  values: AttributeValueFacet[];
+};
+
+/** Applied attribute filter, by attribute slug and selected value slugs. */
+export type AppliedAttributeFilter = {
+  slug: string;
+  values: string[];
+};
+
+/** Pagination metadata for a catalog collection response. */
+export type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+/** An attribute with all its values (GET /catalog/attributes). */
+export type AttributeOption = {
+  id: string;
+  name: string;
+  slug: string;
+  values: Array<{ id: string; value: string; slug: string }>;
 };
 
 export type CatalogProductDetail = {
@@ -38,9 +97,10 @@ export type CatalogProductDetail = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: CatalogVariantPreview[];
   images: CatalogImageReference[];
+  attributes: ProductAttribute[];
 };
 
 export type CatalogProductCard = {
@@ -49,27 +109,31 @@ export type CatalogProductCard = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: CatalogVariantPreview[];
   primaryImageUrl: string | null;
   primaryImageAlt: string | null;
   startingPriceAmount: string | null;
   currencyCode: string | null;
+  attributes: ProductAttribute[];
 };
 
 export type CatalogFilters = {
   query?: string;
-  category?: ProductCategory;
+  /** Category slug. */
+  category?: string;
   minPriceAmount?: string;
   maxPriceAmount?: string;
   sort?: CatalogSortOption;
+  /** Compact attribute filter, e.g. `color:negro,azul;material:vidrio`. */
+  attributes?: string;
+  page?: number;
+  pageSize?: number;
 };
 
 export type CatalogFilterMetadata = {
-  categories: Array<{
-    value: ProductCategory;
-    count: number;
-  }>;
+  categories: CategoryFacet[];
+  attributes: AttributeFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -77,16 +141,18 @@ export type CatalogFilterMetadata = {
   availableSorts: CatalogSortOption[];
   applied: {
     query: string | null;
-    category: ProductCategory | null;
+    category: string | null;
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
+    attributes: AppliedAttributeFilter[];
   };
 };
 
 export type CatalogCollectionResponse = {
   items: CatalogProductDetail[];
   filters: CatalogFilterMetadata;
+  pagination: PaginationMeta;
 };
 
 export type CartLine = {
@@ -101,6 +167,13 @@ export type CartLine = {
   imageUrl: string | null;
   imageAlt: string | null;
   quantity: number;
+};
+
+export type CartAvailabilityLine = {
+  variantId: string;
+  requestedQuantity: number;
+  availableQuantity: number;
+  available: boolean;
 };
 
 export type CheckoutStatusRoute = "success" | "pending" | "failure";
@@ -132,6 +205,15 @@ export type CartState = {
   lastCheckout: CheckoutSnapshot | null;
 };
 
+export type CouponEvaluation =
+  | {
+      valid: true;
+      code: string;
+      type: "PERCENTAGE" | "FIXED";
+      discountAmount: string;
+    }
+  | { valid: false; reason: string };
+
 export type CreateOrderRequest = {
   items: Array<{
     variantId: string;
@@ -143,6 +225,7 @@ export type CreateOrderRequest = {
     phone: string;
   };
   shippingAddress: ShippingAddressInput;
+  couponCode?: string;
 };
 
 export type ShippingAddressInput = {
@@ -178,6 +261,8 @@ export type CreatedOrder = {
   trackingUrlPath: string | null;
   currencyCode: string;
   subtotalAmount: string;
+  discountAmount: string;
+  couponCode: string | null;
   totalAmount: string;
   contactFullName: string;
   contactEmail: string;
@@ -239,7 +324,7 @@ export type AdminProduct = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: Array<
     CatalogVariantPreview & {
       availableQuantity?: number;
@@ -250,6 +335,7 @@ export type AdminProduct = {
     }
   >;
   images: CatalogImageReference[];
+  attributes?: ProductAttribute[];
 };
 
 export type ProductVariantInput = {
@@ -273,9 +359,10 @@ export type AdminProductInput = {
   name: string;
   description?: string;
   status?: string;
-  category?: ProductCategory;
+  categoryId?: string;
   variants: ProductVariantInput[];
   images?: ProductImageInput[];
+  attributeValueIds?: string[];
 };
 
 export type FulfillmentStatus =
@@ -294,7 +381,7 @@ export type ListAdminOrdersQuery = {
 export type ListAdminProductsQuery = {
   query?: string;
   status?: string;
-  category?: ProductCategory;
+  categoryId?: string;
 };
 
 export type UpdateAdminOrderFulfillmentRequest = {

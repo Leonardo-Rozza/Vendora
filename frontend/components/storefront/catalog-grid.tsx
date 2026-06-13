@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductCard } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
@@ -87,7 +87,7 @@ export function CatalogGrid({
                 <div className="flex flex-wrap items-center gap-2">
                   {product.category ? (
                     <Pill className="bg-[var(--accent-sky)] text-[var(--brand-ink)]">
-                      {getProductCategoryLabel(product.category)}
+                      {product.category.name}
                     </Pill>
                   ) : null}
                   <Pill className="text-[var(--brand-deep)]">

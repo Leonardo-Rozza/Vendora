@@ -12,6 +12,7 @@ import {
   ProductStatus,
 } from '@prisma/client';
 import { Optional } from '@nestjs/common';
+import { CouponsService } from '../coupons/coupons.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../platform/prisma/prisma.service';
@@ -63,6 +64,8 @@ export class OrdersService {
     private readonly inventoryService: InventoryService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
+    @Optional()
+    private readonly couponsService?: CouponsService,
   ) {}
 
   findOrderById(id: string) {
@@ -192,6 +195,25 @@ export class OrdersService {
       );
     }
 
+    let discountAmount = new Prisma.Decimal(0);
+    let appliedCouponCode: string | null = null;
+
+    if (input.couponCode && this.couponsService) {
+      const evaluation = await this.couponsService.evaluate(
+        input.couponCode,
+        subtotalAmount,
+      );
+
+      if (!evaluation.valid) {
+        throw new BadRequestException(evaluation.reason);
+      }
+
+      discountAmount = new Prisma.Decimal(evaluation.discountAmount);
+      appliedCouponCode = evaluation.code;
+    }
+
+    const totalAmount = subtotalAmount.minus(discountAmount);
+
     const tracking = createOrderTrackingToken();
 
     return this.prisma.$transaction(async (client) => {
@@ -207,7 +229,9 @@ export class OrdersService {
           trackingCode: tracking.trackingCode,
           currencyCode,
           subtotalAmount,
-          totalAmount: subtotalAmount,
+          discountAmount,
+          couponCode: appliedCouponCode,
+          totalAmount,
           contactFullName: input.contact.fullName,
           contactEmail: input.contact.email,
           contactPhone: input.contact.phone,
@@ -245,6 +269,13 @@ export class OrdersService {
         orderId: createdOrder.id,
         type: OrderMilestoneType.PAYMENT_PENDING,
       });
+
+      if (appliedCouponCode) {
+        await client.coupon.update({
+          where: { code: appliedCouponCode },
+          data: { timesRedeemed: { increment: 1 } },
+        });
+      }
 
       return {
         ...createdOrder,

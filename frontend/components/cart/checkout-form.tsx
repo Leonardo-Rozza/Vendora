@@ -14,6 +14,7 @@ type CheckoutFormProps = {
   ) => void;
   error: string | null;
   isSubmitting: boolean;
+  disabled?: boolean;
   onSubmit: () => void;
 };
 
@@ -23,6 +24,7 @@ export function CheckoutForm({
   onChange,
   error,
   isSubmitting,
+  disabled = false,
   onSubmit,
 }: CheckoutFormProps) {
   function updateField(field: keyof CheckoutFormState) {
@@ -138,7 +140,7 @@ export function CheckoutForm({
       ) : null}
       <button
         className="mt-5 w-full rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabled}
         onClick={onSubmit}
         type="button"
       >

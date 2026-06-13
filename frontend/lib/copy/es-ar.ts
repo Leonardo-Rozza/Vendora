@@ -1,10 +1,4 @@
-import type { CatalogSortOption, ProductCategory } from "@/lib/contracts";
-
-export const PRODUCT_CATEGORY_LABELS: Record<ProductCategory, string> = {
-  ELECTRONICA: "Electronica",
-  HOGAR: "Hogar",
-  ACCESORIOS: "Accesorios",
-};
+import type { CatalogSortOption } from "@/lib/contracts";
 
 export const CATALOG_SORT_LABELS: Record<CatalogSortOption, string> = {
   featured: "Destacados",
@@ -42,6 +36,7 @@ export const appCopy = {
     filtersDescription:
       "Ajusta categoria, precio y orden para encontrar mas rapido lo que buscas.",
     categoryLabel: "Categoria",
+    attributesLabel: "Atributos",
     minPriceLabel: "Precio minimo",
     maxPriceLabel: "Precio maximo",
     sortLabel: "Ordenar por",
@@ -92,6 +87,7 @@ export const appCopy = {
     stockUnknown: "Stock a confirmar",
     addedToCart: "agregado al carrito",
     categoryLabel: "Categoria",
+    specificationsTitle: "Especificaciones",
     imagePending: "Imagen pendiente",
     unavailableCta: "Variante sin stock",
   },
@@ -112,6 +108,15 @@ export const appCopy = {
     orderSummaryDescription:
       "Primero guardamos el pedido en Vendora y despues generamos el link de pago. Asi mantienes una referencia clara aunque cierres la ventana.",
     subtotal: "Subtotal",
+    discount: "Descuento",
+    total: "Total",
+    couponSection: "Cupón de descuento",
+    couponLabel: "Código de cupón",
+    couponPlaceholder: "Ingresa tu código",
+    couponApply: "Aplicar",
+    couponApplying: "Aplicando...",
+    couponRemove: "Quitar cupón",
+    couponApplied: "Cupón aplicado",
     deliveryScopeTitle: "Cobertura actual",
     deliveryScopeDescription:
       "En este MVP solo hacemos envios dentro de CABA y AMBA. Si completas una direccion fuera de esa zona, el checkout no avanza.",
@@ -265,6 +270,7 @@ export const appCopy = {
     imageKey: "Clave del asset en Cloudinary",
     imageAlt: "Texto alternativo",
     imageSortOrder: "Orden",
+    attributesTitle: "Atributos del producto",
     helper:
       "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",
     saving: "Guardando producto...",
@@ -305,10 +311,6 @@ export const appCopy = {
     trackingCode: "Codigo tracking",
   },
 };
-
-export function getProductCategoryLabel(category: ProductCategory) {
-  return PRODUCT_CATEGORY_LABELS[category];
-}
 
 export function getCatalogSortLabel(sort: CatalogSortOption) {
   return CATALOG_SORT_LABELS[sort];

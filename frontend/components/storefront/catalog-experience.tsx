@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCatalogProductCard, listCatalogProductCollection } from "@/lib/commerce/api";
-import { toCatalogErrorMessage } from "@/lib/commerce/catalog";
+import {
+  appliedAttributesToCompact,
+  toCatalogErrorMessage,
+  toggleAttributeValue,
+} from "@/lib/commerce/catalog";
 import type {
   CatalogCollectionResponse,
   CatalogFilters,
   CatalogProductCard,
-  ProductCategory,
+  CategoryNode,
 } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
 import { CatalogFilters as CatalogFiltersPanel } from "@/components/storefront/catalog-filters";
 import { CatalogGrid } from "@/components/storefront/catalog-grid";
 import { CatalogToolbar } from "@/components/storefront/catalog-toolbar";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import { Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
 
@@ -31,15 +36,18 @@ function mapAppliedFilters(
     minPriceAmount: applied.minPriceAmount ?? "",
     maxPriceAmount: applied.maxPriceAmount ?? "",
     sort: applied.sort,
+    attributes: appliedAttributesToCompact(applied.attributes),
   };
 }
 
 export function CatalogExperience({
   initialCollection = null,
   initialError = null,
+  initialCategoryTree = [],
 }: {
   initialCollection?: CatalogCollectionResponse | null;
   initialError?: string | null;
+  initialCategoryTree?: CategoryNode[];
 }) {
   const copy = appCopy.storefrontCatalog;
   const initialAppliedFilters = initialCollection
@@ -58,8 +66,12 @@ export function CatalogExperience({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
+  const gridRef = useRef<HTMLDivElement | null>(null);
 
-  async function loadProducts(nextFilters: CatalogFilters) {
+  async function loadProducts(
+    nextFilters: CatalogFilters,
+    options: { scrollToGrid?: boolean } = {},
+  ) {
     setIsLoading(true);
     setError(null);
 
@@ -70,12 +82,33 @@ export function CatalogExperience({
       const appliedFilters = mapAppliedFilters(nextCollection.filters.applied);
       setActiveFilters(appliedFilters);
       setDraftFilters(appliedFilters);
+      if (options.scrollToGrid) {
+        gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     } catch (caughtError) {
       setError(toCatalogErrorMessage(caughtError));
       setProducts([]);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handlePageChange(nextPage: number) {
+    void loadProducts(
+      { ...activeFilters, page: nextPage },
+      { scrollToGrid: true },
+    );
+  }
+
+  function handleAttributeToggle(attributeSlug: string, valueSlug: string) {
+    setDraftFilters((current) => ({
+      ...current,
+      attributes: toggleAttributeValue(
+        current.attributes,
+        attributeSlug,
+        valueSlug,
+      ),
+    }));
   }
 
   useEffect(() => {
@@ -87,18 +120,51 @@ export function CatalogExperience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const appliedAttributes = useMemo(
+    () => collection?.filters.applied.attributes ?? [],
+    [collection],
+  );
+
+  const attributeNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const facet of collection?.filters.attributes ?? []) {
+      map.set(facet.slug, facet.name);
+    }
+    return map;
+  }, [collection]);
+
   const activeFilterCount = useMemo(() => {
-    return [
-      activeFilters.query,
-      activeFilters.category,
-      activeFilters.minPriceAmount,
-      activeFilters.maxPriceAmount,
-    ].filter(Boolean).length;
-  }, [activeFilters]);
+    return (
+      [
+        activeFilters.query,
+        activeFilters.category,
+        activeFilters.minPriceAmount,
+        activeFilters.maxPriceAmount,
+      ].filter(Boolean).length +
+      appliedAttributes.reduce((total, entry) => total + entry.values.length, 0)
+    );
+  }, [activeFilters, appliedAttributes]);
+
+  const categoryFacets = useMemo(
+    () => collection?.filters.categories ?? [],
+    [collection],
+  );
+
+  const categoryNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const facet of categoryFacets) {
+      map.set(facet.slug, facet.name);
+    }
+    return map;
+  }, [categoryFacets]);
+
+  function resolveCategoryName(slug: string) {
+    return categoryNameBySlug.get(slug) ?? slug;
+  }
 
   const activeLabel = useMemo(() => {
     if (activeFilters.category) {
-      return getProductCategoryLabel(activeFilters.category);
+      return resolveCategoryName(activeFilters.category);
     }
 
     if (activeFilters.query) {
@@ -106,7 +172,8 @@ export function CatalogExperience({
     }
 
     return copy.allProducts;
-  }, [activeFilters.category, activeFilters.query, copy.allProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilters.category, activeFilters.query, copy.allProducts, categoryNameBySlug]);
 
   function applyDraftFilters() {
     void loadProducts({
@@ -114,11 +181,12 @@ export function CatalogExperience({
       query: draftFilters.query?.trim() ?? "",
       minPriceAmount: draftFilters.minPriceAmount?.trim() ?? "",
       maxPriceAmount: draftFilters.maxPriceAmount?.trim() ?? "",
+      page: 1,
     });
     setIsFiltersOpen(false);
   }
 
-  function handleQuickCategory(category?: ProductCategory) {
+  function handleQuickCategory(category?: string) {
     const nextFilters = {
       ...draftFilters,
       category,
@@ -186,16 +254,16 @@ export function CatalogExperience({
                   Recorrido general para ver catalogo completo.
                 </span>
               </button>
-              {(collection?.filters.categories ?? []).map((category) => (
+              {categoryFacets.map((category) => (
                 <button
-                  key={category.value}
+                  key={category.id}
                   className="chip-button rounded-[1.4rem] px-4 py-4 text-left"
-                  data-active={activeFilters.category === category.value}
-                  onClick={() => handleQuickCategory(category.value)}
+                  data-active={activeFilters.category === category.slug}
+                  onClick={() => handleQuickCategory(category.slug)}
                   type="button"
                 >
                   <span className="block text-sm font-semibold text-[var(--ink-strong)]">
-                    {getProductCategoryLabel(category.value)}
+                    {category.name}
                   </span>
                   <span className="mt-2 block text-sm leading-6 text-[var(--ink-muted)]">
                     {category.count} {copy.categoryCountSuffix}
@@ -203,6 +271,14 @@ export function CatalogExperience({
                 </button>
               ))}
             </div>
+
+            {initialCategoryTree.length > 0 ? (
+              <CategoryTreeNav
+                tree={initialCategoryTree}
+                activeSlug={activeFilters.category}
+                onSelect={handleQuickCategory}
+              />
+            ) : null}
           </Panel>
         </div>
       </article>
@@ -236,10 +312,11 @@ export function CatalogExperience({
             onMinPriceChange={(value) =>
               setDraftFilters((current) => ({ ...current, minPriceAmount: value }))
             }
+            onAttributeToggle={handleAttributeToggle}
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4" ref={gridRef}>
           <div className="lg:hidden">
             <CatalogFiltersPanel
               filters={draftFilters}
@@ -254,6 +331,7 @@ export function CatalogExperience({
               onMinPriceChange={(value) =>
                 setDraftFilters((current) => ({ ...current, minPriceAmount: value }))
               }
+              onAttributeToggle={handleAttributeToggle}
               visible={isFiltersOpen}
             />
           </div>
@@ -261,11 +339,18 @@ export function CatalogExperience({
           {activeFilterCount > 0 ? (
             <div className="flex flex-wrap gap-2">
               {activeFilters.category ? (
-                <Pill>{getProductCategoryLabel(activeFilters.category)}</Pill>
+                <Pill>{resolveCategoryName(activeFilters.category)}</Pill>
               ) : null}
               {activeFilters.query ? <Pill>Busqueda: {activeFilters.query}</Pill> : null}
               {activeFilters.minPriceAmount ? <Pill>Min: {activeFilters.minPriceAmount}</Pill> : null}
               {activeFilters.maxPriceAmount ? <Pill>Max: {activeFilters.maxPriceAmount}</Pill> : null}
+              {appliedAttributes.flatMap((entry) =>
+                entry.values.map((value) => (
+                  <Pill key={`${entry.slug}:${value}`}>
+                    {attributeNameBySlug.get(entry.slug) ?? entry.slug}: {value}
+                  </Pill>
+                )),
+              )}
               <Button onClick={clearFilters} variant="ghost">
                 {copy.clearFilters}
               </Button>
@@ -279,8 +364,85 @@ export function CatalogExperience({
             onRetry={() => void loadProducts(activeFilters)}
             products={products}
           />
+
+          {collection && collection.pagination.totalPages > 1 ? (
+            <div className="flex justify-center pt-2">
+              <Pagination
+                page={collection.pagination.page}
+                pageCount={collection.pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
+  );
+}
+
+function CategoryTreeNav({
+  tree,
+  activeSlug,
+  onSelect,
+}: {
+  tree: CategoryNode[];
+  activeSlug?: string;
+  onSelect: (slug?: string) => void;
+}) {
+  return (
+    <nav aria-label="Categorias" className="mt-6 border-t border-[var(--line-soft)] pt-5">
+      <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+        {appCopy.storefrontHeader.categories}
+      </p>
+      <ul className="mt-4 grid gap-1">
+        {tree.map((node) => (
+          <CategoryTreeItem
+            key={node.id}
+            node={node}
+            activeSlug={activeSlug}
+            onSelect={onSelect}
+          />
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function CategoryTreeItem({
+  node,
+  activeSlug,
+  onSelect,
+  depth = 0,
+}: {
+  node: CategoryNode;
+  activeSlug?: string;
+  onSelect: (slug?: string) => void;
+  depth?: number;
+}) {
+  return (
+    <li>
+      <button
+        className="chip-button w-full rounded-[0.9rem] px-3 py-2 text-left text-sm font-medium text-[var(--ink-strong)]"
+        data-active={activeSlug === node.slug}
+        onClick={() => onSelect(node.slug)}
+        style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
+        type="button"
+      >
+        {node.name}
+      </button>
+      {node.children.length > 0 ? (
+        <ul className="grid gap-1">
+          {node.children.map((child) => (
+            <CategoryTreeItem
+              key={child.id}
+              node={child}
+              activeSlug={activeSlug}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }

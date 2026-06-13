@@ -1,9 +1,13 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import type { ProductCategory } from "@/lib/contracts";
-import { PRODUCT_CATEGORIES } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
+
+export type CategoryOption = {
+  id: string;
+  name: string;
+  depth: number;
+};
 
 export type EditableVariant = {
   id?: string;
@@ -22,11 +26,12 @@ export type EditableImage = {
 };
 
 type ProductFormSectionsProps = {
-  category: ProductCategory;
+  categoryId: string;
+  categoryOptions: CategoryOption[];
   description: string;
   images: EditableImage[];
   name: string;
-  setCategory: Dispatch<SetStateAction<ProductCategory>>;
+  setCategoryId: Dispatch<SetStateAction<string>>;
   setDescription: Dispatch<SetStateAction<string>>;
   setImages: Dispatch<SetStateAction<EditableImage[]>>;
   setName: Dispatch<SetStateAction<string>>;
@@ -39,11 +44,12 @@ type ProductFormSectionsProps = {
 };
 
 export function ProductFormSections({
-  category,
+  categoryId,
+  categoryOptions,
   description,
   images,
   name,
-  setCategory,
+  setCategoryId,
   setDescription,
   setImages,
   setName,
@@ -89,10 +95,11 @@ export function ProductFormSections({
           </label>
           <label className="text-sm font-medium text-[var(--ink-strong)]" htmlFor="product-category">
             {copy.category}
-            <select id="product-category" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setCategory(event.target.value as ProductCategory)} value={category}>
-              {PRODUCT_CATEGORIES.map((option) => (
-                <option key={option} value={option}>
-                  {getProductCategoryLabel(option)}
+            <select id="product-category" className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3" onChange={(event) => setCategoryId(event.target.value)} value={categoryId}>
+              <option value="">Sin categoria</option>
+              {categoryOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {`${"  ".repeat(option.depth)}${option.name}`}
                 </option>
               ))}
             </select>

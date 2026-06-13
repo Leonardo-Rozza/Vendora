@@ -6,12 +6,15 @@ import { useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductDetail } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
+import { Breadcrumb } from "@/components/ui";
 
 export function ProductDetailClient({
   product,
+  related = [],
 }: {
   product: CatalogProductDetail;
+  related?: CatalogProductDetail[];
 }) {
   const { addToCart } = useCommerce();
   const copy = appCopy.productDetail;
@@ -47,6 +50,19 @@ export function ProductDetailClient({
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12">
+      {product.category ? (
+        <Breadcrumb
+          className="mb-6"
+          items={[
+            { label: "Inicio", href: "/" },
+            {
+              label: product.category.name,
+              href: `/?category=${encodeURIComponent(product.category.slug)}`,
+            },
+            { label: product.name },
+          ]}
+        />
+      ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-sm text-[var(--ink-muted)]">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/">{copy.backToCatalog}</Link>
@@ -55,7 +71,7 @@ export function ProductDetailClient({
         </div>
         {product.category ? (
           <span className="rounded-full border border-[var(--line-soft)] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
-            {copy.categoryLabel}: {getProductCategoryLabel(product.category)}
+            {copy.categoryLabel}: {product.category.name}
           </span>
         ) : null}
       </div>
@@ -142,6 +158,29 @@ export function ProductDetailClient({
             </div>
           </div>
 
+          {product.attributes.length > 0 ? (
+            <div className="mt-8 rounded-[1.6rem] border border-[var(--line-soft)] bg-white/75 p-5">
+              <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+                {copy.specificationsTitle}
+              </p>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                {product.attributes.map((attribute) => (
+                  <div
+                    key={`${attribute.attributeId}-${attribute.valueSlug}`}
+                    className="flex items-baseline justify-between gap-3 border-b border-[var(--line-soft)] pb-2"
+                  >
+                    <dt className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]">
+                      {attribute.attributeName}
+                    </dt>
+                    <dd className="text-sm font-semibold text-[var(--ink-strong)]">
+                      {attribute.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
           <div className="mt-8 flex flex-col gap-4 rounded-[1.6rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(26,58,73,0.96),rgba(18,39,52,0.98))] p-6 text-[var(--surface-base)]">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -185,6 +224,51 @@ export function ProductDetailClient({
           </div>
         </article>
       </section>
+
+      {related.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink-strong">
+            Productos relacionados
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((item) => {
+              const image = item.images[0] ?? null;
+              const firstVariant = item.variants[0] ?? null;
+
+              return (
+                <Link
+                  className="group rounded-card border border-line-soft bg-surface-panel p-3 transition hover:-translate-y-0.5 hover:shadow-soft"
+                  href={`/products/${item.slug}`}
+                  key={item.id}
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-[linear-gradient(160deg,rgba(210,120,55,0.18),rgba(24,80,104,0.12))]">
+                    {image ? (
+                      <Image
+                        alt={image.altText ?? item.name}
+                        className="object-cover"
+                        fill
+                        sizes="(min-width: 1024px) 20vw, 50vw"
+                        src={image.assetUrl}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-ink-strong">
+                    {item.name}
+                  </p>
+                  {firstVariant ? (
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {formatMoney(
+                        firstVariant.priceAmount,
+                        firstVariant.currencyCode,
+                      )}
+                    </p>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

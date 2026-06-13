@@ -1,4 +1,4 @@
-import { ProductCategory, ProductStatus } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class ListAdminProductsDto {
@@ -12,6 +12,7 @@ export class ListAdminProductsDto {
   status?: ProductStatus;
 
   @IsOptional()
-  @IsEnum(ProductCategory)
-  category?: ProductCategory;
+  @IsString()
+  @MaxLength(64)
+  categoryId?: string;
 }

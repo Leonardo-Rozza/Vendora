@@ -130,7 +130,10 @@ export function parseCartState(input: string | null | undefined): CartState {
 export function toCreateOrderRequest(
   state: CartState,
   checkoutForm: CheckoutFormState,
+  couponCode?: string,
 ): CreateOrderRequest {
+  const normalizedCouponCode = couponCode?.trim();
+
   return {
     items: state.lines.map((line) => ({
       variantId: line.variantId,
@@ -151,5 +154,6 @@ export function toCreateOrderRequest(
       postalCode: checkoutForm.postalCode.trim(),
       deliveryNotes: checkoutForm.deliveryNotes.trim() || undefined,
     },
+    ...(normalizedCouponCode ? { couponCode: normalizedCouponCode } : {}),
   };
 }
