@@ -421,3 +421,64 @@ test('CatalogService returns no related products without a category', async () =
 
   expect(await service.findRelatedProducts('mate-gourd')).toEqual([]);
 });
+
+test('CatalogService reports live stock availability per cart line', async () => {
+  const service = new CatalogService(
+    {
+      productVariant: {
+        findMany: async () => [
+          {
+            id: 'variant-1',
+            product: { status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 5 },
+          },
+          {
+            id: 'variant-2',
+            product: { status: 'ACTIVE' },
+            inventoryItem: { availableQuantity: 1 },
+          },
+          {
+            id: 'variant-3',
+            product: { status: 'ARCHIVED' },
+            inventoryItem: { availableQuantity: 10 },
+          },
+        ],
+      },
+    } as never,
+    categoriesStub(),
+  );
+
+  const result = await service.checkAvailability([
+    { variantId: 'variant-1', quantity: 3 },
+    { variantId: 'variant-2', quantity: 2 },
+    { variantId: 'variant-3', quantity: 1 },
+    { variantId: 'variant-missing', quantity: 1 },
+  ]);
+
+  expect(result).toEqual([
+    {
+      variantId: 'variant-1',
+      requestedQuantity: 3,
+      availableQuantity: 5,
+      available: true,
+    },
+    {
+      variantId: 'variant-2',
+      requestedQuantity: 2,
+      availableQuantity: 1,
+      available: false,
+    },
+    {
+      variantId: 'variant-3',
+      requestedQuantity: 1,
+      availableQuantity: 10,
+      available: false,
+    },
+    {
+      variantId: 'variant-missing',
+      requestedQuantity: 1,
+      availableQuantity: 0,
+      available: false,
+    },
+  ]);
+});

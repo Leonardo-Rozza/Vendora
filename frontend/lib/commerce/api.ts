@@ -4,6 +4,7 @@ import type {
   AdminProductInput,
   AdminSession,
   AttributeOption,
+  CartAvailabilityLine,
   CatalogCollectionResponse,
   CatalogFilters,
   CatalogProductCard,
@@ -21,6 +22,7 @@ import type {
 } from "../contracts";
 import {
   attributesListSchema,
+  cartAvailabilitySchema,
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
   categoryTreeSchema,
@@ -234,6 +236,22 @@ export async function validateCoupon(
     body: JSON.stringify({ code, subtotalAmount }),
   });
   const result = couponEvaluationSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function checkCartAvailability(
+  items: Array<{ variantId: string; quantity: number }>,
+): Promise<CartAvailabilityLine[]> {
+  const payload = await requestJson<unknown>("/catalog/availability", {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
+  const result = cartAvailabilitySchema.safeParse(payload);
 
   if (!result.success) {
     throw new ApiError("Respuesta inválida del servidor", 502);

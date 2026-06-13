@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
 import {
   ApiError,
+  checkCartAvailability,
   getOrderTracking,
   listAdminProducts,
   listAdminOrders,
@@ -429,6 +430,70 @@ test("coupon helper surfaces invalid evaluations from the validate endpoint", as
   } finally {
     global.fetch = originalFetch;
   }
+});
+
+test("availability helper posts the cart items to the availability endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify([
+        {
+          variantId: "variant-1",
+          requestedQuantity: 3,
+          availableQuantity: 1,
+          available: false,
+        },
+        {
+          variantId: "variant-2",
+          requestedQuantity: 1,
+          availableQuantity: 5,
+          available: true,
+        },
+      ]),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const lines = await checkCartAvailability([
+      { variantId: "variant-1", quantity: 3 },
+      { variantId: "variant-2", quantity: 1 },
+    ]);
+
+    expect(lines).toEqual([
+      {
+        variantId: "variant-1",
+        requestedQuantity: 3,
+        availableQuantity: 1,
+        available: false,
+      },
+      {
+        variantId: "variant-2",
+        requestedQuantity: 1,
+        availableQuantity: 5,
+        available: true,
+      },
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/catalog\/availability$/);
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  expect(JSON.parse(String(seenRequests[0]!.init?.body))).toEqual({
+    items: [
+      { variantId: "variant-1", quantity: 3 },
+      { variantId: "variant-2", quantity: 1 },
+    ],
+  });
 });
 
 test("api helper resolves the configured API base url without a trailing slash", () => {

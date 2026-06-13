@@ -4,6 +4,7 @@ import {
   CATALOG_SORT_OPTIONS,
   type CatalogCollectionResponse,
   type CatalogProductDetail,
+  type CartAvailabilityLine,
   type CategoryNode,
   type CouponEvaluation,
 } from "../contracts";
@@ -151,6 +152,15 @@ export const couponEvaluationSchema: z.ZodType<CouponEvaluation> =
     }),
   ]);
 
+const cartAvailabilityLineSchema = z.object({
+  variantId: z.string(),
+  requestedQuantity: z.number(),
+  availableQuantity: z.number(),
+  available: z.boolean(),
+});
+
+export const cartAvailabilitySchema = z.array(cartAvailabilityLineSchema);
+
 // Ensure the inferred schema types stay compatible with the public contracts.
 type _AssertCollection = z.infer<
   typeof catalogCollectionResponseSchema
@@ -162,8 +172,15 @@ type _AssertDetail = z.infer<
 > extends CatalogProductDetail
   ? true
   : never;
+type _AssertAvailability = z.infer<
+  typeof cartAvailabilitySchema
+> extends CartAvailabilityLine[]
+  ? true
+  : never;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _assertCollection: _AssertCollection = true;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _assertDetail: _AssertDetail = true;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _assertAvailability: _AssertAvailability = true;

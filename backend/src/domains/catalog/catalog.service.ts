@@ -206,6 +206,38 @@ export class CatalogService {
     });
   }
 
+  /** Live stock check for cart lines, reflecting current inventory. */
+  async checkAvailability(
+    items: Array<{ variantId: string; quantity: number }>,
+  ) {
+    const variantIds = [...new Set(items.map((item) => item.variantId))];
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      select: {
+        id: true,
+        product: { select: { status: true } },
+        inventoryItem: { select: { availableQuantity: true } },
+      },
+    });
+    const variantMap = new Map(
+      variants.map((variant) => [variant.id, variant]),
+    );
+
+    return items.map((item) => {
+      const variant = variantMap.get(item.variantId);
+      const availableQuantity = variant?.inventoryItem?.availableQuantity ?? 0;
+      const isPurchasable =
+        Boolean(variant) && variant?.product.status === ProductStatus.ACTIVE;
+
+      return {
+        variantId: item.variantId,
+        requestedQuantity: item.quantity,
+        availableQuantity,
+        available: isPurchasable && availableQuantity >= item.quantity,
+      };
+    });
+  }
+
   listAdminProducts(query: ListAdminProductsDto) {
     return this.prisma.product.findMany({
       where: this.buildProductWhere({

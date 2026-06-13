@@ -1,13 +1,16 @@
 import {
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
+  Post,
   Query,
 } from '@nestjs/common';
 import { AttributesService } from './attributes.service';
 import { CatalogService } from './catalog.service';
 import { CategoriesService } from './categories.service';
+import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { ListCatalogProductsDto } from './dto/list-catalog-products.dto';
 
 type ProductAttributeLink = {
@@ -34,6 +37,11 @@ export class CatalogController {
   @Get('attributes')
   listAttributes() {
     return this.attributesService.listAll();
+  }
+
+  @Post('availability')
+  checkAvailability(@Body() body: CheckAvailabilityDto) {
+    return this.catalogService.checkAvailability(body.items);
   }
 
   @Get('products')

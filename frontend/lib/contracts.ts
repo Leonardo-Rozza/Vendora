@@ -169,6 +169,13 @@ export type CartLine = {
   quantity: number;
 };
 
+export type CartAvailabilityLine = {
+  variantId: string;
+  requestedQuantity: number;
+  availableQuantity: number;
+  available: boolean;
+};
+
 export type CheckoutStatusRoute = "success" | "pending" | "failure";
 
 export type CheckoutSnapshot = {

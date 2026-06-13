@@ -9,10 +9,12 @@ import {
   type AppliedCoupon,
 } from "@/components/cart/coupon-form";
 import {
+  checkCartAvailability,
   createCheckoutPreference,
   createOrder,
   validateCoupon,
 } from "@/lib/commerce/api";
+import type { CartAvailabilityLine } from "@/lib/contracts";
 import {
   createEmptyCheckoutFormState,
   toCreateOrderRequest,
@@ -52,6 +54,66 @@ export function CartPageClient() {
   );
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [availabilityByVariant, setAvailabilityByVariant] = useState<
+    Record<string, CartAvailabilityLine>
+  >({});
+
+  // Stable key over the current lines (variantId + quantity) so the
+  // availability effect only re-fetches when lines or quantities change,
+  // never on every render.
+  const availabilityKey = useMemo(
+    () =>
+      cartState.lines
+        .map((line) => `${line.variantId}:${line.quantity}`)
+        .join("|"),
+    [cartState.lines],
+  );
+
+  useEffect(() => {
+    if (cartState.lines.length === 0) {
+      setAvailabilityByVariant({});
+      return;
+    }
+
+    let cancelled = false;
+    const items = cartState.lines.map((line) => ({
+      variantId: line.variantId,
+      quantity: line.quantity,
+    }));
+
+    void checkCartAvailability(items)
+      .then((lines) => {
+        if (cancelled) {
+          return;
+        }
+
+        setAvailabilityByVariant(
+          Object.fromEntries(lines.map((line) => [line.variantId, line])),
+        );
+      })
+      .catch((caughtError) => {
+        // Best-effort: a failed availability check must never block checkout.
+        console.error("No pudimos verificar el stock en vivo", caughtError);
+        if (!cancelled) {
+          setAvailabilityByVariant({});
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // availabilityKey captures variantId + quantity changes for every line.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availabilityKey]);
+
+  const unavailableLines = useMemo(
+    () =>
+      cartState.lines.filter(
+        (line) => availabilityByVariant[line.variantId]?.available === false,
+      ),
+    [availabilityByVariant, cartState.lines],
+  );
+  const hasUnavailableLines = unavailableLines.length > 0;
 
   const isCheckoutReady = useMemo(
     () => canStartCheckout({ isSubmitting, lineCount: cartState.lines.length }),
@@ -102,7 +164,7 @@ export function CartPageClient() {
   }
 
   async function handleCheckout() {
-    if (!isCheckoutReady) {
+    if (!isCheckoutReady || hasUnavailableLines) {
       return;
     }
 
@@ -292,6 +354,17 @@ export function CartPageClient() {
                     {copy.remove}
                   </button>
                 </div>
+
+                {availabilityByVariant[line.variantId]?.available === false ? (
+                  <p
+                    className="rounded-[1rem] border border-[var(--accent-coral,#c2410c)] bg-[rgba(194,65,12,0.08)] px-4 py-3 text-sm font-semibold text-[var(--accent-coral,#c2410c)]"
+                    role="alert"
+                  >
+                    Sin stock suficiente — quedan{" "}
+                    {availabilityByVariant[line.variantId]!.availableQuantity}{" "}
+                    disponibles
+                  </p>
+                ) : null}
               </article>
             ))}
           </div>
@@ -352,8 +425,19 @@ export function CartPageClient() {
               <p className="mt-2 leading-7">{copy.deliveryScopeDescription}</p>
             </div>
 
+            {hasUnavailableLines ? (
+              <p
+                className="mt-5 rounded-[1.25rem] border border-[var(--accent-sand)] bg-black/20 p-4 text-sm font-semibold text-[var(--accent-sand)]"
+                role="alert"
+              >
+                Hay productos sin stock suficiente en tu carrito. Ajustá las
+                cantidades para continuar con el pago.
+              </p>
+            ) : null}
+
             <CheckoutForm
               copy={copy}
+              disabled={hasUnavailableLines}
               error={error}
               isSubmitting={isSubmitting}
               onChange={setCheckoutForm}
