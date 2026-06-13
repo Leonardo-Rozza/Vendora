@@ -44,7 +44,7 @@ const catalogVariantPreviewSchema = z.object({
 const catalogImageReferenceSchema = z.object({
   id: z.string(),
   assetUrl: z.string(),
-  assetKey: z.string(),
+  assetKey: z.string().nullable(),
   altText: z.string().nullable(),
   sortOrder: z.number(),
 });

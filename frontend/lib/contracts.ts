@@ -39,7 +39,7 @@ export type CatalogVariantPreview = {
 export type CatalogImageReference = {
   id: string;
   assetUrl: string;
-  assetKey: string;
+  assetKey: string | null;
   altText: string | null;
   sortOrder: number;
 };
