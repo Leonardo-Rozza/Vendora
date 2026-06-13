@@ -18,9 +18,47 @@
   --shadow-strong: 0 24px 90px rgba(82, 56, 34, 0.12);
 }
 
+/*
+ * Design system tokens. The raw palette lives in :root above; here we expose it
+ * to Tailwind so components can use semantic utilities (bg-surface-panel,
+ * text-ink-strong, border-line-soft, rounded-card, shadow-soft, ...) instead of
+ * arbitrary var() values. Additive: existing var(--token) usages keep working.
+ */
 @theme inline {
   --color-background: var(--surface-base);
   --color-foreground: var(--ink-strong);
+
+  /* Surfaces */
+  --color-surface-base: var(--surface-base);
+  --color-surface-panel: var(--surface-panel);
+
+  /* Ink (text) */
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-soft: var(--ink-soft);
+
+  /* Brand & accents */
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent-sand: var(--accent-sand);
+  --color-accent-sky: var(--accent-sky);
+
+  /* Lines & states */
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-line: var(--warning-line);
+
+  /* Radii */
+  --radius-field: 9999px;
+  --radius-card: 1.75rem;
+  --radius-panel: 2rem;
+
+  /* Elevation */
+  --shadow-soft: 0 20px 70px rgba(61, 43, 28, 0.08);
+  --shadow-strong: 0 24px 90px rgba(82, 56, 34, 0.12);
+
+  /* Typography */
   --font-sans: "Avenir Next", "Trebuchet MS", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
 }
