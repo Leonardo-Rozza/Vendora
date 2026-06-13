@@ -1,12 +1,15 @@
 import { test, expect } from "vitest";
 import {
   ApiError,
+  checkCartAvailability,
   getOrderTracking,
   listAdminProducts,
   listAdminOrders,
+  listAttributes,
   listCatalogProductCollection,
   resolveApiBaseUrl,
   updateAdminOrderFulfillment,
+  validateCoupon,
 } from "../lib/commerce/api.ts";
 import { toCatalogErrorMessage } from "../lib/commerce/catalog.ts";
 import {
@@ -178,7 +181,7 @@ test("admin order helper appends fulfillment filters to the query string", async
   expect(seenRequests[0]!.init?.credentials).toBe("include");
 });
 
-test("catalog collection helper appends category, price, and sort filters", async () => {
+test("catalog collection helper appends category, price, sort, attribute, and pagination filters", async () => {
   const originalFetch = global.fetch;
   const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
 
@@ -189,7 +192,26 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       JSON.stringify({
         items: [],
         filters: {
-          categories: [{ value: "HOGAR", count: 1 }],
+          categories: [
+            {
+              id: "cat-hogar",
+              name: "Hogar",
+              slug: "hogar",
+              parentId: null,
+              count: 1,
+            },
+          ],
+          attributes: [
+            {
+              id: "attr-color",
+              name: "Color",
+              slug: "color",
+              values: [
+                { id: "val-negro", value: "Negro", slug: "negro", count: 2 },
+                { id: "val-azul", value: "Azul", slug: "azul", count: 1 },
+              ],
+            },
+          ],
           priceRange: { minAmount: "9000.00", maxAmount: "12000.00" },
           availableSorts: ["featured", "price-asc", "price-desc", "newest"],
           applied: {
@@ -198,8 +220,10 @@ test("catalog collection helper appends category, price, and sort filters", asyn
             minPriceAmount: "9000",
             maxPriceAmount: "12000",
             sort: "price-asc",
+            attributes: [{ slug: "color", values: ["negro", "azul"] }],
           },
         },
+        pagination: { page: 2, pageSize: 24, total: 50, totalPages: 3 },
       }),
       {
         status: 200,
@@ -215,6 +239,9 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       minPriceAmount: "9000",
       maxPriceAmount: "12000",
       sort: "price-asc",
+      attributes: "color:negro,azul",
+      page: 2,
+      pageSize: 24,
     });
 
     expect(response.filters.applied).toEqual({
@@ -223,6 +250,13 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       minPriceAmount: "9000",
       maxPriceAmount: "12000",
       sort: "price-asc",
+      attributes: [{ slug: "color", values: ["negro", "azul"] }],
+    });
+    expect(response.pagination).toEqual({
+      page: 2,
+      pageSize: 24,
+      total: 50,
+      totalPages: 3,
     });
   } finally {
     global.fetch = originalFetch;
@@ -230,8 +264,49 @@ test("catalog collection helper appends category, price, and sort filters", asyn
 
   expect(seenRequests.length).toBe(1);
   expect(seenRequests[0]!.url).toMatch(
-    /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc$/,
+    /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc&attributes=color%3Anegro%2Cazul&page=2&pageSize=24$/,
   );
+});
+
+test("attributes helper requests the catalog attributes endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify([
+        {
+          id: "attr-color",
+          name: "Color",
+          slug: "color",
+          values: [{ id: "val-negro", value: "Negro", slug: "negro" }],
+        },
+      ]),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const attributes = await listAttributes();
+    expect(attributes).toEqual([
+      {
+        id: "attr-color",
+        name: "Color",
+        slug: "color",
+        values: [{ id: "val-negro", value: "Negro", slug: "negro" }],
+      },
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/catalog\/attributes$/);
 });
 
 test("admin product helper appends category and status filters to the query string", async () => {
@@ -248,14 +323,14 @@ test("admin product helper appends category and status filters to the query stri
   }) as typeof global.fetch;
 
   try {
-    await listAdminProducts({ status: "ACTIVE", category: "ACCESORIOS" });
+    await listAdminProducts({ status: "ACTIVE", categoryId: "cat-1" });
   } finally {
     global.fetch = originalFetch;
   }
 
   expect(seenRequests.length).toBe(1);
   expect(seenRequests[0]!.url).toMatch(
-    /\/admin\/catalog\/products\?status=ACTIVE&category=ACCESORIOS$/,
+    /\/admin\/catalog\/products\?status=ACTIVE&categoryId=cat-1$/,
   );
   expect(seenRequests[0]!.init?.credentials).toBe("include");
 });
@@ -293,6 +368,132 @@ test("admin fulfillment helper sends a patch request with the transition payload
   expect(String(seenRequests[0]!.init?.body)).toMatch(
     /"fulfillmentStatus":"CONFIRMED"/,
   );
+});
+
+test("coupon helper posts the code and subtotal to the validate endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({
+        valid: true,
+        code: "BIENVENIDA10",
+        type: "PERCENTAGE",
+        discountAmount: "12990.00",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const evaluation = await validateCoupon("BIENVENIDA10", "129900");
+    expect(evaluation).toEqual({
+      valid: true,
+      code: "BIENVENIDA10",
+      type: "PERCENTAGE",
+      discountAmount: "12990.00",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/coupons\/validate$/);
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  expect(JSON.parse(String(seenRequests[0]!.init?.body))).toEqual({
+    code: "BIENVENIDA10",
+    subtotalAmount: "129900",
+  });
+});
+
+test("coupon helper surfaces invalid evaluations from the validate endpoint", async () => {
+  const originalFetch = global.fetch;
+
+  global.fetch = (async () =>
+    new Response(
+      JSON.stringify({ valid: false, reason: "Cupón vencido" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    )) as typeof global.fetch;
+
+  try {
+    const evaluation = await validateCoupon("EXPIRADO", "129900");
+    expect(evaluation).toEqual({ valid: false, reason: "Cupón vencido" });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("availability helper posts the cart items to the availability endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify([
+        {
+          variantId: "variant-1",
+          requestedQuantity: 3,
+          availableQuantity: 1,
+          available: false,
+        },
+        {
+          variantId: "variant-2",
+          requestedQuantity: 1,
+          availableQuantity: 5,
+          available: true,
+        },
+      ]),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const lines = await checkCartAvailability([
+      { variantId: "variant-1", quantity: 3 },
+      { variantId: "variant-2", quantity: 1 },
+    ]);
+
+    expect(lines).toEqual([
+      {
+        variantId: "variant-1",
+        requestedQuantity: 3,
+        availableQuantity: 1,
+        available: false,
+      },
+      {
+        variantId: "variant-2",
+        requestedQuantity: 1,
+        availableQuantity: 5,
+        available: true,
+      },
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/catalog\/availability$/);
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  expect(JSON.parse(String(seenRequests[0]!.init?.body))).toEqual({
+    items: [
+      { variantId: "variant-1", quantity: 3 },
+      { variantId: "variant-2", quantity: 1 },
+    ],
+  });
 });
 
 test("api helper resolves the configured API base url without a trailing slash", () => {

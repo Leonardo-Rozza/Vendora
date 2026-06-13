@@ -37,9 +37,11 @@ componentes en `components/ui/` (button, panel, pill, section-heading).
 Que se encuentren y comparen productos varios con facilidad.
 
 **Backend**
-- **B1 · Categorías con jerarquía**: modelo `Category` (id, name, slug, parentId) reemplazando el enum
-  actual; migración + backfill + seed; endpoint de árbol de categorías. (Cambio de datos más sensible:
-  migrar con compatibilidad.)
+- **B1 · Categorías con jerarquía** ✅ HECHA: modelo `Category` (id, name, slug, parentId) reemplaza el enum;
+  migración con backfill + seed (3 categorías); `CategoriesService` (árbol + descendientes); endpoint
+  `GET /catalog/categories`; filtro de catálogo por slug que incluye descendientes; facet con id/slug/parentId/count.
+  Frontend: contracts/zod/api al nuevo contrato, navegación por árbol de categorías, breadcrumb en PDP,
+  selector de categoría real en admin. 70 unit + 8 e2e (back) y 17 (front) en verde.
 - **B2 · Atributos dinámicos**: implementar `Attribute / AttributeValue / ProductAttributeValue`
   (ya previstos en el PRD); migración. Habilitan filtros tipo color/material/capacidad.
 - **B3 · Búsqueda**: full-text en nombre/descripción (Postgres `tsvector`, o ILIKE para arrancar) + orden.
@@ -57,14 +59,16 @@ Que se encuentren y comparen productos varios con facilidad.
 ---
 
 ## Siguientes iteraciones (después de v1, ya con prioridad acordada)
-- **Checkout pro**: carrito persistente, cupones/descuentos, validación de stock en vivo (envíos siguen AMBA).
+- **Checkout pro** ✅ HECHO: CP1 cupones/descuentos (modelo Coupon, validación, descuento en la orden) +
+  CP2 validación de stock en vivo. Carrito persistente: ya persiste en localStorage por dispositivo;
+  la persistencia cross-device real queda para cuando haya cuentas (envíos siguen AMBA).
 - **Invitado mejorado**: página "seguí tu pedido" por email+token, reenvío de tracking.
 - **Post-venta & confianza**: reviews/ratings, wishlist, cancelación por el cliente.
 - **Admin & métricas**: dashboard de ventas/top productos, gestión masiva de stock, cupones, categorías/atributos.
 
 ## Estado
-- [ ] Fase D — Sistema de diseño
-- [ ] Fase B — Descubrimiento (v1)
+- [~] Fase D — Sistema de diseño (D1 tokens, D2 componentes, D3 styleguide ✅; D4 adopción: incremental)
+- [x] Fase B — Descubrimiento (v1): B1 categorías ✅, B2 atributos ✅, B3-B4 búsqueda+paginación ✅, B5 relacionados ✅
 - [ ] Checkout pro
 - [ ] Invitado mejorado
 - [ ] Post-venta & confianza
