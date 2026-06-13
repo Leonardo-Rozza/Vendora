@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import { afterEach, beforeEach, describe, test } from 'node:test';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -10,6 +8,8 @@ import { OrdersService } from '../src/domains/orders/orders.service';
 import { configureApp } from '../src/platform/configure-app';
 
 describe('Platform foundation (e2e)', () => {
+  jest.setTimeout(30000);
+
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -31,7 +31,7 @@ describe('Platform foundation (e2e)', () => {
       .get('/api/health')
       .expect(200)
       .expect(({ body }) => {
-        assert.deepEqual(body, {
+        expect(body).toEqual({
           status: 'ok',
           app: {
             name: 'vendora-backend',
@@ -47,6 +47,10 @@ describe('Platform foundation (e2e)', () => {
               reason:
                 'Missing MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET',
             },
+            notificationEmail: {
+              configured: false,
+              reason: 'Missing notification email credentials',
+            },
             cloudinary: {
               configured: false,
               reason: 'Missing Cloudinary credentials',
@@ -59,42 +63,44 @@ describe('Platform foundation (e2e)', () => {
   test('/api/payments/checkout-preferences (POST) validates write payloads', async () => {
     await request(app.getHttpServer())
       .post('/api/payments/checkout-preferences')
-      .send({ orderId: 42, payerEmail: 'invalid-email' })
+      .send({ payerEmail: 'invalid-email' })
       .expect(400)
       .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /orderId must be a string/i);
-        assert.match(body.message.join(' '), /payerEmail must be an email/i);
+        expect(body.error).toBe('Bad Request');
+        expect(body.statusCode).toBe(400);
+        expect(body.message.join(' ')).toMatch(/orderId must be a string/i);
+        expect(body.message.join(' ')).toMatch(/payerEmail must be an email/i);
       });
   });
 
   test('/api/payments/webhooks/mercado-pago (POST) validates webhook payloads', async () => {
+    // The webhook DTO no longer accepts a `status` field (the status is fetched
+    // from Mercado Pago, never trusted from the body), so it is now rejected as
+    // a non-whitelisted property.
     await request(app.getHttpServer())
       .post('/api/payments/webhooks/mercado-pago')
-      .send({ eventId: 123, resourceId: null, status: 'unknown' })
+      .send({ resourceId: null, status: 'unknown' })
       .expect(400)
       .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /eventId must be a string/i);
-        assert.match(body.message.join(' '), /resourceId must be a string/i);
-        assert.match(
-          body.message.join(' '),
-          /status must be one of the following values/i,
+        expect(body.error).toBe('Bad Request');
+        expect(body.statusCode).toBe(400);
+        expect(body.message.join(' ')).toMatch(/eventId must be a string/i);
+        expect(body.message.join(' ')).toMatch(/resourceId must be a string/i);
+        expect(body.message.join(' ')).toMatch(
+          /property status should not exist/i,
         );
       });
   });
 
-  test('/api/media/product-images/upload-signatures (POST) validates write payloads', async () => {
+  test('/api/media/product-images/upload-signatures (POST) rejects unauthenticated access', async () => {
+    // Image upload signing is admin-only: the session guard runs before payload
+    // validation, so unauthenticated callers get 401 regardless of body.
     await request(app.getHttpServer())
       .post('/api/media/product-images/upload-signatures')
       .send({ productId: 42 })
-      .expect(400)
+      .expect(401)
       .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.equal(body.statusCode, 400);
-        assert.match(body.message.join(' '), /productId must be a string/i);
+        expect(body.statusCode).toBe(401);
       });
   });
 
@@ -103,7 +109,7 @@ describe('Platform foundation (e2e)', () => {
       .get('/api/admin/catalog/products')
       .expect(401)
       .expect(({ body }) => {
-        assert.equal(body.statusCode, 401);
+        expect(body.statusCode).toBe(401);
       });
   });
 
@@ -113,7 +119,7 @@ describe('Platform foundation (e2e)', () => {
       .send({ fulfillmentStatus: 'CONFIRMED' })
       .expect(401)
       .expect(({ body }) => {
-        assert.equal(body.statusCode, 401);
+        expect(body.statusCode).toBe(401);
       });
   });
 
@@ -125,13 +131,11 @@ describe('Platform foundation (e2e)', () => {
       })
       .expect(400)
       .expect(({ body }) => {
-        assert.equal(body.error, 'Bad Request');
-        assert.match(
-          body.message.join(' '),
+        expect(body.error).toBe('Bad Request');
+        expect(body.message.join(' ')).toMatch(
           /contact should not be null or undefined/i,
         );
-        assert.match(
-          body.message.join(' '),
+        expect(body.message.join(' ')).toMatch(
           /shippingAddress should not be null or undefined/i,
         );
       });
@@ -139,6 +143,8 @@ describe('Platform foundation (e2e)', () => {
 });
 
 describe('Admin fulfillment endpoint (authorized)', () => {
+  jest.setTimeout(30000);
+
   let app: INestApplication<App>;
   let receivedCall:
     | {
@@ -205,7 +211,7 @@ describe('Admin fulfillment endpoint (authorized)', () => {
       })
       .expect(200)
       .expect(({ body }) => {
-        assert.deepEqual(body, {
+        expect(body).toEqual({
           id: 'order-1',
           status: 'PAID',
           fulfillmentStatus: 'CONFIRMED',
@@ -214,7 +220,7 @@ describe('Admin fulfillment endpoint (authorized)', () => {
         });
       });
 
-    assert.deepEqual(receivedCall, {
+    expect(receivedCall).toEqual({
       orderId: 'order-1',
       payload: {
         fulfillmentStatus: 'CONFIRMED',

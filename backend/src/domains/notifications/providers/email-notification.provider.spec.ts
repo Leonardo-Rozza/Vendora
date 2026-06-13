@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import {
   ConfigurationUnavailableError,
   type CapabilityStatus,
@@ -25,7 +23,7 @@ test('EmailNotificationProvider skips delivery outside production when it is unc
     html: '<p>ok</p>',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     status: 'skipped',
     provider: 'resend-compatible',
   });
@@ -43,17 +41,21 @@ test('EmailNotificationProvider fails fast in production when it is unconfigured
     new AppLoggerService(),
   );
 
-  await assert.rejects(
-    () =>
-      provider.send({
-        to: 'buyer@example.com',
-        subject: 'Pedido confirmado',
-        html: '<p>ok</p>',
-      }),
-    (error: unknown) =>
-      error instanceof ConfigurationUnavailableError &&
-      /notificationEmail is not configured/.test(error.message),
-  );
+  await expect(
+    provider.send({
+      to: 'buyer@example.com',
+      subject: 'Pedido confirmado',
+      html: '<p>ok</p>',
+    }),
+  ).rejects.toBeInstanceOf(ConfigurationUnavailableError);
+
+  await expect(
+    provider.send({
+      to: 'buyer@example.com',
+      subject: 'Pedido confirmado',
+      html: '<p>ok</p>',
+    }),
+  ).rejects.toThrow(/notificationEmail is not configured/);
 });
 
 test('EmailNotificationProvider posts a resend-compatible payload when configured', async () => {
@@ -94,13 +96,13 @@ test('EmailNotificationProvider posts a resend-compatible payload when configure
     tags: [{ name: 'orderId', value: 'order-1' }],
   });
 
-  assert.equal(result.status, 'sent');
-  assert.equal(result.providerMessageId, 'email-123');
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0]?.url, 'https://api.resend.com/emails');
+  expect(result.status).toBe('sent');
+  expect(result.providerMessageId).toBe('email-123');
+  expect(requests.length).toBe(1);
+  expect(requests[0]?.url).toBe('https://api.resend.com/emails');
 
   const headers = requests[0]?.init?.headers as Record<string, string>;
-  assert.equal(headers.authorization, 'Bearer notif-key');
+  expect(headers.authorization).toBe('Bearer notif-key');
 
   const body = JSON.parse(String(requests[0]?.init?.body)) as {
     from: string;
@@ -109,8 +111,8 @@ test('EmailNotificationProvider posts a resend-compatible payload when configure
     tags: Array<{ name: string; value: string }>;
   };
 
-  assert.equal(body.from, 'Vendora <ops@vendora.local>');
-  assert.equal(body.reply_to, 'ayuda@vendora.local');
-  assert.deepEqual(body.to, ['buyer@example.com']);
-  assert.deepEqual(body.tags, [{ name: 'orderId', value: 'order-1' }]);
+  expect(body.from).toBe('Vendora <ops@vendora.local>');
+  expect(body.reply_to).toBe('ayuda@vendora.local');
+  expect(body.to).toEqual(['buyer@example.com']);
+  expect(body.tags).toEqual([{ name: 'orderId', value: 'order-1' }]);
 });

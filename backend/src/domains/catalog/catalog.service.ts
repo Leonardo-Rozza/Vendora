@@ -124,14 +124,14 @@ export class CatalogService {
 
   async createProduct(input: CreateProductDto) {
     return this.prisma.product.create({
-        data: {
-          slug: input.slug,
-          name: input.name,
-          description: input.description,
-          status: input.status,
-          category: input.category,
-          variants: {
-            create: input.variants.map((variant) => ({
+      data: {
+        slug: input.slug,
+        name: input.name,
+        description: input.description,
+        status: input.status,
+        category: input.category,
+        variants: {
+          create: input.variants.map((variant) => ({
             sku: variant.sku,
             name: variant.name,
             priceAmount: new Prisma.Decimal(variant.priceAmount),
@@ -380,8 +380,10 @@ export class CatalogService {
       }
     }
 
-    const minAmount = priceAmounts.length > 0 ? Math.min(...priceAmounts).toFixed(2) : null;
-    const maxAmount = priceAmounts.length > 0 ? Math.max(...priceAmounts).toFixed(2) : null;
+    const minAmount =
+      priceAmounts.length > 0 ? Math.min(...priceAmounts).toFixed(2) : null;
+    const maxAmount =
+      priceAmounts.length > 0 ? Math.max(...priceAmounts).toFixed(2) : null;
 
     return {
       categories: Array.from(categoryCounts.entries())
@@ -435,17 +437,26 @@ export class CatalogService {
   private sortProducts(products: CatalogListItem[], sort: CatalogSortOption) {
     const sortedProducts = [...products];
 
-    if (sort === CatalogSortOption.PRICE_ASC || sort === CatalogSortOption.PRICE_DESC) {
+    if (
+      sort === CatalogSortOption.PRICE_ASC ||
+      sort === CatalogSortOption.PRICE_DESC
+    ) {
       sortedProducts.sort((left, right) => {
-        const difference = this.readLowestVariantPrice(left) - this.readLowestVariantPrice(right);
+        const difference =
+          this.readLowestVariantPrice(left) -
+          this.readLowestVariantPrice(right);
 
-        return sort === CatalogSortOption.PRICE_ASC ? difference : difference * -1;
+        return sort === CatalogSortOption.PRICE_ASC
+          ? difference
+          : difference * -1;
       });
 
       return sortedProducts;
     }
 
-    sortedProducts.sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    sortedProducts.sort(
+      (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+    );
     return sortedProducts;
   }
 
@@ -455,7 +466,9 @@ export class CatalogService {
     }
 
     return Math.min(
-      ...product.variants.map((variant) => Number(variant.priceAmount.toString())),
+      ...product.variants.map((variant) =>
+        Number(variant.priceAmount.toString()),
+      ),
     );
   }
 

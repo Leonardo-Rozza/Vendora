@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
 import { Prisma } from '@prisma/client';
 import { CatalogService } from './catalog.service';
 
@@ -39,7 +37,7 @@ test('CatalogService lists active catalog products with filter metadata and sear
     sort: 'price-asc',
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     items: [
       {
         id: 'product-1',
@@ -63,7 +61,7 @@ test('CatalogService lists active catalog products with filter metadata and sear
       },
     },
   });
-  assert.deepEqual(metadataArgs, {
+  expect(metadataArgs).toEqual({
     where: {
       AND: [
         { status: 'ACTIVE' },
@@ -103,7 +101,7 @@ test('CatalogService lists active catalog products with filter metadata and sear
       },
     },
   });
-  assert.deepEqual(receivedArgs, {
+  expect(receivedArgs).toEqual({
     where: {
       AND: [
         { status: 'ACTIVE' },
@@ -174,8 +172,8 @@ test('CatalogService returns an empty collection when no active products match t
 
   const result = await service.listProducts({ query: 'missing' });
 
-  assert.equal(readCount, 2);
-  assert.deepEqual(result, {
+  expect(readCount).toBe(2);
+  expect(result).toEqual({
     items: [],
     filters: {
       categories: [],
@@ -208,8 +206,8 @@ test('CatalogService loads an active product aggregate by slug', async () => {
 
   const result = await service.findProductBySlug('mate-gourd');
 
-  assert.deepEqual(result, { id: 'product-1' });
-  assert.deepEqual(receivedArgs, {
+  expect(result).toEqual({ id: 'product-1' });
+  expect(receivedArgs).toEqual({
     where: { slug: 'mate-gourd', status: 'ACTIVE' },
     include: {
       variants: {
@@ -262,7 +260,7 @@ test('CatalogService creates a product with category, variants, inventory, and i
     ],
   });
 
-  assert.deepEqual(result, { id: 'product-1' });
+  expect(result).toEqual({ id: 'product-1' });
   const createArgs = receivedArgs as {
     data: {
       slug: string;
@@ -276,18 +274,16 @@ test('CatalogService creates a product with category, variants, inventory, and i
       images: { create: Array<{ assetUrl: string }> };
     };
   };
-  assert.equal(createArgs.data.slug, 'mate-gourd');
-  assert.equal(createArgs.data.name, 'Mate Gourd');
-  assert.equal(createArgs.data.description, 'Classic mate.');
-  assert.equal(createArgs.data.status, 'ACTIVE');
-  assert.equal(createArgs.data.category, 'HOGAR');
-  assert.equal(createArgs.data.variants.create[0]?.currencyCode, 'ARS');
-  assert.equal(
-    createArgs.data.variants.create[0]?.priceAmount.toString(),
+  expect(createArgs.data.slug).toBe('mate-gourd');
+  expect(createArgs.data.name).toBe('Mate Gourd');
+  expect(createArgs.data.description).toBe('Classic mate.');
+  expect(createArgs.data.status).toBe('ACTIVE');
+  expect(createArgs.data.category).toBe('HOGAR');
+  expect(createArgs.data.variants.create[0]?.currencyCode).toBe('ARS');
+  expect(createArgs.data.variants.create[0]?.priceAmount.toString()).toBe(
     '12500',
   );
-  assert.equal(
-    createArgs.data.images.create[0]?.assetUrl,
+  expect(createArgs.data.images.create[0]?.assetUrl).toBe(
     'https://cdn.example.com/mate.jpg',
   );
 });
@@ -374,8 +370,8 @@ test('CatalogService updates product fields and existing variants', async () => 
     ],
   });
 
-  assert.deepEqual(result, { id: 'product-1', variants: [], images: [] });
-  assert.deepEqual(calls.productUpdate, {
+  expect(result).toEqual({ id: 'product-1', variants: [], images: [] });
+  expect(calls.productUpdate).toEqual({
     where: { id: 'product-1' },
     data: {
       slug: undefined,
@@ -385,7 +381,7 @@ test('CatalogService updates product fields and existing variants', async () => 
       category: 'ACCESORIOS',
     },
   });
-  assert.deepEqual(calls.variantUpdate, {
+  expect(calls.variantUpdate).toEqual({
     where: { id: 'variant-1' },
     data: {
       sku: 'SKU-1',
@@ -394,16 +390,16 @@ test('CatalogService updates product fields and existing variants', async () => 
       currencyCode: 'ARS',
     },
   });
-  assert.deepEqual(calls.inventoryUpdate, {
+  expect(calls.inventoryUpdate).toEqual({
     where: { variantId: 'variant-1' },
     data: {
       availableQuantity: 8,
     },
   });
-  assert.deepEqual(calls.imageDeleteMany, {
+  expect(calls.imageDeleteMany).toEqual({
     where: { productId: 'product-1' },
   });
-  assert.deepEqual(calls.imageCreateMany, {
+  expect(calls.imageCreateMany).toEqual({
     data: [
       {
         productId: 'product-1',

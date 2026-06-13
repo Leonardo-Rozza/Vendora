@@ -40,44 +40,48 @@ export class InventoryService {
   }
 
   async updateAvailableQuantity(variantId: string, availableQuantity: number) {
-    const inventory = await this.prisma.inventoryItem.findUnique({
-      where: { variantId },
-    });
+    // Run the read-then-write atomically so a concurrent reservation cannot
+    // slip between the reserved-quantity check and the update.
+    return this.prisma.$transaction(async (tx) => {
+      const inventory = await tx.inventoryItem.findUnique({
+        where: { variantId },
+      });
 
-    if (inventory) {
-      if (availableQuantity < inventory.reservedQuantity) {
-        throw new BadRequestException(
-          'Available quantity cannot be lower than reserved quantity',
-        );
+      if (inventory) {
+        if (availableQuantity < inventory.reservedQuantity) {
+          throw new BadRequestException(
+            'Available quantity cannot be lower than reserved quantity',
+          );
+        }
+
+        return tx.inventoryItem.update({
+          where: { variantId },
+          data: {
+            availableQuantity,
+          },
+          include: {
+            variant: true,
+          },
+        });
       }
 
-      return this.prisma.inventoryItem.update({
-        where: { variantId },
+      const variant = await tx.productVariant.findUnique({
+        where: { id: variantId },
+      });
+
+      if (!variant) {
+        throw new NotFoundException(`Variant ${variantId} was not found`);
+      }
+
+      return tx.inventoryItem.create({
         data: {
+          variantId,
           availableQuantity,
         },
         include: {
           variant: true,
         },
       });
-    }
-
-    const variant = await this.prisma.productVariant.findUnique({
-      where: { id: variantId },
-    });
-
-    if (!variant) {
-      throw new NotFoundException(`Variant ${variantId} was not found`);
-    }
-
-    return this.prisma.inventoryItem.create({
-      data: {
-        variantId,
-        availableQuantity,
-      },
-      include: {
-        variant: true,
-      },
     });
   }
 

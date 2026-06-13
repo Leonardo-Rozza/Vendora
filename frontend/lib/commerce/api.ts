@@ -16,6 +16,10 @@ import type {
   OrderTrackingView,
   UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
+import {
+  catalogCollectionResponseSchema,
+  catalogProductDetailResponseSchema,
+} from "./schemas";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -140,7 +144,14 @@ export async function listCatalogProductCollection(
   appendSearchParam(searchParams, "sort", resolvedFilters.sort);
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  return requestJson<CatalogCollectionResponse>(`/catalog/products${suffix}`);
+  const payload = await requestJson<unknown>(`/catalog/products${suffix}`);
+  const result = catalogCollectionResponseSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data satisfies CatalogCollectionResponse;
 }
 
 export async function listCatalogProducts(filters?: string | CatalogFilters) {
@@ -149,8 +160,15 @@ export async function listCatalogProducts(filters?: string | CatalogFilters) {
   return products.items.map(normalizeCatalogProductCard);
 }
 
-export function getCatalogProduct(slug: string) {
-  return requestJson<CatalogProductDetail>(`/catalog/products/${slug}`);
+export async function getCatalogProduct(slug: string) {
+  const payload = await requestJson<unknown>(`/catalog/products/${slug}`);
+  const result = catalogProductDetailResponseSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data satisfies CatalogProductDetail;
 }
 
 export function createOrder(payload: CreateOrderRequest) {

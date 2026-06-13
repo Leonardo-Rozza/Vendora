@@ -4,7 +4,8 @@
     "declaration": false,
     "incremental": false,
     "outDir": "./.test-dist",
-    "sourceMap": false
+    "sourceMap": false,
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist", ".test-dist"]

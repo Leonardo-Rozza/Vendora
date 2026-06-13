@@ -1,14 +1,10 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
-const WEBHOOK_STATUSES = [
-  'approved',
-  'authorized',
-  'pending',
-  'rejected',
-  'cancelled',
-  'refunded',
-] as const;
-
+/**
+ * Mercado Pago webhook payload. Note there is intentionally NO `status` field:
+ * the webhook never trusts a status sent in the request body. The authoritative
+ * status is fetched from Mercado Pago via the gateway using `resourceId`.
+ */
 export class MercadoPagoWebhookDto {
   @IsString()
   eventId!: string;
@@ -19,9 +15,4 @@ export class MercadoPagoWebhookDto {
   @IsOptional()
   @IsString()
   topic?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(WEBHOOK_STATUSES)
-  status?: (typeof WEBHOOK_STATUSES)[number];
 }

@@ -71,9 +71,10 @@ export function AdminLoginForm() {
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-            <label className="block text-sm font-medium text-[var(--ink-strong)]">
+            <label className="block text-sm font-medium text-[var(--ink-strong)]" htmlFor="admin-login-email">
               {copy.emailLabel}
               <input
+                id="admin-login-email"
                 className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)] outline-none transition focus:border-[var(--brand-deep)]"
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={copy.emailPlaceholder}
@@ -81,9 +82,10 @@ export function AdminLoginForm() {
                 value={email}
               />
             </label>
-            <label className="block text-sm font-medium text-[var(--ink-strong)]">
+            <label className="block text-sm font-medium text-[var(--ink-strong)]" htmlFor="admin-login-password">
               {copy.passwordLabel}
               <input
+                id="admin-login-password"
                 className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)] outline-none transition focus:border-[var(--brand-deep)]"
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder={copy.passwordPlaceholder}
@@ -91,7 +93,7 @@ export function AdminLoginForm() {
                 value={password}
               />
             </label>
-            {error ? <p className="text-sm text-[var(--warning-copy)]">{error}</p> : null}
+            {error ? <p role="alert" className="text-sm text-[var(--warning-copy)]">{error}</p> : null}
             <button
               className="w-full rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
               disabled={isSubmitting}

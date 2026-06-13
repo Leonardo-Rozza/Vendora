@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { test, expect } from "vitest";
 import { normalizeCatalogProductCard } from "../lib/commerce/api.ts";
 import {
   addCartLine,
@@ -40,7 +39,7 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     ],
   });
 
-  assert.deepEqual(result, {
+  expect(result).toEqual({
     id: "product-1",
     slug: "aurora-speaker",
     name: "Aurora Speaker",
@@ -83,9 +82,9 @@ test("cart helpers merge duplicate variants, update quantities, and compute tota
   });
   const updated = updateCartLineQuantity(merged, "variant-1", 4);
 
-  assert.equal(updated.lines.length, 1);
-  assert.equal(updated.lines[0]?.quantity, 4);
-  assert.deepEqual(calculateCartTotals(updated), {
+  expect(updated.lines.length).toBe(1);
+  expect(updated.lines[0]?.quantity).toBe(4);
+  expect(calculateCartTotals(updated)).toEqual({
     itemCount: 4,
     subtotalAmount: "519600",
     currencyCode: "ARS",
@@ -120,8 +119,8 @@ test("cart helpers serialize persistence state and shape the backend order paylo
     postalCode: "C1426",
   };
 
-  assert.deepEqual(rehydrated, state);
-  assert.deepEqual(toCreateOrderRequest(state, checkoutForm), {
+  expect(rehydrated).toEqual(state);
+  expect(toCreateOrderRequest(state, checkoutForm)).toEqual({
     items: [{ variantId: "variant-2", quantity: 2 }],
     contact: {
       fullName: "Ada Buyer",

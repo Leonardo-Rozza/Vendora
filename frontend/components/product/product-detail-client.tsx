@@ -1,108 +1,37 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
-import { ApiError, getCatalogProduct } from "@/lib/commerce/api";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductDetail } from "@/lib/contracts";
 import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
 
-export function ProductDetailClient({ slug }: { slug: string }) {
+export function ProductDetailClient({
+  product,
+}: {
+  product: CatalogProductDetail;
+}) {
   const { addToCart } = useCommerce();
   const copy = appCopy.productDetail;
-  const [product, setProduct] = useState<CatalogProductDetail | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isMissing, setIsMissing] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(
+    product.variants[0]?.id ?? "",
+  );
   const [confirmation, setConfirmation] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadProduct() {
-      setIsLoading(true);
-      setError(null);
-      setIsMissing(false);
-
-      try {
-        const nextProduct = await getCatalogProduct(slug);
-
-        if (!isActive) {
-          return;
-        }
-
-        setProduct(nextProduct);
-        setSelectedVariantId(nextProduct.variants[0]?.id ?? "");
-      } catch (caughtError) {
-        if (!isActive) {
-          return;
-        }
-
-        if (caughtError instanceof ApiError && caughtError.status === 404) {
-          setIsMissing(true);
-        } else {
-          setError(caughtError instanceof Error ? caughtError.message : copy.temporaryError);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadProduct();
-
-    return () => {
-      isActive = false;
-    };
-  }, [copy.temporaryError, slug]);
-
   const selectedVariant = useMemo(
-    () => product?.variants.find((variant) => variant.id === selectedVariantId) ?? null,
+    () =>
+      product.variants.find((variant) => variant.id === selectedVariantId) ??
+      null,
     [product, selectedVariantId],
   );
 
-  if (isLoading) {
-    return (
-      <section className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12">
-        <div className="grid animate-pulse gap-6 lg:grid-cols-[1.02fr_0.98fr]">
-          <div className="min-h-[24rem] rounded-[2rem] bg-white/70" />
-          <div className="min-h-[24rem] rounded-[2rem] bg-white/70" />
-        </div>
-      </section>
-    );
-  }
-
-  if (isMissing) {
-    return (
-      <main className="mx-auto w-full max-w-4xl px-6 py-12 sm:px-8 lg:px-12">
-        <div className="rounded-[2rem] border border-[var(--line-soft)] bg-white/78 p-8 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-          <p className="font-mono text-xs uppercase tracking-[0.34em] text-[var(--ink-soft)]">
-            {copy.missingEyebrow}
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[var(--ink-strong)]">
-            {copy.missingTitle}
-          </h1>
-          <p className="mt-4 text-sm leading-7 text-[var(--ink-muted)]">{copy.missingDescription}</p>
-          <Link
-            className="mt-6 inline-flex rounded-full bg-[var(--ink-strong)] px-5 py-3 text-sm font-semibold text-[var(--surface-base)]"
-            href="/"
-          >
-            {copy.backToCatalog}
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  if (error || !product || !selectedVariant) {
+  if (!selectedVariant) {
     return (
       <main className="mx-auto w-full max-w-4xl px-6 py-12 sm:px-8 lg:px-12">
         <div className="rounded-[2rem] border border-[var(--warning-line)] bg-[var(--warning-surface)] p-8 text-[var(--ink-strong)] shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
           <p className="font-semibold">{copy.temporaryError}</p>
-          <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">{error}</p>
           <Link className="mt-6 inline-flex rounded-full border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold" href="/">
             {copy.backToCatalog}
           </Link>
@@ -133,9 +62,9 @@ export function ProductDetailClient({ slug }: { slug: string }) {
 
       <section className="grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
         <article className="overflow-hidden rounded-[2rem] border border-[var(--line-soft)] bg-white/78 shadow-[0_20px_70px_rgba(61,43,28,0.08)]">
-          <div className="aspect-[1/1] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
+          <div className="relative aspect-[1/1] bg-[linear-gradient(160deg,rgba(210,120,55,0.24),rgba(24,80,104,0.16))]">
             {primaryImage ? (
-              <img alt={primaryImage.altText ?? product.name} className="h-full w-full object-cover" src={primaryImage.assetUrl} />
+              <Image alt={primaryImage.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 50vw, 100vw" src={primaryImage.assetUrl} />
             ) : (
               <div className="flex h-full items-end p-6 font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-strong)]">
                 {copy.imagePending}
@@ -145,8 +74,8 @@ export function ProductDetailClient({ slug }: { slug: string }) {
           {product.images.length > 1 ? (
             <div className="grid gap-3 border-t border-[var(--line-soft)] p-4 sm:grid-cols-3">
               {product.images.slice(1).map((image) => (
-                <div key={image.id} className="overflow-hidden rounded-[1.2rem] border border-[var(--line-soft)]">
-                  <img alt={image.altText ?? product.name} className="aspect-[4/3] h-full w-full object-cover" src={image.assetUrl} />
+                <div key={image.id} className="relative aspect-[4/3] overflow-hidden rounded-[1.2rem] border border-[var(--line-soft)]">
+                  <Image alt={image.altText ?? product.name} className="object-cover" fill sizes="(min-width: 1024px) 17vw, 33vw" src={image.assetUrl} />
                 </div>
               ))}
             </div>
@@ -248,7 +177,11 @@ export function ProductDetailClient({ slug }: { slug: string }) {
             >
               {isSelectedVariantUnavailable ? copy.unavailableCta : copy.addToCart}
             </button>
-            {confirmation ? <p className="text-sm text-white/76">{confirmation}</p> : null}
+            {confirmation ? (
+              <p aria-live="polite" role="status" className="text-sm text-white/76">
+                {confirmation}
+              </p>
+            ) : null}
           </div>
         </article>
       </section>

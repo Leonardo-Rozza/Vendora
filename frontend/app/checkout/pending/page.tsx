@@ -4,7 +4,6 @@ import { CheckoutStatusClient } from "@/components/checkout/checkout-status-clie
 export default function CheckoutPendingPage() {
   return (
     <Suspense>
-      <div hidden>Payment pending</div>
       <CheckoutStatusClient status="pending" />
     </Suspense>
   );
