@@ -125,10 +125,16 @@ export function AdminDashboard() {
       <header className="sticky top-0 z-40 bg-brand-ink">
         <div className="mx-auto flex w-full max-w-[1200px] items-center gap-4 px-5 py-3 sm:gap-[18px]">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-[34px] place-items-center rounded-[9px] bg-brand-deep text-lg font-extrabold text-surface-base">
-              V
-            </span>
-            <span className="text-base font-extrabold text-[#fbefd9]">Vendora</span>
+            <Link
+              className="flex items-center gap-2.5 rounded-[9px] outline-none transition-opacity hover:opacity-80 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
+              href="/"
+              aria-label={copy.backToStore}
+            >
+              <span className="grid size-[34px] place-items-center rounded-[9px] bg-brand-deep text-lg font-extrabold text-surface-base">
+                V
+              </span>
+              <span className="text-base font-extrabold text-[#fbefd9]">Vendora</span>
+            </Link>
             <span className="border-l border-[rgba(159,182,190,0.3)] pl-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-accent-sky">
               {copy.adminTag}
             </span>

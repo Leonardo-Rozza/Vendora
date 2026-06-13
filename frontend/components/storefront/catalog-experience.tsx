@@ -17,7 +17,6 @@ import { appCopy } from "@/lib/copy/es-ar";
 import { CatalogFilters as CatalogFiltersPanel } from "@/components/storefront/catalog-filters";
 import { CatalogGrid } from "@/components/storefront/catalog-grid";
 import { CatalogToolbar } from "@/components/storefront/catalog-toolbar";
-import { StorefrontTrust } from "@/components/storefront/storefront-trust";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { Pill } from "@/components/ui/pill";
@@ -373,8 +372,6 @@ export function CatalogExperience({
           onSelect={handleQuickCategory}
         />
       ) : null}
-
-      <StorefrontTrust />
     </div>
   );
 }
