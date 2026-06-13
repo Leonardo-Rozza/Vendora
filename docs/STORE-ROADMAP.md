@@ -65,8 +65,8 @@ Que se encuentren y comparen productos varios con facilidad.
 - **Admin & métricas**: dashboard de ventas/top productos, gestión masiva de stock, cupones, categorías/atributos.
 
 ## Estado
-- [~] Fase D — Sistema de diseño (D1 tokens, D2 componentes, D3 styleguide ✅; D4 adopción: incremental durante Fase B)
-- [ ] Fase B — Descubrimiento (v1)
+- [~] Fase D — Sistema de diseño (D1 tokens, D2 componentes, D3 styleguide ✅; D4 adopción: incremental)
+- [x] Fase B — Descubrimiento (v1): B1 categorías ✅, B2 atributos ✅, B3-B4 búsqueda+paginación ✅, B5 relacionados ✅
 - [ ] Checkout pro
 - [ ] Invitado mejorado
 - [ ] Post-venta & confianza

@@ -134,6 +134,8 @@ export const catalogCollectionResponseSchema = z.object({
 
 export const catalogProductDetailResponseSchema = catalogProductDetailSchema;
 
+export const relatedProductsSchema = z.array(catalogProductDetailSchema);
+
 // Ensure the inferred schema types stay compatible with the public contracts.
 type _AssertCollection = z.infer<
   typeof catalogCollectionResponseSchema

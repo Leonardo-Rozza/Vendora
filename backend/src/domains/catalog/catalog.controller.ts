@@ -59,6 +59,13 @@ export class CatalogController {
     return this.mapStorefrontProduct(product);
   }
 
+  @Get('products/:slug/related')
+  async getRelatedProducts(@Param('slug') slug: string) {
+    const related = await this.catalogService.findRelatedProducts(slug);
+
+    return related.map((product) => this.mapStorefrontProduct(product));
+  }
+
   private mapStorefrontProduct(product: {
     id: string;
     slug: string;

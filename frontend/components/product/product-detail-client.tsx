@@ -11,8 +11,10 @@ import { Breadcrumb } from "@/components/ui";
 
 export function ProductDetailClient({
   product,
+  related = [],
 }: {
   product: CatalogProductDetail;
+  related?: CatalogProductDetail[];
 }) {
   const { addToCart } = useCommerce();
   const copy = appCopy.productDetail;
@@ -222,6 +224,51 @@ export function ProductDetailClient({
           </div>
         </article>
       </section>
+
+      {related.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink-strong">
+            Productos relacionados
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((item) => {
+              const image = item.images[0] ?? null;
+              const firstVariant = item.variants[0] ?? null;
+
+              return (
+                <Link
+                  className="group rounded-card border border-line-soft bg-surface-panel p-3 transition hover:-translate-y-0.5 hover:shadow-soft"
+                  href={`/products/${item.slug}`}
+                  key={item.id}
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-[linear-gradient(160deg,rgba(210,120,55,0.18),rgba(24,80,104,0.12))]">
+                    {image ? (
+                      <Image
+                        alt={image.altText ?? item.name}
+                        className="object-cover"
+                        fill
+                        sizes="(min-width: 1024px) 20vw, 50vw"
+                        src={image.assetUrl}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-ink-strong">
+                    {item.name}
+                  </p>
+                  {firstVariant ? (
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {formatMoney(
+                        firstVariant.priceAmount,
+                        firstVariant.currencyCode,
+                      )}
+                    </p>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -183,3 +183,17 @@ test('CatalogController rejects missing products', async () => {
     'Product missing-product was not found',
   );
 });
+
+test('CatalogController maps related products', async () => {
+  const controller = new CatalogController(
+    {
+      findRelatedProducts: async () => [productAggregate],
+    } as never,
+    noopCategoriesService,
+    noopAttributesService,
+  );
+
+  expect(await controller.getRelatedProducts('mate-gourd')).toEqual([
+    mappedProduct,
+  ]);
+});

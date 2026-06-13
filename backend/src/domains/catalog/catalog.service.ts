@@ -183,6 +183,29 @@ export class CatalogService {
     });
   }
 
+  /** Active products in the same category, excluding the product itself. */
+  async findRelatedProducts(slug: string, limit = 4) {
+    const product = await this.prisma.product.findFirst({
+      where: { slug, status: ProductStatus.ACTIVE },
+      select: { id: true, categoryId: true },
+    });
+
+    if (!product?.categoryId) {
+      return [];
+    }
+
+    return this.prisma.product.findMany({
+      where: {
+        status: ProductStatus.ACTIVE,
+        categoryId: product.categoryId,
+        id: { not: product.id },
+      },
+      include: PRODUCT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
   listAdminProducts(query: ListAdminProductsDto) {
     return this.prisma.product.findMany({
       where: this.buildProductWhere({

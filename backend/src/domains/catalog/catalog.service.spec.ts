@@ -378,3 +378,46 @@ test('CatalogService updates product fields, attribute links and existing varian
     },
   });
 });
+
+test('CatalogService finds related active products in the same category', async () => {
+  const calls: Record<string, unknown> = {};
+  const service = new CatalogService(
+    {
+      product: {
+        findFirst: async () => ({ id: 'product-1', categoryId: 'cat_hogar' }),
+        findMany: async (args: unknown) => {
+          calls.findMany = args;
+          return [{ id: 'product-2' }];
+        },
+      },
+    } as never,
+    categoriesStub(),
+  );
+
+  const result = await service.findRelatedProducts('mate-gourd');
+
+  expect(result).toEqual([{ id: 'product-2' }]);
+  expect(calls.findMany).toEqual({
+    where: {
+      status: 'ACTIVE',
+      categoryId: 'cat_hogar',
+      id: { not: 'product-1' },
+    },
+    include: PRODUCT_INCLUDE,
+    orderBy: { createdAt: 'desc' },
+    take: 4,
+  });
+});
+
+test('CatalogService returns no related products without a category', async () => {
+  const service = new CatalogService(
+    {
+      product: {
+        findFirst: async () => ({ id: 'product-1', categoryId: null }),
+      },
+    } as never,
+    categoriesStub(),
+  );
+
+  expect(await service.findRelatedProducts('mate-gourd')).toEqual([]);
+});

@@ -2,7 +2,11 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetailClient } from "@/components/product/product-detail-client";
-import { ApiError, getCatalogProduct } from "@/lib/commerce/api";
+import {
+  ApiError,
+  getCatalogProduct,
+  getRelatedProducts,
+} from "@/lib/commerce/api";
 import type { CatalogProductDetail } from "@/lib/contracts";
 
 export const dynamic = "force-dynamic";
@@ -49,5 +53,8 @@ export default async function ProductPage({
     throw error;
   }
 
-  return <ProductDetailClient product={product} />;
+  // Related products are best-effort: a failure here must not break the page.
+  const related = await getRelatedProducts(slug).catch(() => []);
+
+  return <ProductDetailClient product={product} related={related} />;
 }

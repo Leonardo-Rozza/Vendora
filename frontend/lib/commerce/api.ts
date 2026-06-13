@@ -23,6 +23,7 @@ import {
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
   categoryTreeSchema,
+  relatedProductsSchema,
 } from "./schemas";
 
 export class ApiError extends Error {
@@ -188,6 +189,21 @@ export async function getCatalogProduct(slug: string) {
 export async function listAttributes(): Promise<AttributeOption[]> {
   const payload = await requestJson<unknown>("/catalog/attributes");
   const result = attributesListSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function getRelatedProducts(
+  slug: string,
+): Promise<CatalogProductDetail[]> {
+  const payload = await requestJson<unknown>(
+    `/catalog/products/${slug}/related`,
+  );
+  const result = relatedProductsSchema.safeParse(payload);
 
   if (!result.success) {
     throw new ApiError("Respuesta inválida del servidor", 502);
