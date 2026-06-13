@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProductCategory, ProductStatus } from '@prisma/client';
+import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../../platform/prisma/prisma.service';
+import {
+  CategoriesService,
+  collectBranchIds,
+  type CategorySummary,
+} from './categories.service';
 import {
   CatalogSortOption,
   DEFAULT_CATALOG_SORT,
@@ -14,6 +19,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 type CatalogDbClient = Pick<PrismaService, 'product' | 'inventoryItem'>;
 
 const PRODUCT_INCLUDE = {
+  category: true,
   variants: {
     include: {
       inventoryItem: true,
@@ -30,11 +36,16 @@ type CatalogListItem = Prisma.ProductGetPayload<{
   include: typeof PRODUCT_INCLUDE;
 }>;
 
+type CatalogCategoryFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  count: number;
+};
+
 type CatalogFilterMetadata = {
-  categories: Array<{
-    value: ProductCategory;
-    count: number;
-  }>;
+  categories: CatalogCategoryFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -42,7 +53,7 @@ type CatalogFilterMetadata = {
   availableSorts: CatalogSortOption[];
   applied: {
     query: string | null;
-    category: ProductCategory | null;
+    category: string | null;
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
@@ -51,11 +62,19 @@ type CatalogFilterMetadata = {
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoriesService: CategoriesService,
+  ) {}
 
   async listProducts(query: ListCatalogProductsDto) {
     const normalizedQuery = this.normalizeText(query.query);
     const appliedSort = query.sort ?? DEFAULT_CATALOG_SORT;
+    const categories = await this.categoriesService.listAll();
+    const categoryIds = query.category
+      ? collectBranchIds(categories, query.category)
+      : undefined;
+
     const discoveryWhere = this.buildProductWhere({
       query: normalizedQuery,
       status: ProductStatus.ACTIVE,
@@ -63,7 +82,7 @@ export class CatalogService {
     const filteredWhere = this.buildProductWhere({
       query: normalizedQuery,
       status: ProductStatus.ACTIVE,
-      category: query.category,
+      categoryIds,
       minPriceAmount: query.minPriceAmount,
       maxPriceAmount: query.maxPriceAmount,
     });
@@ -89,6 +108,7 @@ export class CatalogService {
       items: this.sortProducts(filteredProducts, appliedSort),
       filters: this.buildCatalogFilterMetadata({
         discoveryProducts,
+        categories,
         query,
         sort: appliedSort,
       }),
@@ -107,7 +127,11 @@ export class CatalogService {
 
   listAdminProducts(query: ListAdminProductsDto) {
     return this.prisma.product.findMany({
-      where: this.buildProductWhere(query),
+      where: this.buildProductWhere({
+        query: query.query,
+        status: query.status,
+        categoryIds: query.categoryId ? [query.categoryId] : undefined,
+      }),
       include: PRODUCT_INCLUDE,
       orderBy: {
         createdAt: 'desc',
@@ -129,7 +153,7 @@ export class CatalogService {
         name: input.name,
         description: input.description,
         status: input.status,
-        category: input.category,
+        categoryId: input.categoryId,
         variants: {
           create: input.variants.map((variant) => ({
             sku: variant.sku,
@@ -181,7 +205,7 @@ export class CatalogService {
           name: input.name,
           description: input.description,
           status: input.status,
-          category: input.category,
+          categoryId: input.categoryId,
         },
       });
 
@@ -275,13 +299,13 @@ export class CatalogService {
   private buildProductWhere({
     query,
     status,
-    category,
+    categoryIds,
     minPriceAmount,
     maxPriceAmount,
   }: {
     query?: string;
     status?: ProductStatus;
-    category?: ProductCategory;
+    categoryIds?: string[];
     minPriceAmount?: string;
     maxPriceAmount?: string;
   }) {
@@ -292,8 +316,8 @@ export class CatalogService {
       andFilters.push({ status });
     }
 
-    if (category) {
-      andFilters.push({ category });
+    if (categoryIds) {
+      andFilters.push({ categoryId: { in: categoryIds } });
     }
 
     if (normalizedQuery) {
@@ -352,26 +376,28 @@ export class CatalogService {
 
   private buildCatalogFilterMetadata({
     discoveryProducts,
+    categories,
     query,
     sort,
   }: {
     discoveryProducts: Array<{
-      category: ProductCategory | null;
+      categoryId: string | null;
       variants: Array<{
         priceAmount: Prisma.Decimal;
       }>;
     }>;
+    categories: CategorySummary[];
     query: ListCatalogProductsDto;
     sort: CatalogSortOption;
   }): CatalogFilterMetadata {
-    const categoryCounts = new Map<ProductCategory, number>();
+    const categoryCounts = new Map<string, number>();
     const priceAmounts: number[] = [];
 
     for (const product of discoveryProducts) {
-      if (product.category) {
+      if (product.categoryId) {
         categoryCounts.set(
-          product.category,
-          (categoryCounts.get(product.category) ?? 0) + 1,
+          product.categoryId,
+          (categoryCounts.get(product.categoryId) ?? 0) + 1,
         );
       }
 
@@ -386,9 +412,17 @@ export class CatalogService {
       priceAmounts.length > 0 ? Math.max(...priceAmounts).toFixed(2) : null;
 
     return {
-      categories: Array.from(categoryCounts.entries())
-        .map(([value, count]) => ({ value, count }))
-        .sort((left, right) => left.value.localeCompare(right.value)),
+      // `categories` is already ordered (sortOrder, name); keep only those with
+      // matching products so the facet reflects the discovery set.
+      categories: categories
+        .filter((category) => categoryCounts.has(category.id))
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          parentId: category.parentId,
+          count: categoryCounts.get(category.id) as number,
+        })),
       priceRange: {
         minAmount,
         maxAmount,

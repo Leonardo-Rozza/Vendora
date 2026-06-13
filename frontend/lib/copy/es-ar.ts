@@ -1,10 +1,4 @@
-import type { CatalogSortOption, ProductCategory } from "@/lib/contracts";
-
-export const PRODUCT_CATEGORY_LABELS: Record<ProductCategory, string> = {
-  ELECTRONICA: "Electronica",
-  HOGAR: "Hogar",
-  ACCESORIOS: "Accesorios",
-};
+import type { CatalogSortOption } from "@/lib/contracts";
 
 export const CATALOG_SORT_LABELS: Record<CatalogSortOption, string> = {
   featured: "Destacados",
@@ -305,10 +299,6 @@ export const appCopy = {
     trackingCode: "Codigo tracking",
   },
 };
-
-export function getProductCategoryLabel(category: ProductCategory) {
-  return PRODUCT_CATEGORY_LABELS[category];
-}
 
 export function getCatalogSortLabel(sort: CatalogSortOption) {
   return CATALOG_SORT_LABELS[sort];

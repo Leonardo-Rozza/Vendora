@@ -6,7 +6,8 @@ import { useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
 import { formatMoney } from "@/lib/commerce/format";
 import type { CatalogProductDetail } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
+import { Breadcrumb } from "@/components/ui";
 
 export function ProductDetailClient({
   product,
@@ -47,6 +48,19 @@ export function ProductDetailClient({
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12">
+      {product.category ? (
+        <Breadcrumb
+          className="mb-6"
+          items={[
+            { label: "Inicio", href: "/" },
+            {
+              label: product.category.name,
+              href: `/?category=${encodeURIComponent(product.category.slug)}`,
+            },
+            { label: product.name },
+          ]}
+        />
+      ) : null}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-sm text-[var(--ink-muted)]">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/">{copy.backToCatalog}</Link>
@@ -55,7 +69,7 @@ export function ProductDetailClient({
         </div>
         {product.category ? (
           <span className="rounded-full border border-[var(--line-soft)] bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
-            {copy.categoryLabel}: {getProductCategoryLabel(product.category)}
+            {copy.categoryLabel}: {product.category.name}
           </span>
         ) : null}
       </div>

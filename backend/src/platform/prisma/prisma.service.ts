@@ -63,6 +63,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  get category() {
+    return this.client.category;
+  }
+
   get product() {
     return this.client.product;
   }

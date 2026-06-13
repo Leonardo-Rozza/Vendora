@@ -1,4 +1,4 @@
-import { ProductCategory, ProductStatus } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -31,8 +31,9 @@ export class CreateProductDto {
   status?: ProductStatus;
 
   @IsOptional()
-  @IsEnum(ProductCategory)
-  category?: ProductCategory;
+  @IsString()
+  @MaxLength(64)
+  categoryId?: string;
 
   @IsArray()
   @ArrayMinSize(1)

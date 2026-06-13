@@ -7,6 +7,7 @@ import type {
   CatalogFilters,
   CatalogProductCard,
   CatalogProductDetail,
+  CategoryNode,
   CheckoutPreferenceResponse,
   CreateCheckoutPreferenceRequest,
   CreateOrderRequest,
@@ -19,6 +20,7 @@ import type {
 import {
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
+  categoryTreeSchema,
 } from "./schemas";
 
 export class ApiError extends Error {
@@ -171,6 +173,17 @@ export async function getCatalogProduct(slug: string) {
   return result.data satisfies CatalogProductDetail;
 }
 
+export async function listCategoryTree(): Promise<CategoryNode[]> {
+  const payload = await requestJson<unknown>("/catalog/categories");
+  const result = categoryTreeSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
 export function createOrder(payload: CreateOrderRequest) {
   return requestJson<CreatedOrder>("/orders", {
     method: "POST",
@@ -217,7 +230,7 @@ export function listAdminProducts(query: string | ListAdminProductsQuery = {}) {
 
   appendSearchParam(searchParams, "query", resolvedQuery.query);
   appendSearchParam(searchParams, "status", resolvedQuery.status);
-  appendSearchParam(searchParams, "category", resolvedQuery.category);
+  appendSearchParam(searchParams, "categoryId", resolvedQuery.categoryId);
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   return requestAdminJson<AdminProduct[]>(`/admin/catalog/products${suffix}`);

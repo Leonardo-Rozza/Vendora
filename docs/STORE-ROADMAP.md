@@ -37,9 +37,11 @@ componentes en `components/ui/` (button, panel, pill, section-heading).
 Que se encuentren y comparen productos varios con facilidad.
 
 **Backend**
-- **B1 · Categorías con jerarquía**: modelo `Category` (id, name, slug, parentId) reemplazando el enum
-  actual; migración + backfill + seed; endpoint de árbol de categorías. (Cambio de datos más sensible:
-  migrar con compatibilidad.)
+- **B1 · Categorías con jerarquía** ✅ HECHA: modelo `Category` (id, name, slug, parentId) reemplaza el enum;
+  migración con backfill + seed (3 categorías); `CategoriesService` (árbol + descendientes); endpoint
+  `GET /catalog/categories`; filtro de catálogo por slug que incluye descendientes; facet con id/slug/parentId/count.
+  Frontend: contracts/zod/api al nuevo contrato, navegación por árbol de categorías, breadcrumb en PDP,
+  selector de categoría real en admin. 70 unit + 8 e2e (back) y 17 (front) en verde.
 - **B2 · Atributos dinámicos**: implementar `Attribute / AttributeValue / ProductAttributeValue`
   (ya previstos en el PRD); migración. Habilitan filtros tipo color/material/capacidad.
 - **B3 · Búsqueda**: full-text en nombre/descripción (Postgres `tsvector`, o ILIKE para arrancar) + orden.
@@ -63,7 +65,7 @@ Que se encuentren y comparen productos varios con facilidad.
 - **Admin & métricas**: dashboard de ventas/top productos, gestión masiva de stock, cupones, categorías/atributos.
 
 ## Estado
-- [ ] Fase D — Sistema de diseño
+- [~] Fase D — Sistema de diseño (D1 tokens, D2 componentes, D3 styleguide ✅; D4 adopción: incremental durante Fase B)
 - [ ] Fase B — Descubrimiento (v1)
 - [ ] Checkout pro
 - [ ] Invitado mejorado

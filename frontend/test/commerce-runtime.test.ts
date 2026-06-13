@@ -189,7 +189,15 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       JSON.stringify({
         items: [],
         filters: {
-          categories: [{ value: "HOGAR", count: 1 }],
+          categories: [
+            {
+              id: "cat-hogar",
+              name: "Hogar",
+              slug: "hogar",
+              parentId: null,
+              count: 1,
+            },
+          ],
           priceRange: { minAmount: "9000.00", maxAmount: "12000.00" },
           availableSorts: ["featured", "price-asc", "price-desc", "newest"],
           applied: {
@@ -248,14 +256,14 @@ test("admin product helper appends category and status filters to the query stri
   }) as typeof global.fetch;
 
   try {
-    await listAdminProducts({ status: "ACTIVE", category: "ACCESORIOS" });
+    await listAdminProducts({ status: "ACTIVE", categoryId: "cat-1" });
   } finally {
     global.fetch = originalFetch;
   }
 
   expect(seenRequests.length).toBe(1);
   expect(seenRequests[0]!.url).toMatch(
-    /\/admin\/catalog\/products\?status=ACTIVE&category=ACCESORIOS$/,
+    /\/admin\/catalog\/products\?status=ACTIVE&categoryId=cat-1$/,
   );
   expect(seenRequests[0]!.init?.credentials).toBe("include");
 });

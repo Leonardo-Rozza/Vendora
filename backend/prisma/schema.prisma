@@ -13,10 +13,19 @@ enum ProductStatus {
   ARCHIVED
 }
 
-enum ProductCategory {
-  ELECTRONICA
-  HOGAR
-  ACCESORIOS
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryHierarchy")
+  products  Product[]
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([parentId])
 }
 
 enum OrderStatus {
@@ -98,13 +107,14 @@ model Product {
   name        String
   description String?
   status      ProductStatus    @default(DRAFT)
-  category    ProductCategory? @default(ACCESORIOS)
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   variants    ProductVariant[]
   images      ProductImage[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  @@index([category])
+  @@index([categoryId])
 }
 
 model ProductVariant {

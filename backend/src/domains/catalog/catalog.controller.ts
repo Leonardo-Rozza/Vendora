@@ -6,11 +6,20 @@ import {
   Query,
 } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
+import { CategoriesService } from './categories.service';
 import { ListCatalogProductsDto } from './dto/list-catalog-products.dto';
 
 @Controller('catalog')
 export class CatalogController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(
+    private readonly catalogService: CatalogService,
+    private readonly categoriesService: CategoriesService,
+  ) {}
+
+  @Get('categories')
+  listCategories() {
+    return this.categoriesService.getTree();
+  }
 
   @Get('products')
   async listProducts(@Query() query: ListCatalogProductsDto) {
@@ -39,7 +48,7 @@ export class CatalogController {
     name: string;
     description: string | null;
     status: string;
-    category: string | null;
+    category: { id: string; name: string; slug: string } | null;
     variants: Array<{
       id: string;
       sku: string;
@@ -64,7 +73,13 @@ export class CatalogController {
       name: product.name,
       description: product.description,
       status: product.status,
-      category: product.category,
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+            slug: product.category.slug,
+          }
+        : null,
       variants: product.variants.map((variant) => ({
         id: variant.id,
         sku: variant.sku,

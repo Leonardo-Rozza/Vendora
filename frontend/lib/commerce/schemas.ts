@@ -2,13 +2,33 @@ import { z } from "zod";
 
 import {
   CATALOG_SORT_OPTIONS,
-  PRODUCT_CATEGORIES,
   type CatalogCollectionResponse,
   type CatalogProductDetail,
+  type CategoryNode,
 } from "../contracts";
 
-const productCategorySchema = z.enum(PRODUCT_CATEGORIES);
 const catalogSortOptionSchema = z.enum(CATALOG_SORT_OPTIONS);
+
+const categoryRefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+});
+
+const categoryFacetSchema = categoryRefSchema.extend({
+  parentId: z.string().nullable(),
+  count: z.number(),
+});
+
+const categoryNodeSchema: z.ZodType<CategoryNode> = z.lazy(() =>
+  categoryRefSchema.extend({
+    parentId: z.string().nullable(),
+    sortOrder: z.number(),
+    children: z.array(categoryNodeSchema),
+  }),
+);
+
+export const categoryTreeSchema = z.array(categoryNodeSchema);
 
 const catalogVariantPreviewSchema = z.object({
   id: z.string(),
@@ -33,18 +53,13 @@ const catalogProductDetailSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   status: z.string(),
-  category: productCategorySchema.nullable(),
+  category: categoryRefSchema.nullable(),
   variants: z.array(catalogVariantPreviewSchema),
   images: z.array(catalogImageReferenceSchema),
 });
 
 const catalogFilterMetadataSchema = z.object({
-  categories: z.array(
-    z.object({
-      value: productCategorySchema,
-      count: z.number(),
-    }),
-  ),
+  categories: z.array(categoryFacetSchema),
   priceRange: z.object({
     minAmount: z.string().nullable(),
     maxAmount: z.string().nullable(),
@@ -52,7 +67,7 @@ const catalogFilterMetadataSchema = z.object({
   availableSorts: z.array(catalogSortOptionSchema),
   applied: z.object({
     query: z.string().nullable(),
-    category: productCategorySchema.nullable(),
+    category: z.string().nullable(),
     minPriceAmount: z.string().nullable(),
     maxPriceAmount: z.string().nullable(),
     sort: catalogSortOptionSchema,

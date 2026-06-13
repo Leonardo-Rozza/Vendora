@@ -1,4 +1,4 @@
-import { ProductCategory, ProductStatus } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -32,8 +32,9 @@ export class UpdateProductDto {
   status?: ProductStatus;
 
   @IsOptional()
-  @IsEnum(ProductCategory)
-  category?: ProductCategory;
+  @IsString()
+  @MaxLength(64)
+  categoryId?: string;
 
   @IsOptional()
   @IsArray()

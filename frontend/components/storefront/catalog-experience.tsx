@@ -7,9 +7,9 @@ import type {
   CatalogCollectionResponse,
   CatalogFilters,
   CatalogProductCard,
-  ProductCategory,
+  CategoryNode,
 } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { appCopy } from "@/lib/copy/es-ar";
 import { CatalogFilters as CatalogFiltersPanel } from "@/components/storefront/catalog-filters";
 import { CatalogGrid } from "@/components/storefront/catalog-grid";
 import { CatalogToolbar } from "@/components/storefront/catalog-toolbar";
@@ -37,9 +37,11 @@ function mapAppliedFilters(
 export function CatalogExperience({
   initialCollection = null,
   initialError = null,
+  initialCategoryTree = [],
 }: {
   initialCollection?: CatalogCollectionResponse | null;
   initialError?: string | null;
+  initialCategoryTree?: CategoryNode[];
 }) {
   const copy = appCopy.storefrontCatalog;
   const initialAppliedFilters = initialCollection
@@ -96,9 +98,26 @@ export function CatalogExperience({
     ].filter(Boolean).length;
   }, [activeFilters]);
 
+  const categoryFacets = useMemo(
+    () => collection?.filters.categories ?? [],
+    [collection],
+  );
+
+  const categoryNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const facet of categoryFacets) {
+      map.set(facet.slug, facet.name);
+    }
+    return map;
+  }, [categoryFacets]);
+
+  function resolveCategoryName(slug: string) {
+    return categoryNameBySlug.get(slug) ?? slug;
+  }
+
   const activeLabel = useMemo(() => {
     if (activeFilters.category) {
-      return getProductCategoryLabel(activeFilters.category);
+      return resolveCategoryName(activeFilters.category);
     }
 
     if (activeFilters.query) {
@@ -106,7 +125,8 @@ export function CatalogExperience({
     }
 
     return copy.allProducts;
-  }, [activeFilters.category, activeFilters.query, copy.allProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilters.category, activeFilters.query, copy.allProducts, categoryNameBySlug]);
 
   function applyDraftFilters() {
     void loadProducts({
@@ -118,7 +138,7 @@ export function CatalogExperience({
     setIsFiltersOpen(false);
   }
 
-  function handleQuickCategory(category?: ProductCategory) {
+  function handleQuickCategory(category?: string) {
     const nextFilters = {
       ...draftFilters,
       category,
@@ -186,16 +206,16 @@ export function CatalogExperience({
                   Recorrido general para ver catalogo completo.
                 </span>
               </button>
-              {(collection?.filters.categories ?? []).map((category) => (
+              {categoryFacets.map((category) => (
                 <button
-                  key={category.value}
+                  key={category.id}
                   className="chip-button rounded-[1.4rem] px-4 py-4 text-left"
-                  data-active={activeFilters.category === category.value}
-                  onClick={() => handleQuickCategory(category.value)}
+                  data-active={activeFilters.category === category.slug}
+                  onClick={() => handleQuickCategory(category.slug)}
                   type="button"
                 >
                   <span className="block text-sm font-semibold text-[var(--ink-strong)]">
-                    {getProductCategoryLabel(category.value)}
+                    {category.name}
                   </span>
                   <span className="mt-2 block text-sm leading-6 text-[var(--ink-muted)]">
                     {category.count} {copy.categoryCountSuffix}
@@ -203,6 +223,14 @@ export function CatalogExperience({
                 </button>
               ))}
             </div>
+
+            {initialCategoryTree.length > 0 ? (
+              <CategoryTreeNav
+                tree={initialCategoryTree}
+                activeSlug={activeFilters.category}
+                onSelect={handleQuickCategory}
+              />
+            ) : null}
           </Panel>
         </div>
       </article>
@@ -261,7 +289,7 @@ export function CatalogExperience({
           {activeFilterCount > 0 ? (
             <div className="flex flex-wrap gap-2">
               {activeFilters.category ? (
-                <Pill>{getProductCategoryLabel(activeFilters.category)}</Pill>
+                <Pill>{resolveCategoryName(activeFilters.category)}</Pill>
               ) : null}
               {activeFilters.query ? <Pill>Busqueda: {activeFilters.query}</Pill> : null}
               {activeFilters.minPriceAmount ? <Pill>Min: {activeFilters.minPriceAmount}</Pill> : null}
@@ -282,5 +310,72 @@ export function CatalogExperience({
         </div>
       </div>
     </section>
+  );
+}
+
+function CategoryTreeNav({
+  tree,
+  activeSlug,
+  onSelect,
+}: {
+  tree: CategoryNode[];
+  activeSlug?: string;
+  onSelect: (slug?: string) => void;
+}) {
+  return (
+    <nav aria-label="Categorias" className="mt-6 border-t border-[var(--line-soft)] pt-5">
+      <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+        {appCopy.storefrontHeader.categories}
+      </p>
+      <ul className="mt-4 grid gap-1">
+        {tree.map((node) => (
+          <CategoryTreeItem
+            key={node.id}
+            node={node}
+            activeSlug={activeSlug}
+            onSelect={onSelect}
+          />
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function CategoryTreeItem({
+  node,
+  activeSlug,
+  onSelect,
+  depth = 0,
+}: {
+  node: CategoryNode;
+  activeSlug?: string;
+  onSelect: (slug?: string) => void;
+  depth?: number;
+}) {
+  return (
+    <li>
+      <button
+        className="chip-button w-full rounded-[0.9rem] px-3 py-2 text-left text-sm font-medium text-[var(--ink-strong)]"
+        data-active={activeSlug === node.slug}
+        onClick={() => onSelect(node.slug)}
+        style={{ paddingLeft: `${0.75 + depth * 1}rem` }}
+        type="button"
+      >
+        {node.name}
+      </button>
+      {node.children.length > 0 ? (
+        <ul className="grid gap-1">
+          {node.children.map((child) => (
+            <CategoryTreeItem
+              key={child.id}
+              node={child}
+              activeSlug={activeSlug}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }

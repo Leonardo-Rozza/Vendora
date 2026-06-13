@@ -1,4 +1,3 @@
-import { ProductCategory } from '@prisma/client';
 import {
   IsEnum,
   IsNumberString,
@@ -14,9 +13,11 @@ export class ListCatalogProductsDto {
   @MaxLength(100)
   query?: string;
 
+  /** Category slug; filtering includes the category and its descendants. */
   @IsOptional()
-  @IsEnum(ProductCategory)
-  category?: ProductCategory;
+  @IsString()
+  @MaxLength(160)
+  category?: string;
 
   @IsOptional()
   @IsNumberString()

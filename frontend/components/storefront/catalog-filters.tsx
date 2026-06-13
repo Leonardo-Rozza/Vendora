@@ -1,6 +1,5 @@
-import type { CatalogFilterMetadata, CatalogFilters, ProductCategory } from "@/lib/contracts";
-import { PRODUCT_CATEGORIES } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import type { CatalogFilterMetadata, CatalogFilters } from "@/lib/contracts";
+import { appCopy } from "@/lib/copy/es-ar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 
@@ -8,7 +7,7 @@ type CatalogFiltersProps = {
   filters: CatalogFilters;
   metadata: CatalogFilterMetadata | null;
   onApply: () => void;
-  onCategoryChange: (category?: ProductCategory) => void;
+  onCategoryChange: (category?: string) => void;
   onMaxPriceChange: (value: string) => void;
   onMinPriceChange: (value: string) => void;
   visible?: boolean;
@@ -29,10 +28,7 @@ export function CatalogFilters({
     return null;
   }
 
-  const availableCategories =
-    metadata && metadata.categories.length > 0
-      ? metadata.categories
-      : PRODUCT_CATEGORIES.map((category) => ({ value: category, count: 0 }));
+  const availableCategories = metadata?.categories ?? [];
 
   return (
     <Panel className="p-5">
@@ -61,13 +57,13 @@ export function CatalogFilters({
             </button>
             {availableCategories.map((category) => (
               <button
-                key={category.value}
+                key={category.id}
                 className="chip-button rounded-full px-4 py-2 text-sm font-semibold text-[var(--ink-strong)]"
-                data-active={filters.category === category.value}
-                onClick={() => onCategoryChange(category.value)}
+                data-active={filters.category === category.slug}
+                onClick={() => onCategoryChange(category.slug)}
                 type="button"
               >
-                {getProductCategoryLabel(category.value)}
+                {category.name}
                 {category.count > 0 ? ` (${category.count})` : ""}
               </button>
             ))}

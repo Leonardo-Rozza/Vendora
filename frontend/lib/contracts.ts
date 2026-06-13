@@ -1,10 +1,22 @@
-export const PRODUCT_CATEGORIES = [
-  "ELECTRONICA",
-  "HOGAR",
-  "ACCESORIOS",
-] as const;
+/** Category reference embedded in a product. */
+export type CategoryRef = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
-export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+/** A category in the catalog facet, with its product count. */
+export type CategoryFacet = CategoryRef & {
+  parentId: string | null;
+  count: number;
+};
+
+/** A node in the category tree (GET /catalog/categories). */
+export type CategoryNode = CategoryRef & {
+  parentId: string | null;
+  sortOrder: number;
+  children: CategoryNode[];
+};
 
 export const CATALOG_SORT_OPTIONS = [
   "featured",
@@ -38,7 +50,7 @@ export type CatalogProductDetail = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: CatalogVariantPreview[];
   images: CatalogImageReference[];
 };
@@ -49,7 +61,7 @@ export type CatalogProductCard = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: CatalogVariantPreview[];
   primaryImageUrl: string | null;
   primaryImageAlt: string | null;
@@ -59,17 +71,15 @@ export type CatalogProductCard = {
 
 export type CatalogFilters = {
   query?: string;
-  category?: ProductCategory;
+  /** Category slug. */
+  category?: string;
   minPriceAmount?: string;
   maxPriceAmount?: string;
   sort?: CatalogSortOption;
 };
 
 export type CatalogFilterMetadata = {
-  categories: Array<{
-    value: ProductCategory;
-    count: number;
-  }>;
+  categories: CategoryFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -77,7 +87,7 @@ export type CatalogFilterMetadata = {
   availableSorts: CatalogSortOption[];
   applied: {
     query: string | null;
-    category: ProductCategory | null;
+    category: string | null;
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
@@ -239,7 +249,7 @@ export type AdminProduct = {
   name: string;
   description: string | null;
   status: string;
-  category: ProductCategory | null;
+  category: CategoryRef | null;
   variants: Array<
     CatalogVariantPreview & {
       availableQuantity?: number;
@@ -273,7 +283,7 @@ export type AdminProductInput = {
   name: string;
   description?: string;
   status?: string;
-  category?: ProductCategory;
+  categoryId?: string;
   variants: ProductVariantInput[];
   images?: ProductImageInput[];
 };
@@ -294,7 +304,7 @@ export type ListAdminOrdersQuery = {
 export type ListAdminProductsQuery = {
   query?: string;
   status?: string;
-  category?: ProductCategory;
+  categoryId?: string;
 };
 
 export type UpdateAdminOrderFulfillmentRequest = {

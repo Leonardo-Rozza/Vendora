@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ProductFormSections, createEmptyImage, createEmptyVariant, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
-import type { AdminProduct, AdminProductInput, ProductCategory } from "@/lib/contracts";
-import { appCopy, getProductCategoryLabel } from "@/lib/copy/es-ar";
+import { useEffect, useMemo, useState } from "react";
+import { ProductFormSections, createEmptyImage, createEmptyVariant, type CategoryOption, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
+import { listCategoryTree } from "@/lib/commerce/api";
+import type { AdminProduct, AdminProductInput, CategoryNode } from "@/lib/contracts";
+import { appCopy } from "@/lib/copy/es-ar";
 
 type ProductEditorProps = {
   products: AdminProduct[];
@@ -16,10 +17,17 @@ const blankProductPayload = {
   name: "",
   description: "",
   status: "DRAFT",
-  category: "ELECTRONICA" as ProductCategory,
+  categoryId: "",
   variants: [createEmptyVariant()] as EditableVariant[],
   images: [createEmptyImage(0)] as EditableImage[],
 };
+
+function flattenCategoryTree(tree: CategoryNode[], depth = 0): CategoryOption[] {
+  return tree.flatMap((node) => [
+    { id: node.id, name: node.name, depth },
+    ...flattenCategoryTree(node.children, depth + 1),
+  ]);
+}
 
 export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorProps) {
   const copy = appCopy.adminProductEditor;
@@ -28,11 +36,30 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
   const [name, setName] = useState(blankProductPayload.name);
   const [description, setDescription] = useState(blankProductPayload.description);
   const [status, setStatus] = useState(blankProductPayload.status);
-  const [category, setCategory] = useState<ProductCategory>(blankProductPayload.category);
+  const [categoryId, setCategoryId] = useState(blankProductPayload.categoryId);
   const [variants, setVariants] = useState<EditableVariant[]>(blankProductPayload.variants);
   const [images, setImages] = useState<EditableImage[]>(blankProductPayload.images);
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    listCategoryTree()
+      .then((tree) => {
+        if (active) {
+          setCategoryOptions(flattenCategoryTree(tree));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setCategoryOptions([]);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
@@ -46,7 +73,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       setName(blankProductPayload.name);
       setDescription(blankProductPayload.description);
       setStatus(blankProductPayload.status);
-      setCategory(blankProductPayload.category);
+      setCategoryId(blankProductPayload.categoryId);
       setVariants([createEmptyVariant()]);
       setImages([createEmptyImage(0)]);
       setError(null);
@@ -58,7 +85,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
     setName(product.name);
     setDescription(product.description ?? "");
     setStatus(product.status);
-    setCategory(product.category ?? blankProductPayload.category);
+    setCategoryId(product.category?.id ?? "");
     setVariants(
       product.variants.map((variant) => ({
         id: variant.id,
@@ -96,7 +123,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
         name: readRequiredString(name, copy.name),
         description: description.trim() || undefined,
         status,
-        category,
+        ...(categoryId ? { categoryId } : {}),
         variants: variants.map((variant, index) => ({
           ...(variant.id ? { id: variant.id } : {}),
           sku: readRequiredString(variant.sku, `${copy.variantSku} ${index + 1}`),
@@ -165,7 +192,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
                 <div>
                   <p className="text-sm font-semibold text-[var(--ink-strong)]">{product.name}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--ink-soft)]">
-                    {getProductCategoryLabel(product.category ?? blankProductPayload.category)}
+                    {product.category?.name ?? "Sin categoria"}
                   </p>
                 </div>
                 <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-deep)]">
@@ -192,11 +219,12 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
         </div>
 
         <ProductFormSections
-          category={category}
+          categoryId={categoryId}
+          categoryOptions={categoryOptions}
           description={description}
           images={images}
           name={name}
-          setCategory={setCategory}
+          setCategoryId={setCategoryId}
           setDescription={setDescription}
           setImages={setImages}
           setName={setName}

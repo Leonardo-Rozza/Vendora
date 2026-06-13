@@ -18,7 +18,7 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     name: "Aurora Speaker",
     description: "Portable audio.",
     status: "ACTIVE",
-    category: "ELECTRONICA",
+    category: { id: "c1", name: "Electrónica", slug: "electronica" },
     variants: [
       {
         id: "variant-1",
@@ -45,7 +45,7 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     name: "Aurora Speaker",
     description: "Portable audio.",
     status: "ACTIVE",
-    category: "ELECTRONICA",
+    category: { id: "c1", name: "Electrónica", slug: "electronica" },
     variants: [
       {
         id: "variant-1",
