@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
@@ -11,6 +12,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Throttle({ default: { ttl: 60_000, limit: 8 } })
   async login(
     @Body() body: AdminLoginDto,
     @Res({ passthrough: true }) response: Response,

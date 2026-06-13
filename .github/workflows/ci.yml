@@ -44,3 +44,21 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  audit:
+    name: Dependency audit (npm)
+    runs-on: ubuntu-latest
+    # Informational for now: the dependency tree has known (mostly transitive)
+    # advisories. Dependabot drives the fixes; tighten to blocking (remove
+    # continue-on-error) once the tree is clean.
+    continue-on-error: true
+    strategy:
+      matrix:
+        project: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - working-directory: ${{ matrix.project }}
+        run: npm audit --audit-level=high

@@ -17,6 +17,7 @@ type PrismaTransactionClient = Pick<
   | 'paymentWebhookDelivery'
   | 'notificationDelivery'
   | 'user'
+  | '$executeRaw'
 >;
 
 @Injectable()

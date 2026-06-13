@@ -10,6 +10,9 @@ import { validateEnvironment } from './env.validation';
       isGlobal: true,
       cache: true,
       envFilePath: ['.env.local', '.env'],
+      // Tests must be deterministic: never pick up a developer's local .env
+      // (e.g. a DATABASE_URL pointing at a dev container).
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
       validate: validateEnvironment,
     }),
   ],
