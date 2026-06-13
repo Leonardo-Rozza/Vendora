@@ -25,8 +25,8 @@ export default async function Home() {
   }
 
   return (
-    <main className="app-shell overflow-hidden">
-      <section className="mx-auto flex w-full max-w-[88rem] flex-col gap-8 px-6 py-8 sm:px-8 lg:px-12">
+    <main className="app-shell">
+      <section className="mx-auto w-full max-w-[77.5rem] px-5 py-6 sm:px-6">
         <CatalogExperience
           initialCollection={initialCollection}
           initialError={initialError}

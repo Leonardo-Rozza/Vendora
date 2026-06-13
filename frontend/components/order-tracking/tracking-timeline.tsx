@@ -1,56 +1,124 @@
-import type { OrderTrackingMilestone } from "@/lib/contracts";
+import type {
+  BuyerTrackingStatus,
+  OrderTrackingMilestone,
+} from "@/lib/contracts";
+
+type StepState = "done" | "current" | "pending";
+
+function resolveStates(
+  count: number,
+  status: BuyerTrackingStatus,
+): StepState[] {
+  // Milestones are historical events that already occurred. The newest (last)
+  // one reflects the current state, unless the order reached a terminal status
+  // in which case every recorded milestone is considered completed.
+  const isTerminal = status === "ENTREGADO" || status === "CANCELADO";
+  return Array.from({ length: count }, (_, index) => {
+    const isLast = index === count - 1;
+    if (isTerminal) {
+      return "done";
+    }
+    return isLast ? "current" : "done";
+  });
+}
+
+const DOT_BY_STATE: Record<StepState, string> = {
+  done: "bg-success-ink text-white text-[15px]",
+  current:
+    "bg-brand-deep text-white text-[10px] animate-vd-pulse",
+  pending:
+    "bg-surface-panel text-ink-faint text-[15px] shadow-[inset_0_0_0_2px_var(--line-strong)]",
+};
 
 export function TrackingTimeline({
   milestones,
+  status,
   timelineTitle,
   referenceLabel,
+  currentLabel,
 }: {
   milestones: OrderTrackingMilestone[];
+  status: BuyerTrackingStatus;
   timelineTitle: string;
   referenceLabel: string;
+  currentLabel: string;
 }) {
-  return (
-    <section className="rounded-[1.8rem] border border-[var(--line-soft)] bg-white/78 p-6 shadow-[0_18px_50px_rgba(61,43,28,0.08)]">
-      <div className="flex items-center justify-between gap-4 border-b border-[var(--line-soft)] pb-4">
-        <h2 className="text-xl font-semibold tracking-[-0.03em] text-[var(--ink-strong)]">
-          {timelineTitle}
-        </h2>
-        <span className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-panel)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-deep)]">
-          {milestones.length}
-        </span>
-      </div>
+  const states = resolveStates(milestones.length, status);
 
-      <div className="mt-5 space-y-4">
-        {milestones.map((milestone, index) => (
-          <article
-            key={milestone.id}
-            className="relative rounded-[1.4rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-4"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex gap-3">
-                <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--brand-deep)] text-xs font-semibold text-white">
-                  {String(index + 1).padStart(2, "0")}
+  return (
+    <section className="rounded-[18px] border border-line-soft bg-surface-panel p-7 shadow-soft">
+      <h2 className="mb-6 text-[17px] font-extrabold text-ink-strong">
+        {timelineTitle}
+      </h2>
+
+      <div className="flex flex-col">
+        {milestones.map((milestone, index) => {
+          const state = states[index];
+          const isLast = index === milestones.length - 1;
+          const isCurrent = state === "current";
+          const isPending = state === "pending";
+
+          return (
+            <div key={milestone.id} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`grid size-[34px] shrink-0 place-items-center rounded-full font-extrabold ${DOT_BY_STATE[state]}`}
+                  aria-hidden
+                >
+                  {state === "done" ? "✓" : state === "current" ? "●" : ""}
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-[var(--ink-strong)]">
+                {!isLast ? (
+                  <div
+                    className={`my-1 min-h-[34px] w-0.5 flex-1 ${
+                      state === "done" ? "bg-success-ink" : "bg-line-soft"
+                    }`}
+                  />
+                ) : null}
+              </div>
+
+              <div className={`flex-1 ${isLast ? "pb-0" : "pb-7"}`}>
+                <div className="flex flex-wrap items-center gap-x-[9px] gap-y-1">
+                  <span
+                    className={`text-[15.5px] font-bold ${
+                      isPending ? "text-ink-faint" : "text-ink-strong"
+                    }`}
+                  >
                     {milestone.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-7 text-[var(--ink-muted)]">
-                    {milestone.description}
-                  </p>
-                  {milestone.deliveryReference ? (
-                    <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-deep)]">
-                      {referenceLabel}: {milestone.deliveryReference}
-                    </p>
+                  </span>
+                  {isCurrent ? (
+                    <span className="rounded-[6px] bg-surface-sand px-[9px] py-0.5 text-[11px] font-bold text-brand-deep">
+                      {currentLabel}
+                    </span>
                   ) : null}
                 </div>
+
+                <div className="mt-[3px] text-[13.5px] leading-[1.5] text-ink-soft">
+                  {milestone.description}
+                </div>
+
+                <div className="mt-[5px] font-mono text-[11.5px] text-ink-faint">
+                  {new Date(milestone.occurredAt).toLocaleString("es-AR")}
+                </div>
+
+                {milestone.deliveryReference ? (
+                  <div className="mt-[11px] flex items-center gap-[10px] rounded-[11px] bg-surface-sand px-[13px] py-[11px]">
+                    <span className="text-[17px]" aria-hidden>
+                      📦
+                    </span>
+                    <div>
+                      <div className="text-[13px] font-bold text-ink-strong">
+                        {referenceLabel}
+                      </div>
+                      <div className="font-mono text-[11.5px] text-ink-muted">
+                        {milestone.deliveryReference}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]">
-                {new Date(milestone.occurredAt).toLocaleString("es-AR")}
-              </p>
             </div>
-          </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

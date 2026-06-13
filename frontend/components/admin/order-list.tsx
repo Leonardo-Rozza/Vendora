@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toCheckoutErrorMessage } from "@/lib/commerce/checkout";
 import { formatMoney } from "@/lib/commerce/format";
+import { Badge, Button, cn } from "@/components/ui";
 import type {
   AdminOrder,
   FulfillmentStatus,
@@ -17,6 +18,18 @@ const FULFILLMENT_LABELS: Record<FulfillmentStatus, string> = {
   READY_FOR_DELIVERY: "Listo para envio",
   OUT_FOR_DELIVERY: "En reparto",
   DELIVERED: "Entregado",
+};
+
+const FULFILLMENT_TONE: Record<
+  FulfillmentStatus,
+  "info" | "warning" | "brand" | "success"
+> = {
+  REQUESTED: "info",
+  CONFIRMED: "info",
+  PREPARING: "warning",
+  READY_FOR_DELIVERY: "warning",
+  OUT_FOR_DELIVERY: "brand",
+  DELIVERED: "success",
 };
 
 const NEXT_FULFILLMENT_STATUS: Record<
@@ -107,60 +120,53 @@ export function OrderList({
   }
 
   return (
-    <section
-      className="rounded-[1.75rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-5"
-      id="admin-pedidos"
-    >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--ink-soft)]">
-            {copy.eyebrow}
-          </p>
-          <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink-strong)]">
-            {copy.title}
-          </h3>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="text-sm font-medium text-[var(--ink-muted)]">
-            {copy.filterLabel}
-            <select
-              className="mt-2 w-full rounded-full border border-[var(--line-soft)] bg-white px-4 py-2 text-sm text-[var(--ink-strong)] sm:min-w-52"
-              onChange={(event) =>
-                onFulfillmentFilterChange(
-                  event.target.value as FulfillmentStatus | "ALL",
-                )
-              }
-              value={selectedFulfillmentFilter}
+    <section id="admin-pedidos">
+      <h1 className="text-[26px] font-extrabold tracking-[-0.02em] text-ink-strong">
+        {copy.title}
+      </h1>
+      <p className="mt-1 mb-[18px] text-sm text-ink-soft">
+        {orders.length} {copy.ordersCount}
+      </p>
+
+      <div className="mb-[18px] flex flex-wrap gap-[7px]">
+        {FULFILLMENT_FILTERS.map((status) => {
+          const active = selectedFulfillmentFilter === status;
+          return (
+            <button
+              key={status}
+              className={cn(
+                "rounded-[9px] border-[1.5px] px-[13px] py-[7px] text-[13px] font-bold transition-colors outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand",
+                active
+                  ? "border-brand-deep bg-brand-deep text-surface-base"
+                  : "border-line-strong bg-surface-panel text-ink-muted hover:border-brand-deep",
+              )}
+              onClick={() => onFulfillmentFilterChange(status)}
+              type="button"
             >
-              {FULFILLMENT_FILTERS.map((status) => (
-                <option key={status} value={status}>
-                  {status === "ALL"
-                    ? copy.allQueues
-                    : FULFILLMENT_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-deep)]">
-            {orders.length} {copy.ordersCount}
-          </span>
-        </div>
+              {status === "ALL" ? copy.allQueues : FULFILLMENT_LABELS[status]}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="mt-5 space-y-4">
-        {error ? (
-          <div className="rounded-[1rem] border border-[var(--warning-line)] bg-[var(--warning-surface)] px-4 py-3 text-sm text-[var(--brand-deep)]">
-            {error}
-          </div>
-        ) : null}
-        {orders.length === 0 ? (
-          <div className="rounded-[1rem] border border-dashed border-[var(--line-soft)] bg-white/60 px-4 py-5 text-sm text-[var(--ink-muted)]">
-            {selectedFulfillmentFilter === "ALL"
-              ? copy.emptyAll
-              : `${copy.emptyFilteredPrefix} ${FULFILLMENT_LABELS[selectedFulfillmentFilter]}.`}
-          </div>
-        ) : null}
+      {error ? (
+        <div
+          className="mb-4 rounded-card border border-warning-line bg-warning-surface px-4 py-3 text-sm text-brand-deep"
+          role="alert"
+        >
+          {error}
+        </div>
+      ) : null}
 
+      {orders.length === 0 ? (
+        <div className="rounded-card border border-dashed border-line-soft bg-surface-panel px-5 py-8 text-sm text-ink-muted">
+          {selectedFulfillmentFilter === "ALL"
+            ? copy.emptyAll
+            : `${copy.emptyFilteredPrefix} ${FULFILLMENT_LABELS[selectedFulfillmentFilter]}.`}
+        </div>
+      ) : null}
+
+      <div className="space-y-4">
         {orders.map((order) => {
           const canCancel =
             order.status !== "PAID" && order.status !== "CANCELLED";
@@ -173,48 +179,47 @@ export function OrderList({
           return (
             <article
               key={order.id}
-              className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/78 p-4"
+              className="rounded-card border border-line-soft bg-surface-panel p-[22px]"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--ink-soft)]">
+                  <p className="font-mono text-xs uppercase tracking-[0.1em] text-ink-soft">
                     {order.id}
                   </p>
-                  <h4 className="mt-2 text-lg font-semibold text-[var(--ink-strong)]">
+                  <h4 className="mt-2 text-lg font-bold text-ink-strong">
                     {order.contactFullName}
                   </h4>
-                  <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                  <p className="mt-1 text-sm text-ink-muted">
                     {order.contactEmail} · {order.contactPhone}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
-                    <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-[var(--ink-strong)]">
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge tone="neutral">
                       {copy.commercial} {order.status}
-                    </span>
-                    <span className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-panel)] px-3 py-1 text-[var(--brand-deep)]">
-                      {copy.fulfillment}{" "}
-                      {FULFILLMENT_LABELS[order.fulfillmentStatus]}
-                    </span>
-                    <span className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-[var(--ink-muted)]">
+                    </Badge>
+                    <Badge tone={FULFILLMENT_TONE[order.fulfillmentStatus]}>
+                      {copy.fulfillment} {FULFILLMENT_LABELS[order.fulfillmentStatus]}
+                    </Badge>
+                    <Badge tone="neutral">
                       {copy.payment} {paymentStatus}
-                    </span>
+                    </Badge>
                     {order.buyerTrackingLabel ? (
-                      <span className="rounded-full border border-[var(--line-soft)] bg-[var(--surface-panel)] px-3 py-1 text-[var(--brand-deep)]">
+                      <Badge tone="info">
                         {copy.buyerTracking} {order.buyerTrackingLabel}
-                      </span>
+                      </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm text-[var(--ink-muted)]">
+                  <p className="mt-3 text-sm text-ink-muted">
                     {order.shippingRecipientName} · {order.shippingStreetLine1}
                     {order.shippingStreetLine2
                       ? `, ${order.shippingStreetLine2}`
                       : ""}{" "}
                     · {order.shippingLocality}, {order.shippingProvince}
                   </p>
-                  <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                  <p className="mt-2 text-sm text-ink-muted">
                     CP {order.shippingPostalCode} · {order.shippingPhone}
                   </p>
                   {order.trackingCode || order.trackingUrlPath ? (
-                    <div className="mt-3 rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] px-4 py-3 text-sm text-[var(--ink-muted)]">
+                    <div className="mt-3 rounded-field border border-line-soft bg-surface-sand px-4 py-3 text-sm text-ink-muted">
                       {order.trackingCode ? (
                         <p>
                           {copy.trackingCode}: {order.trackingCode}
@@ -227,7 +232,7 @@ export function OrderList({
                       ) : null}
                       {order.trackingUrlPath ? (
                         <a
-                          className="mt-3 inline-flex rounded-full border border-[var(--line-soft)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-deep)]"
+                          className="mt-3 inline-flex rounded-full border border-line-strong bg-surface-panel px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-brand-deep"
                           href={order.trackingUrlPath}
                           rel="noreferrer"
                           target="_blank"
@@ -239,38 +244,39 @@ export function OrderList({
                   ) : null}
                 </div>
                 <div className="flex flex-col items-start gap-3 md:items-end">
-                  <strong className="text-lg text-[var(--ink-strong)]">
+                  <strong className="text-lg font-extrabold text-ink-strong">
                     {formatMoney(order.totalAmount, order.currencyCode)}
                   </strong>
-                  <button
-                    className="rounded-full border border-[var(--line-soft)] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  <Button
                     disabled={
                       !canCancel || pendingActionKey === `cancel:${order.id}`
                     }
                     onClick={() => void handleCancel(order.id)}
-                    type="button"
+                    size="sm"
+                    variant="secondary"
                   >
                     {pendingActionKey === `cancel:${order.id}`
                       ? copy.cancelling
                       : canCancel
                         ? copy.cancel
                         : copy.locked}
-                  </button>
+                  </Button>
                   {!canCancel && order.status === "PAID" ? (
-                    <p className="max-w-xs text-right text-xs text-[var(--ink-muted)]">
+                    <p className="max-w-xs text-right text-xs text-ink-muted">
                       {copy.cannotCancelPaid}
                     </p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 rounded-[1rem] border border-[var(--line-soft)] bg-white/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="mt-4 grid gap-3 rounded-field border border-line-soft bg-surface-sand p-4 lg:grid-cols-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-soft)]">
+                  <p className="font-mono text-xs uppercase tracking-[0.1em] text-ink-soft">
                     {copy.notes}
                   </p>
                   <textarea
-                    className="mt-2 min-h-24 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)]"
+                    aria-label={`${copy.notes} ${order.id}`}
+                    className="mt-2 min-h-24 w-full resize-y rounded-field border-[1.5px] border-line-strong bg-surface-panel px-3.5 py-3 text-[15px] text-ink-strong outline-none transition placeholder:text-ink-soft focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae]"
                     onChange={(event) =>
                       setNotesByOrderId((current) => ({
                         ...current,
@@ -281,18 +287,19 @@ export function OrderList({
                     value={notesByOrderId[order.id] ?? ""}
                   />
                   {order.fulfillmentNotes ? (
-                    <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                    <p className="mt-2 text-xs text-ink-muted">
                       {copy.currentNote}: {order.fulfillmentNotes}
                     </p>
                   ) : null}
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--ink-soft)]">
+                  <p className="font-mono text-xs uppercase tracking-[0.1em] text-ink-soft">
                     {copy.reference}
                   </p>
                   <input
-                    className="mt-2 w-full rounded-[1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)]"
+                    aria-label={`${copy.reference} ${order.id}`}
+                    className="mt-2 w-full rounded-field border-[1.5px] border-line-strong bg-surface-panel px-3.5 py-3 text-[15px] text-ink-strong outline-none transition placeholder:text-ink-soft focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae]"
                     onChange={(event) =>
                       setReferencesByOrderId((current) => ({
                         ...current,
@@ -302,7 +309,7 @@ export function OrderList({
                     placeholder={order.deliveryReference ?? copy.addReference}
                     value={referencesByOrderId[order.id] ?? ""}
                   />
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--ink-muted)]">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-muted">
                     <span>
                       {order.paidAt
                         ? `Pago confirmado ${new Date(order.paidAt).toLocaleString()}`
@@ -314,14 +321,14 @@ export function OrderList({
                       </span>
                     ) : null}
                   </div>
-                  <button
-                    className="mt-4 rounded-full bg-[var(--brand-deep)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  <Button
+                    className="mt-4"
                     disabled={
                       !canAdvanceFulfillment ||
                       pendingActionKey === `fulfillment:${order.id}`
                     }
                     onClick={() => void handleAdvanceFulfillment(order)}
-                    type="button"
+                    size="sm"
                   >
                     {pendingActionKey === `fulfillment:${order.id}`
                       ? copy.advancing
@@ -330,12 +337,12 @@ export function OrderList({
                         : order.status === "PAID"
                           ? copy.done
                           : copy.waitPayment}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-[1rem] border border-[var(--line-soft)] bg-[var(--surface-panel)] p-4 text-sm text-[var(--ink-muted)]">
-                <p className="mb-2 font-semibold text-[var(--ink-strong)]">
+              <div className="mt-4 rounded-field border border-line-soft bg-surface-sand p-4 text-sm text-ink-muted">
+                <p className="mb-2 font-bold text-ink-strong">
                   {copy.orderItems}
                 </p>
                 {order.items.map((item) => (

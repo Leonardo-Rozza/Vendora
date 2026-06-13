@@ -34,8 +34,9 @@ export function CheckoutForm({
 
   return (
     <>
+      <div className="mt-6 h-px bg-surface-muted" />
       <div className="mt-5 grid gap-4">
-        <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--accent-sand)]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-brand-deep">
           {copy.contactSection}
         </p>
         <Field
@@ -63,7 +64,7 @@ export function CheckoutForm({
       </div>
 
       <div className="mt-5 grid gap-4">
-        <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--accent-sand)]">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-brand-deep">
           {copy.shippingSection}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -130,16 +131,19 @@ export function CheckoutForm({
         />
       </div>
 
-      <p className="mt-4 text-xs uppercase tracking-[0.24em] text-white/56">
+      <p className="mt-4 text-[11px] uppercase tracking-[0.14em] text-ink-soft">
         {copy.ambaOnly}
       </p>
       {error ? (
-        <p className="mt-4 text-sm text-[var(--accent-sand)]" role="alert">
+        <p
+          className="mt-4 text-[12.5px] font-semibold text-danger-ink"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
       <button
-        className="mt-5 w-full rounded-full bg-[var(--surface-base)] px-5 py-3 text-sm font-semibold text-[var(--ink-strong)] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+        className="mt-5 block w-full rounded-[12px] bg-brand-deep px-6 py-[15px] text-center text-[16px] font-bold text-surface-base transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-line-soft disabled:text-ink-faint"
         disabled={isSubmitting || disabled}
         onClick={onSubmit}
         type="button"

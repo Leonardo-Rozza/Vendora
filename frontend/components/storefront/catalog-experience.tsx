@@ -17,9 +17,9 @@ import { appCopy } from "@/lib/copy/es-ar";
 import { CatalogFilters as CatalogFiltersPanel } from "@/components/storefront/catalog-filters";
 import { CatalogGrid } from "@/components/storefront/catalog-grid";
 import { CatalogToolbar } from "@/components/storefront/catalog-toolbar";
+import { StorefrontTrust } from "@/components/storefront/storefront-trust";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
 
 const DEFAULT_FILTERS: CatalogFilters = {
@@ -175,6 +175,11 @@ export function CatalogExperience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilters.category, activeFilters.query, copy.allProducts, categoryNameBySlug]);
 
+  const resultLabel = useMemo(() => {
+    const total = collection?.pagination.total ?? products.length;
+    return `${total} ${total === 1 ? "producto" : "productos"}`;
+  }, [collection, products.length]);
+
   function applyDraftFilters() {
     void loadProducts({
       ...draftFilters,
@@ -200,109 +205,87 @@ export function CatalogExperience({
     void loadProducts(DEFAULT_FILTERS);
   }
 
+  function scrollToGrid() {
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <section className="grid gap-6" id="explorar">
-      <article className="glass-panel rounded-[2rem] p-6 sm:p-8">
-        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr] xl:items-start">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.34em] text-[var(--ink-soft)]">
+    <div className="grid gap-6">
+      <section
+        className="overflow-hidden rounded-[22px] bg-brand-ink"
+        id="categorias"
+      >
+        <div className="flex flex-wrap items-stretch">
+          <div className="min-w-[260px] flex-1 p-[clamp(28px,4vw,48px)]">
+            <p className="mb-3.5 font-mono text-xs uppercase tracking-[0.18em] text-accent-sand">
               {copy.heroEyebrow}
             </p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-[var(--ink-strong)] sm:text-5xl lg:text-6xl">
+            <h1 className="mb-3.5 max-w-[16ch] text-[clamp(28px,4.4vw,44px)] font-extrabold leading-[1.05] tracking-[-0.025em] text-[#FBEFD9]">
               {copy.heroTitle}
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--ink-muted)] sm:text-lg">
+            <p className="mb-6 max-w-[42ch] text-base leading-relaxed text-[#C9D6DB]">
               {copy.heroDescription}
             </p>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {copy.featuredHighlights.map((label) => (
-                <div
-                  key={label}
-                  className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/70 px-4 py-4 text-sm font-medium text-[var(--ink-strong)]"
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Panel className="p-5 sm:p-6" id="categorias">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
-                  {copy.quickCategoriesTitle}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">
-                  Entra por la categoria mas cercana y ajusta despues con filtros.
-                </p>
-              </div>
-              <Pill className="text-[var(--brand-deep)]">
-                {products.length} {copy.resultCountSuffix}
-              </Pill>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-3">
               <button
-                className="chip-button rounded-[1.4rem] px-4 py-4 text-left"
-                data-active={activeFilters.category === undefined}
-                onClick={() => handleQuickCategory(undefined)}
+                className="rounded-[12px] bg-accent-sand px-6 py-3.5 text-[15px] font-bold text-brand-ink transition-colors hover:bg-[#cba87f] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-sand"
+                onClick={scrollToGrid}
                 type="button"
               >
-                <span className="block text-sm font-semibold text-[var(--ink-strong)]">Todo Vendora</span>
-                <span className="mt-2 block text-sm leading-6 text-[var(--ink-muted)]">
-                  Recorrido general para ver catalogo completo.
-                </span>
+                {copy.heroPrimaryCta}
               </button>
-              {categoryFacets.map((category) => (
-                <button
-                  key={category.id}
-                  className="chip-button rounded-[1.4rem] px-4 py-4 text-left"
-                  data-active={activeFilters.category === category.slug}
-                  onClick={() => handleQuickCategory(category.slug)}
-                  type="button"
-                >
-                  <span className="block text-sm font-semibold text-[var(--ink-strong)]">
-                    {category.name}
-                  </span>
-                  <span className="mt-2 block text-sm leading-6 text-[var(--ink-muted)]">
-                    {category.count} {copy.categoryCountSuffix}
-                  </span>
-                </button>
-              ))}
+              <a
+                className="rounded-[12px] border-[1.5px] border-[rgba(216,182,144,0.45)] px-6 py-[13px] text-[15px] font-bold text-[#FBEFD9] transition-colors hover:bg-[rgba(216,182,144,0.12)]"
+                href="#vd-grid-top"
+              >
+                {copy.heroSecondaryCta}
+              </a>
             </div>
-
-            {initialCategoryTree.length > 0 ? (
-              <CategoryTreeNav
-                tree={initialCategoryTree}
-                activeSlug={activeFilters.category}
-                onSelect={handleQuickCategory}
-              />
-            ) : null}
-          </Panel>
+          </div>
+          <div
+            className="relative grid min-h-[240px] min-w-[240px] flex-1 place-items-center"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg, #21505F, #21505F 12px, #1d4655 12px, #1d4655 24px)",
+            }}
+          >
+            <span className="font-mono text-xs tracking-[0.1em] text-[rgba(216,182,144,0.6)]">
+              [ lifestyle / hero ]
+            </span>
+          </div>
         </div>
-      </article>
+      </section>
 
       <CatalogToolbar
         activeFilterCount={activeFilterCount}
+        activeLabel={activeLabel}
+        resultLabel={resultLabel}
         filters={draftFilters}
         isLoading={isLoading}
-        onClear={clearFilters}
-        onQueryChange={(value) => setDraftFilters((current) => ({ ...current, query: value }))}
-        onSortChange={(value) =>
-          setDraftFilters((current) => ({ ...current, sort: value ?? "featured" }))
+        onQueryChange={(value) =>
+          setDraftFilters((current) => ({ ...current, query: value }))
         }
+        onSortChange={(value) => {
+          const nextSort = value ?? "featured";
+          setDraftFilters((current) => ({ ...current, sort: nextSort }));
+          void loadProducts({ ...activeFilters, sort: nextSort, page: 1 });
+        }}
         onSubmit={applyDraftFilters}
         onToggleFilters={() => setIsFiltersOpen((current) => !current)}
         showFilters={isFiltersOpen}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19.5rem_minmax(0,1fr)]">
-        <div className="hidden self-start lg:sticky lg:top-28 lg:block">
+      <div
+        className="grid items-start gap-7 lg:grid-cols-[250px_minmax(0,1fr)]"
+        id="explorar"
+      >
+        <aside className="hidden self-start lg:sticky lg:top-[150px] lg:block">
           <CatalogFiltersPanel
+            activeFilterCount={activeFilterCount}
             filters={draftFilters}
             metadata={collection?.filters ?? null}
             onApply={applyDraftFilters}
+            onClear={clearFilters}
             onCategoryChange={(category) =>
               setDraftFilters((current) => ({ ...current, category }))
             }
@@ -314,14 +297,16 @@ export function CatalogExperience({
             }
             onAttributeToggle={handleAttributeToggle}
           />
-        </div>
+        </aside>
 
-        <div className="space-y-4" ref={gridRef}>
+        <div className="min-w-0 space-y-4" ref={gridRef}>
           <div className="lg:hidden">
             <CatalogFiltersPanel
+              activeFilterCount={activeFilterCount}
               filters={draftFilters}
               metadata={collection?.filters ?? null}
               onApply={applyDraftFilters}
+              onClear={clearFilters}
               onCategoryChange={(category) =>
                 setDraftFilters((current) => ({ ...current, category }))
               }
@@ -337,13 +322,17 @@ export function CatalogExperience({
           </div>
 
           {activeFilterCount > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {activeFilters.category ? (
                 <Pill>{resolveCategoryName(activeFilters.category)}</Pill>
               ) : null}
               {activeFilters.query ? <Pill>Busqueda: {activeFilters.query}</Pill> : null}
-              {activeFilters.minPriceAmount ? <Pill>Min: {activeFilters.minPriceAmount}</Pill> : null}
-              {activeFilters.maxPriceAmount ? <Pill>Max: {activeFilters.maxPriceAmount}</Pill> : null}
+              {activeFilters.minPriceAmount ? (
+                <Pill>Min: {activeFilters.minPriceAmount}</Pill>
+              ) : null}
+              {activeFilters.maxPriceAmount ? (
+                <Pill>Max: {activeFilters.maxPriceAmount}</Pill>
+              ) : null}
               {appliedAttributes.flatMap((entry) =>
                 entry.values.map((value) => (
                   <Pill key={`${entry.slug}:${value}`}>
@@ -351,22 +340,22 @@ export function CatalogExperience({
                   </Pill>
                 )),
               )}
-              <Button onClick={clearFilters} variant="ghost">
+              <Button onClick={clearFilters} size="sm" variant="ghost">
                 {copy.clearFilters}
               </Button>
             </div>
           ) : null}
 
           <CatalogGrid
-            activeLabel={activeLabel}
             error={error}
             isLoading={isLoading}
+            onClearFilters={clearFilters}
             onRetry={() => void loadProducts(activeFilters)}
             products={products}
           />
 
           {collection && collection.pagination.totalPages > 1 ? (
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-3">
               <Pagination
                 page={collection.pagination.page}
                 pageCount={collection.pagination.totalPages}
@@ -376,7 +365,17 @@ export function CatalogExperience({
           ) : null}
         </div>
       </div>
-    </section>
+
+      {initialCategoryTree.length > 0 ? (
+        <CategoryTreeNav
+          tree={initialCategoryTree}
+          activeSlug={activeFilters.category}
+          onSelect={handleQuickCategory}
+        />
+      ) : null}
+
+      <StorefrontTrust />
+    </div>
   );
 }
 
@@ -390,11 +389,14 @@ function CategoryTreeNav({
   onSelect: (slug?: string) => void;
 }) {
   return (
-    <nav aria-label="Categorias" className="mt-6 border-t border-[var(--line-soft)] pt-5">
-      <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+    <nav
+      aria-label="Categorias"
+      className="rounded-card border border-line-soft bg-surface-panel p-5"
+    >
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
         {appCopy.storefrontHeader.categories}
       </p>
-      <ul className="mt-4 grid gap-1">
+      <ul className="mt-4 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
         {tree.map((node) => (
           <CategoryTreeItem
             key={node.id}
@@ -422,7 +424,7 @@ function CategoryTreeItem({
   return (
     <li>
       <button
-        className="chip-button w-full rounded-[0.9rem] px-3 py-2 text-left text-sm font-medium text-[var(--ink-strong)]"
+        className="chip-button w-full rounded-[0.9rem] px-3 py-2 text-left text-sm font-medium text-ink-strong"
         data-active={activeSlug === node.slug}
         onClick={() => onSelect(node.slug)}
         style={{ paddingLeft: `${0.75 + depth * 1}rem` }}

@@ -189,3 +189,41 @@ button:disabled {
 .catalog-field::placeholder {
   color: var(--ink-soft);
 }
+
+@keyframes vd-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-vd-pop {
+  animation: vd-pop 0.3s ease;
+}
+
+@keyframes vd-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(140, 75, 38, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(140, 75, 38, 0);
+  }
+}
+
+.animate-vd-pulse {
+  animation: vd-pulse 1.8s infinite;
+}
+
+@keyframes vd-shimmer {
+  0% {
+    background-position: -420px 0;
+  }
+  100% {
+    background-position: 420px 0;
+  }
+}
