@@ -30,16 +30,18 @@ ADMIN_INITIAL_PASSWORD=admin1234
 ```bash
 cd backend
 npm ci
-npx prisma db push          # crea el schema desde prisma/schema.prisma
+npx prisma migrate deploy   # aplica las migraciones (0_init: schema completo + CHECKs)
+npx prisma db seed          # datos de referencia: categorías, atributos, cupón
+
+# (opcional) productos demo para desarrollo:
 DATABASE_URL='postgresql://postgres:vendora@localhost:5433/vendora' \
-  node prisma/seed-demo.cjs # categorías, atributos, cupón y 6 productos demo
+  node prisma/seed-demo.cjs
 ```
 
-> **Nota / known issue:** `prisma migrate deploy` NO aplica desde cero porque falta
-> la migración *init* baseline en el repo (la primera migración existente hace
-> `ALTER TABLE "User"` asumiendo tablas que nunca se crearon por migración). Por eso
-> en local usamos `db push`. Pendiente: generar y commitear una migración init
-> (`prisma migrate diff` desde vacío) para tener un historial aplicable de punta a punta.
+> Las migraciones se baselinearon en una única `0_init` generada del schema actual
+> (`prisma migrate diff --from-empty`), con los CHECK de inventario re-agregados a mano
+> (Prisma no los expresa en el schema). Los datos de referencia se siembran con
+> `prisma db seed` (`prisma/seed.cjs`), no desde migraciones.
 
 ## 4. Correr
 ```bash

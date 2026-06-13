@@ -1,6 +1,7 @@
-/* Demo product seed for the local stack. Idempotent (upsert by slug).
- * Categories / attributes / coupon are already seeded by the migrations. */
+/* Local demo seed: foundational data (from seed.cjs) + demo products.
+ * Idempotent (upsert by slug). For local development only. */
 const { PrismaClient } = require('@prisma/client');
+const { seedFoundations } = require('./seed.cjs');
 
 const prisma = new PrismaClient();
 
@@ -67,76 +68,8 @@ const PRODUCTS = [
   },
 ];
 
-const CATEGORIES = [
-  { id: 'cat_electronica', name: 'Electrónica', slug: 'electronica', parentId: null, sortOrder: 0 },
-  { id: 'cat_audio', name: 'Audio', slug: 'audio', parentId: 'cat_electronica', sortOrder: 0 },
-  { id: 'cat_hogar', name: 'Hogar', slug: 'hogar', parentId: null, sortOrder: 1 },
-  { id: 'cat_accesorios', name: 'Accesorios', slug: 'accesorios', parentId: null, sortOrder: 2 },
-];
-
-const ATTRIBUTES = [
-  {
-    id: 'attr_color',
-    name: 'Color',
-    slug: 'color',
-    values: [
-      { id: 'attrv_color_negro', value: 'Negro', slug: 'negro' },
-      { id: 'attrv_color_blanco', value: 'Blanco', slug: 'blanco' },
-      { id: 'attrv_color_azul', value: 'Azul', slug: 'azul' },
-    ],
-  },
-  {
-    id: 'attr_material',
-    name: 'Material',
-    slug: 'material',
-    values: [
-      { id: 'attrv_material_vidrio', value: 'Vidrio', slug: 'vidrio' },
-      { id: 'attrv_material_metal', value: 'Metal', slug: 'metal' },
-      { id: 'attrv_material_madera', value: 'Madera', slug: 'madera' },
-    ],
-  },
-];
-
-async function seedFoundations() {
-  // Categories (parents before children).
-  for (const c of CATEGORIES) {
-    await prisma.category.upsert({
-      where: { id: c.id },
-      update: { name: c.name, slug: c.slug, parentId: c.parentId, sortOrder: c.sortOrder },
-      create: c,
-    });
-  }
-
-  for (const attr of ATTRIBUTES) {
-    await prisma.attribute.upsert({
-      where: { id: attr.id },
-      update: { name: attr.name, slug: attr.slug },
-      create: { id: attr.id, name: attr.name, slug: attr.slug },
-    });
-    for (const v of attr.values) {
-      await prisma.attributeValue.upsert({
-        where: { id: v.id },
-        update: { value: v.value, slug: v.slug },
-        create: { id: v.id, attributeId: attr.id, value: v.value, slug: v.slug },
-      });
-    }
-  }
-
-  await prisma.coupon.upsert({
-    where: { code: 'BIENVENIDA10' },
-    update: {},
-    create: {
-      code: 'BIENVENIDA10',
-      type: 'PERCENTAGE',
-      value: '10',
-      minSubtotalAmount: '0',
-      isActive: true,
-    },
-  });
-}
-
 async function main() {
-  await seedFoundations();
+  await seedFoundations(prisma);
 
   for (const p of PRODUCTS) {
     await prisma.product.upsert({
@@ -167,7 +100,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${PRODUCTS.length} demo products.`);
+  console.log(`Seeded foundational data + ${PRODUCTS.length} demo products.`);
 }
 
 main()
