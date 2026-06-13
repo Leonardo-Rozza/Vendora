@@ -48,10 +48,6 @@ jobs:
   audit:
     name: Dependency audit (npm)
     runs-on: ubuntu-latest
-    # Informational for now: the dependency tree has known (mostly transitive)
-    # advisories. Dependabot drives the fixes; tighten to blocking (remove
-    # continue-on-error) once the tree is clean.
-    continue-on-error: true
     strategy:
       matrix:
         project: [backend, frontend]
@@ -60,5 +56,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Informational: prints advisories but never fails the check (the tree has
+      # known transitive advisories; Dependabot drives the fixes). Drop the
+      # `|| true` to make it blocking once the tree is clean.
       - working-directory: ${{ matrix.project }}
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high || true
