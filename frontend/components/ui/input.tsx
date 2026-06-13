@@ -6,7 +6,7 @@ import { cn } from "./cn";
 import { useFieldControl } from "./field";
 
 const CONTROL_CLASSNAME =
-  "w-full rounded-field border bg-surface-panel px-4 py-2.5 text-sm text-ink-strong outline-none transition placeholder:text-ink-soft focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/25 disabled:opacity-55";
+  "w-full rounded-field border-[1.5px] bg-surface-panel px-3.5 py-3 text-[15px] text-ink-strong outline-none transition placeholder:text-ink-soft focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae] disabled:cursor-not-allowed disabled:border-line-soft disabled:bg-surface-sand disabled:text-ink-faint";
 
 export const Input = forwardRef<
   HTMLInputElement,
@@ -20,7 +20,7 @@ export const Input = forwardRef<
       ref={ref}
       className={cn(
         CONTROL_CLASSNAME,
-        isInvalid ? "border-warning-line" : "border-line-soft",
+        isInvalid ? "border-danger-ink text-danger-ink" : "border-line-strong",
         className,
       )}
       {...fieldProps}

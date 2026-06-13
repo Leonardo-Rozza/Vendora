@@ -6,7 +6,7 @@ type CardVariant = "panel" | "outline" | "glass";
 const VARIANT_CLASSNAMES: Record<CardVariant, string> = {
   panel: "border border-line-soft bg-surface-panel shadow-soft",
   outline: "border border-line-soft bg-transparent",
-  glass: "border border-white/40 bg-white/70 shadow-soft backdrop-blur",
+  glass: "border border-white/45 bg-white/75 shadow-medium backdrop-blur",
 };
 
 export function Card({

@@ -13,17 +13,25 @@ export const Select = forwardRef<
   const isInvalid = invalid ?? fieldProps["aria-invalid"];
 
   return (
-    <select
-      ref={ref}
-      className={cn(
-        "w-full appearance-none rounded-field border bg-surface-panel px-4 py-2.5 text-sm text-ink-strong outline-none transition focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/25 disabled:opacity-55",
-        isInvalid ? "border-warning-line" : "border-line-soft",
-        className,
-      )}
-      {...fieldProps}
-      {...props}
-    >
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        ref={ref}
+        className={cn(
+          "w-full cursor-pointer appearance-none rounded-field border-[1.5px] bg-surface-panel py-3 pr-10 pl-3.5 text-[15px] text-ink-strong outline-none transition focus-visible:border-brand-deep focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-[#e7cfae] disabled:cursor-not-allowed disabled:border-line-soft disabled:bg-surface-sand disabled:text-ink-faint",
+          isInvalid ? "border-danger-ink" : "border-line-strong",
+          className,
+        )}
+        {...fieldProps}
+        {...props}
+      >
+        {children}
+      </select>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-[10px] text-ink-soft"
+      >
+        ▼
+      </span>
+    </div>
   );
 });

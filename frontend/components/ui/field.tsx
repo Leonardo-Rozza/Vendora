@@ -62,9 +62,9 @@ export function Field({
     <FieldContext.Provider
       value={{ controlId, describedById, invalid: Boolean(error), required }}
     >
-      <div className={cn("flex flex-col gap-1.5", className)}>
+      <div className={cn("flex flex-col gap-2", className)}>
         <label
-          className="text-sm font-medium text-ink-strong"
+          className="text-[13px] font-semibold text-ink-strong"
           htmlFor={controlId}
         >
           {label}
@@ -77,16 +77,22 @@ export function Field({
         </label>
         {children}
         {hint && !error ? (
-          <p className="text-xs text-ink-soft" id={`${controlId}-hint`}>
+          <p className="text-[12.5px] text-ink-soft" id={`${controlId}-hint`}>
             {hint}
           </p>
         ) : null}
         {error ? (
           <p
-            className="text-xs font-medium text-brand-deep"
+            className="flex items-center gap-1.5 text-[12.5px] font-medium text-danger-ink"
             id={`${controlId}-error`}
             role="alert"
           >
+            <span
+              aria-hidden
+              className="grid size-3.5 flex-shrink-0 place-items-center rounded-full bg-danger-ink text-[10px] font-bold text-white"
+            >
+              !
+            </span>
             {error}
           </p>
         ) : null}
