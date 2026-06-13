@@ -209,6 +209,97 @@ test('OrdersService creates a pending-payment order from valid cart items', asyn
   ).toBe('ada@example.com');
 });
 
+const singleVariantPrismaMock = (calls: Record<string, unknown>) =>
+  ({
+    productVariant: {
+      findMany: async () => [
+        {
+          id: 'variant-1',
+          sku: 'SKU-1',
+          name: 'Standard',
+          priceAmount: new Prisma.Decimal('1000.00'),
+          currencyCode: 'ARS',
+          product: { name: 'Mate', status: 'ACTIVE' },
+          inventoryItem: { availableQuantity: 5 },
+        },
+      ],
+    },
+    $transaction: async (callback: (client: any) => Promise<unknown>) =>
+      callback({
+        order: {
+          create: async (args: unknown) => {
+            calls.orderCreate = args;
+            return { id: 'order-1', status: 'PENDING_PAYMENT' };
+          },
+        },
+        orderMilestone: { create: async () => ({ id: 'milestone-1' }) },
+        $executeRaw: async (_strings: unknown, ...values: unknown[]) => {
+          calls.couponRedeemValues = values;
+          return 1;
+        },
+      }),
+  }) as never;
+
+test('OrdersService applies a valid coupon and redeems it', async () => {
+  const calls: Record<string, unknown> = {};
+  const service = new OrdersService(
+    singleVariantPrismaMock(calls),
+    {
+      reserveItems: async () => undefined,
+      releaseReservationForOrder: async () => undefined,
+    } as never,
+    undefined,
+    {
+      evaluate: async () => ({
+        valid: true,
+        code: 'BIENVENIDA10',
+        type: 'PERCENTAGE',
+        discountAmount: '100.00',
+      }),
+    } as never,
+  );
+
+  await service.createOrder({
+    items: [{ variantId: 'variant-1', quantity: 1 }],
+    couponCode: 'bienvenida10',
+    ...validCheckoutInput,
+  });
+
+  const data = (
+    calls.orderCreate as {
+      data: {
+        discountAmount: Prisma.Decimal;
+        couponCode: string;
+        totalAmount: Prisma.Decimal;
+      };
+    }
+  ).data;
+  expect(data.discountAmount.toFixed(2)).toBe('100.00');
+  expect(data.couponCode).toBe('BIENVENIDA10');
+  expect(data.totalAmount.toFixed(2)).toBe('900.00');
+  // Redeemed atomically via a guarded UPDATE (code passed as a bound param).
+  expect(calls.couponRedeemValues).toEqual(['BIENVENIDA10']);
+});
+
+test('OrdersService rejects an invalid coupon', async () => {
+  const service = new OrdersService(
+    singleVariantPrismaMock({}),
+    noopInventoryService,
+    undefined,
+    {
+      evaluate: async () => ({ valid: false, reason: 'Cupón inválido' }),
+    } as never,
+  );
+
+  await expect(
+    service.createOrder({
+      items: [{ variantId: 'variant-1', quantity: 1 }],
+      couponCode: 'BAD',
+      ...validCheckoutInput,
+    }),
+  ).rejects.toBeInstanceOf(BadRequestException);
+});
+
 test('OrdersService rejects unknown or inactive variants', async () => {
   const missingVariantService = new OrdersService(
     {

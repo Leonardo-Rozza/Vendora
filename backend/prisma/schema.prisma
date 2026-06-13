@@ -13,10 +13,19 @@ enum ProductStatus {
   ARCHIVED
 }
 
-enum ProductCategory {
-  ELECTRONICA
-  HOGAR
-  ACCESORIOS
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryHierarchy")
+  products  Product[]
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([parentId])
 }
 
 enum OrderStatus {
@@ -80,6 +89,26 @@ enum UserRole {
   ADMIN
 }
 
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id                String     @id @default(cuid())
+  code              String     @unique
+  type              CouponType
+  value             Decimal    @db.Decimal(10, 2)
+  minSubtotalAmount Decimal?   @db.Decimal(10, 2)
+  maxRedemptions    Int?
+  timesRedeemed     Int        @default(0)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -93,18 +122,56 @@ model User {
 }
 
 model Product {
-  id          String           @id @default(cuid())
-  slug        String           @unique
-  name        String
-  description String?
-  status      ProductStatus    @default(DRAFT)
-  category    ProductCategory? @default(ACCESORIOS)
-  variants    ProductVariant[]
-  images      ProductImage[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String                  @id @default(cuid())
+  slug            String                  @unique
+  name            String
+  description     String?
+  status          ProductStatus           @default(DRAFT)
+  categoryId      String?
+  category        Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants        ProductVariant[]
+  images          ProductImage[]
+  attributeValues ProductAttributeValue[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
-  @@index([category])
+  @@index([categoryId])
+}
+
+model Attribute {
+  id        String           @id @default(cuid())
+  name      String
+  slug      String           @unique
+  values    AttributeValue[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model AttributeValue {
+  id          String                  @id @default(cuid())
+  attributeId String
+  value       String
+  slug        String
+  attribute   Attribute               @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  products    ProductAttributeValue[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([attributeId, slug])
+  @@index([attributeId])
+}
+
+model ProductAttributeValue {
+  id               String         @id @default(cuid())
+  productId        String
+  attributeValueId String
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  @@unique([productId, attributeValueId])
+  @@index([productId])
+  @@index([attributeValueId])
 }
 
 model ProductVariant {
@@ -160,9 +227,11 @@ model Order {
   trackingCode          String?     @unique
   currencyCode          String      @db.Char(3)
   subtotalAmount        Decimal     @db.Decimal(10, 2)
-  // Prepared for shipping costs; total = subtotal + shipping. Defaults to 0
-  // while shipping is free, so totals stay consistent once a cost is charged.
+  // Prepared for shipping costs; total = subtotal - discount + shipping. Both
+  // default to 0 so totals stay consistent until a cost/discount is applied.
   shippingAmount        Decimal     @default(0) @db.Decimal(10, 2)
+  discountAmount        Decimal     @default(0) @db.Decimal(10, 2)
+  couponCode            String?
   totalAmount           Decimal     @db.Decimal(10, 2)
   contactFullName       String
   contactEmail          String

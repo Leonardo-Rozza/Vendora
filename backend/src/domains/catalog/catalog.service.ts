@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProductCategory, ProductStatus } from '@prisma/client';
+import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../../platform/prisma/prisma.service';
+import {
+  type AttributeFilter,
+  parseAttributeFilter,
+} from './attributes.service';
+import {
+  CategoriesService,
+  collectBranchIds,
+  type CategorySummary,
+} from './categories.service';
 import {
   CatalogSortOption,
   DEFAULT_CATALOG_SORT,
@@ -13,7 +22,20 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 type CatalogDbClient = Pick<PrismaService, 'product' | 'inventoryItem'>;
 
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 60;
+
 const PRODUCT_INCLUDE = {
+  category: true,
+  attributeValues: {
+    include: {
+      attributeValue: {
+        include: {
+          attribute: true,
+        },
+      },
+    },
+  },
   variants: {
     include: {
       inventoryItem: true,
@@ -30,11 +52,37 @@ type CatalogListItem = Prisma.ProductGetPayload<{
   include: typeof PRODUCT_INCLUDE;
 }>;
 
-type CatalogFilterMetadata = {
-  categories: Array<{
-    value: ProductCategory;
-    count: number;
+type DiscoveryProduct = {
+  categoryId: string | null;
+  variants: Array<{ priceAmount: Prisma.Decimal }>;
+  attributeValues: Array<{
+    attributeValue: {
+      id: string;
+      value: string;
+      slug: string;
+      attribute: { id: string; name: string; slug: string };
+    };
   }>;
+};
+
+type CatalogCategoryFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  count: number;
+};
+
+type CatalogAttributeFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  values: Array<{ id: string; value: string; slug: string; count: number }>;
+};
+
+type CatalogFilterMetadata = {
+  categories: CatalogCategoryFacet[];
+  attributes: CatalogAttributeFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -42,7 +90,8 @@ type CatalogFilterMetadata = {
   availableSorts: CatalogSortOption[];
   applied: {
     query: string | null;
-    category: ProductCategory | null;
+    category: string | null;
+    attributes: AttributeFilter[];
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
@@ -51,11 +100,21 @@ type CatalogFilterMetadata = {
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoriesService: CategoriesService,
+  ) {}
 
   async listProducts(query: ListCatalogProductsDto) {
     const normalizedQuery = this.normalizeText(query.query);
     const appliedSort = query.sort ?? DEFAULT_CATALOG_SORT;
+    const categories = await this.categoriesService.listAll();
+    const categoryIds = query.category
+      ? collectBranchIds(categories, query.category)
+      : undefined;
+    const attributeFilters = parseAttributeFilter(query.attributes);
+    const { page, pageSize } = this.resolvePagination(query);
+
     const discoveryWhere = this.buildProductWhere({
       query: normalizedQuery,
       status: ProductStatus.ACTIVE,
@@ -63,7 +122,8 @@ export class CatalogService {
     const filteredWhere = this.buildProductWhere({
       query: normalizedQuery,
       status: ProductStatus.ACTIVE,
-      category: query.category,
+      categoryIds,
+      attributeFilters,
       minPriceAmount: query.minPriceAmount,
       maxPriceAmount: query.maxPriceAmount,
     });
@@ -77,6 +137,15 @@ export class CatalogService {
               priceAmount: true,
             },
           },
+          attributeValues: {
+            include: {
+              attributeValue: {
+                include: {
+                  attribute: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.product.findMany({
@@ -85,13 +154,22 @@ export class CatalogService {
       }),
     ]);
 
+    const sorted = this.sortProducts(filteredProducts, appliedSort);
+    const total = sorted.length;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
+    const items = sorted.slice(start, start + pageSize);
+
     return {
-      items: this.sortProducts(filteredProducts, appliedSort),
+      items,
       filters: this.buildCatalogFilterMetadata({
         discoveryProducts,
+        categories,
+        attributeFilters,
         query,
         sort: appliedSort,
       }),
+      pagination: { page, pageSize, total, totalPages },
     };
   }
 
@@ -105,9 +183,68 @@ export class CatalogService {
     });
   }
 
+  /** Active products in the same category, excluding the product itself. */
+  async findRelatedProducts(slug: string, limit = 4) {
+    const product = await this.prisma.product.findFirst({
+      where: { slug, status: ProductStatus.ACTIVE },
+      select: { id: true, categoryId: true },
+    });
+
+    if (!product?.categoryId) {
+      return [];
+    }
+
+    return this.prisma.product.findMany({
+      where: {
+        status: ProductStatus.ACTIVE,
+        categoryId: product.categoryId,
+        id: { not: product.id },
+      },
+      include: PRODUCT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  /** Live stock check for cart lines, reflecting current inventory. */
+  async checkAvailability(
+    items: Array<{ variantId: string; quantity: number }>,
+  ) {
+    const variantIds = [...new Set(items.map((item) => item.variantId))];
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      select: {
+        id: true,
+        product: { select: { status: true } },
+        inventoryItem: { select: { availableQuantity: true } },
+      },
+    });
+    const variantMap = new Map(
+      variants.map((variant) => [variant.id, variant]),
+    );
+
+    return items.map((item) => {
+      const variant = variantMap.get(item.variantId);
+      const availableQuantity = variant?.inventoryItem?.availableQuantity ?? 0;
+      const isPurchasable =
+        Boolean(variant) && variant?.product.status === ProductStatus.ACTIVE;
+
+      return {
+        variantId: item.variantId,
+        requestedQuantity: item.quantity,
+        availableQuantity,
+        available: isPurchasable && availableQuantity >= item.quantity,
+      };
+    });
+  }
+
   listAdminProducts(query: ListAdminProductsDto) {
     return this.prisma.product.findMany({
-      where: this.buildProductWhere(query),
+      where: this.buildProductWhere({
+        query: query.query,
+        status: query.status,
+        categoryIds: query.categoryId ? [query.categoryId] : undefined,
+      }),
       include: PRODUCT_INCLUDE,
       orderBy: {
         createdAt: 'desc',
@@ -129,7 +266,14 @@ export class CatalogService {
         name: input.name,
         description: input.description,
         status: input.status,
-        category: input.category,
+        categoryId: input.categoryId,
+        attributeValues: input.attributeValueIds?.length
+          ? {
+              create: input.attributeValueIds.map((attributeValueId) => ({
+                attributeValueId,
+              })),
+            }
+          : undefined,
         variants: {
           create: input.variants.map((variant) => ({
             sku: variant.sku,
@@ -181,9 +325,24 @@ export class CatalogService {
           name: input.name,
           description: input.description,
           status: input.status,
-          category: input.category,
+          categoryId: input.categoryId,
         },
       });
+
+      if (input.attributeValueIds) {
+        await client.productAttributeValue.deleteMany({
+          where: { productId },
+        });
+
+        if (input.attributeValueIds.length > 0) {
+          await client.productAttributeValue.createMany({
+            data: input.attributeValueIds.map((attributeValueId) => ({
+              productId,
+              attributeValueId,
+            })),
+          });
+        }
+      }
 
       if (input.images) {
         await client.productImage.deleteMany({
@@ -272,16 +431,29 @@ export class CatalogService {
     });
   }
 
+  private resolvePagination(query: ListCatalogProductsDto) {
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const requestedSize = Math.trunc(query.pageSize ?? DEFAULT_PAGE_SIZE);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, requestedSize || DEFAULT_PAGE_SIZE),
+    );
+
+    return { page, pageSize };
+  }
+
   private buildProductWhere({
     query,
     status,
-    category,
+    categoryIds,
+    attributeFilters,
     minPriceAmount,
     maxPriceAmount,
   }: {
     query?: string;
     status?: ProductStatus;
-    category?: ProductCategory;
+    categoryIds?: string[];
+    attributeFilters?: AttributeFilter[];
     minPriceAmount?: string;
     maxPriceAmount?: string;
   }) {
@@ -292,21 +464,30 @@ export class CatalogService {
       andFilters.push({ status });
     }
 
-    if (category) {
-      andFilters.push({ category });
+    if (categoryIds) {
+      andFilters.push({ categoryId: { in: categoryIds } });
+    }
+
+    for (const filter of attributeFilters ?? []) {
+      andFilters.push({
+        attributeValues: {
+          some: {
+            attributeValue: {
+              attribute: { slug: filter.slug },
+              slug: { in: filter.values },
+            },
+          },
+        },
+      });
     }
 
     if (normalizedQuery) {
       andFilters.push({
         OR: [
+          { name: { contains: normalizedQuery, mode: 'insensitive' as const } },
+          { slug: { contains: normalizedQuery, mode: 'insensitive' as const } },
           {
-            name: {
-              contains: normalizedQuery,
-              mode: 'insensitive' as const,
-            },
-          },
-          {
-            slug: {
+            description: {
               contains: normalizedQuery,
               mode: 'insensitive' as const,
             },
@@ -352,26 +533,25 @@ export class CatalogService {
 
   private buildCatalogFilterMetadata({
     discoveryProducts,
+    categories,
+    attributeFilters,
     query,
     sort,
   }: {
-    discoveryProducts: Array<{
-      category: ProductCategory | null;
-      variants: Array<{
-        priceAmount: Prisma.Decimal;
-      }>;
-    }>;
+    discoveryProducts: DiscoveryProduct[];
+    categories: CategorySummary[];
+    attributeFilters: AttributeFilter[];
     query: ListCatalogProductsDto;
     sort: CatalogSortOption;
   }): CatalogFilterMetadata {
-    const categoryCounts = new Map<ProductCategory, number>();
+    const categoryCounts = new Map<string, number>();
     const priceAmounts: number[] = [];
 
     for (const product of discoveryProducts) {
-      if (product.category) {
+      if (product.categoryId) {
         categoryCounts.set(
-          product.category,
-          (categoryCounts.get(product.category) ?? 0) + 1,
+          product.categoryId,
+          (categoryCounts.get(product.categoryId) ?? 0) + 1,
         );
       }
 
@@ -386,9 +566,16 @@ export class CatalogService {
       priceAmounts.length > 0 ? Math.max(...priceAmounts).toFixed(2) : null;
 
     return {
-      categories: Array.from(categoryCounts.entries())
-        .map(([value, count]) => ({ value, count }))
-        .sort((left, right) => left.value.localeCompare(right.value)),
+      categories: categories
+        .filter((category) => categoryCounts.has(category.id))
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          parentId: category.parentId,
+          count: categoryCounts.get(category.id) as number,
+        })),
+      attributes: this.buildAttributeFacets(discoveryProducts),
       priceRange: {
         minAmount,
         maxAmount,
@@ -397,11 +584,70 @@ export class CatalogService {
       applied: {
         query: this.normalizeText(query.query) ?? null,
         category: query.category ?? null,
+        attributes: attributeFilters,
         minPriceAmount: this.normalizeText(query.minPriceAmount) ?? null,
         maxPriceAmount: this.normalizeText(query.maxPriceAmount) ?? null,
         sort,
       },
     };
+  }
+
+  private buildAttributeFacets(
+    discoveryProducts: DiscoveryProduct[],
+  ): CatalogAttributeFacet[] {
+    const attributes = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        slug: string;
+        values: Map<
+          string,
+          { id: string; value: string; slug: string; count: number }
+        >;
+      }
+    >();
+
+    for (const product of discoveryProducts) {
+      for (const link of product.attributeValues) {
+        const value = link.attributeValue;
+        const attribute = value.attribute;
+
+        let attributeEntry = attributes.get(attribute.id);
+        if (!attributeEntry) {
+          attributeEntry = {
+            id: attribute.id,
+            name: attribute.name,
+            slug: attribute.slug,
+            values: new Map(),
+          };
+          attributes.set(attribute.id, attributeEntry);
+        }
+
+        const valueEntry = attributeEntry.values.get(value.id);
+        if (valueEntry) {
+          valueEntry.count += 1;
+        } else {
+          attributeEntry.values.set(value.id, {
+            id: value.id,
+            value: value.value,
+            slug: value.slug,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    return Array.from(attributes.values())
+      .map((attribute) => ({
+        id: attribute.id,
+        name: attribute.name,
+        slug: attribute.slug,
+        values: Array.from(attribute.values.values()).sort((left, right) =>
+          left.value.localeCompare(right.value),
+        ),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private buildPriceFilter(minPriceAmount?: string, maxPriceAmount?: string) {

@@ -7,7 +7,9 @@ type PrismaTransactionClient = Pick<
   | 'product'
   | 'productVariant'
   | 'productImage'
+  | 'productAttributeValue'
   | 'inventoryItem'
+  | 'coupon'
   | 'order'
   | 'orderMilestone'
   | 'orderItem'
@@ -15,6 +17,7 @@ type PrismaTransactionClient = Pick<
   | 'paymentWebhookDelivery'
   | 'notificationDelivery'
   | 'user'
+  | '$executeRaw'
 >;
 
 @Injectable()
@@ -63,6 +66,22 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  get category() {
+    return this.client.category;
+  }
+
+  get attribute() {
+    return this.client.attribute;
+  }
+
+  get attributeValue() {
+    return this.client.attributeValue;
+  }
+
+  get productAttributeValue() {
+    return this.client.productAttributeValue;
+  }
+
   get product() {
     return this.client.product;
   }
@@ -105,5 +124,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   get user() {
     return this.client.user;
+  }
+
+  get coupon() {
+    return this.client.coupon;
   }
 }

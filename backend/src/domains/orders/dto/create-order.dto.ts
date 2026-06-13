@@ -82,6 +82,11 @@ export class CreateOrderDto {
   @IsString()
   userId?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  couponCode?: string;
+
   @IsDefined()
   @ValidateNested()
   @Type(() => OrderContactDto)

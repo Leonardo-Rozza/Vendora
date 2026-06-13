@@ -108,7 +108,15 @@ export class PaymentsService {
         orderId: order.id,
         provider: MERCADO_PAGO_PROVIDER,
         providerPreferenceId: checkoutPreference.preferenceId,
-        rawPayload: checkoutPreference,
+        // Store only non-PII preference fields (drop payerEmail).
+        rawPayload: {
+          provider: checkoutPreference.provider,
+          preferenceId: checkoutPreference.preferenceId,
+          initPoint: checkoutPreference.initPoint,
+          externalReference: checkoutPreference.externalReference,
+          currencyCode: checkoutPreference.currencyCode,
+          notificationPath: checkoutPreference.notificationPath,
+        },
         status: 'PENDING',
       },
     });

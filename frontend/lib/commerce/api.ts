@@ -3,11 +3,15 @@ import type {
   AdminProduct,
   AdminProductInput,
   AdminSession,
+  AttributeOption,
+  CartAvailabilityLine,
   CatalogCollectionResponse,
   CatalogFilters,
   CatalogProductCard,
   CatalogProductDetail,
+  CategoryNode,
   CheckoutPreferenceResponse,
+  CouponEvaluation,
   CreateCheckoutPreferenceRequest,
   CreateOrderRequest,
   ListAdminProductsQuery,
@@ -17,8 +21,13 @@ import type {
   UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 import {
+  attributesListSchema,
+  cartAvailabilitySchema,
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
+  categoryTreeSchema,
+  couponEvaluationSchema,
+  relatedProductsSchema,
 } from "./schemas";
 
 export class ApiError extends Error {
@@ -100,6 +109,7 @@ export function normalizeCatalogProductCard(
     primaryImageAlt: primaryImage?.altText ?? null,
     startingPriceAmount: firstVariant?.priceAmount ?? null,
     currencyCode: firstVariant?.currencyCode ?? null,
+    attributes: product.attributes,
   };
 }
 
@@ -142,6 +152,15 @@ export async function listCatalogProductCollection(
     resolvedFilters.maxPriceAmount,
   );
   appendSearchParam(searchParams, "sort", resolvedFilters.sort);
+  appendSearchParam(searchParams, "attributes", resolvedFilters.attributes);
+
+  if (typeof resolvedFilters.page === "number") {
+    searchParams.set("page", String(resolvedFilters.page));
+  }
+
+  if (typeof resolvedFilters.pageSize === "number") {
+    searchParams.set("pageSize", String(resolvedFilters.pageSize));
+  }
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   const payload = await requestJson<unknown>(`/catalog/products${suffix}`);
@@ -169,6 +188,76 @@ export async function getCatalogProduct(slug: string) {
   }
 
   return result.data satisfies CatalogProductDetail;
+}
+
+export async function listAttributes(): Promise<AttributeOption[]> {
+  const payload = await requestJson<unknown>("/catalog/attributes");
+  const result = attributesListSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function getRelatedProducts(
+  slug: string,
+): Promise<CatalogProductDetail[]> {
+  const payload = await requestJson<unknown>(
+    `/catalog/products/${slug}/related`,
+  );
+  const result = relatedProductsSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function listCategoryTree(): Promise<CategoryNode[]> {
+  const payload = await requestJson<unknown>("/catalog/categories");
+  const result = categoryTreeSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function validateCoupon(
+  code: string,
+  subtotalAmount: string,
+): Promise<CouponEvaluation> {
+  const payload = await requestJson<unknown>("/coupons/validate", {
+    method: "POST",
+    body: JSON.stringify({ code, subtotalAmount }),
+  });
+  const result = couponEvaluationSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function checkCartAvailability(
+  items: Array<{ variantId: string; quantity: number }>,
+): Promise<CartAvailabilityLine[]> {
+  const payload = await requestJson<unknown>("/catalog/availability", {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
+  const result = cartAvailabilitySchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
 }
 
 export function createOrder(payload: CreateOrderRequest) {
@@ -217,7 +306,7 @@ export function listAdminProducts(query: string | ListAdminProductsQuery = {}) {
 
   appendSearchParam(searchParams, "query", resolvedQuery.query);
   appendSearchParam(searchParams, "status", resolvedQuery.status);
-  appendSearchParam(searchParams, "category", resolvedQuery.category);
+  appendSearchParam(searchParams, "categoryId", resolvedQuery.categoryId);
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   return requestAdminJson<AdminProduct[]>(`/admin/catalog/products${suffix}`);
