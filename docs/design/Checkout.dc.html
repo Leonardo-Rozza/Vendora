@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #1E2022; background: #FFF9F0; -webkit-font-smoothing: antialiased; }
+    input::placeholder { color: #B7AE9F; }
+    @keyframes vd-pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</helmet>
+
+<div style="min-height: 100vh;">
+
+  <!-- HEADER -->
+  <header style="background: #FFF9F0; border-bottom: 1px solid #E6DAC6;">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 16px;">
+      <a href="Storefront.dc.html" style="display: flex; align-items: center; gap: 11px; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 11px; background: #8C4B26; display: grid; place-items: center; color: #FFF9F0; font-weight: 800; font-size: 21px;">V</div>
+        <span style="font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: #1E2022;">Vendora</span>
+      </a>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 7px; font-size: 13px; color: #5B554E; font-weight: 600;"><span>🔒</span> Compra segura</div>
+    </div>
+  </header>
+
+  <!-- FORM VIEW -->
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ true }}">
+    <div style="max-width: 1140px; margin: 0 auto; padding: 24px 20px 80px;">
+      <!-- steps -->
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 26px; font-size: 13.5px; flex-wrap: wrap;">
+        <span style="color: #8C847A;">Carrito</span><span style="color: #D8C7AC;">›</span>
+        <span style="color: #1E2022; font-weight: 700;">Datos de envío</span><span style="color: #D8C7AC;">›</span>
+        <span style="color: #8C847A;">Pago</span>
+      </div>
+
+      <div style="display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start;">
+        <!-- LEFT: forms -->
+        <div style="flex: 2; min-width: 300px; display: flex; flex-direction: column; gap: 18px;">
+
+          <!-- contact -->
+          <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+              <span style="width: 26px; height: 26px; border-radius: 8px; background: #F4EDE0; color: #8C4B26; font-weight: 800; font-size: 13px; display: grid; place-items: center;">1</span>
+              <h2 style="margin: 0; font-size: 17px; font-weight: 800;">Contacto</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Email <span style="color: #A8362B;">*</span></label>
+                <input type="email" placeholder="nombre@correo.com" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;">
+                <p style="font-size: 12px; color: #8C847A; margin: 6px 0 0;">Te enviamos el seguimiento del pedido.</p>
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Teléfono <span style="color: #A8362B;">*</span></label>
+                <input type="tel" placeholder="11 5555 5555" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;">
+                <p style="font-size: 12px; color: #8C847A; margin: 6px 0 0;">Por si el correo necesita coordinar.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- shipping -->
+          <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 16px; padding: 22px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+              <span style="width: 26px; height: 26px; border-radius: 8px; background: #F4EDE0; color: #8C4B26; font-weight: 800; font-size: 13px; display: grid; place-items: center;">2</span>
+              <h2 style="margin: 0; font-size: 17px; font-weight: 800;">Envío</h2>
+              <span style="margin-left: auto; font-size: 11.5px; font-weight: 700; color: #21505F; background: #E0EAED; padding: 4px 10px; border-radius: 7px;">Solo CABA y AMBA</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Nombre <span style="color: #A8362B;">*</span></label><input placeholder="María" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Apellido <span style="color: #A8362B;">*</span></label><input placeholder="Gómez" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Calle <span style="color: #A8362B;">*</span></label><input placeholder="Av. Corrientes" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Número <span style="color: #A8362B;">*</span></label><input placeholder="1234" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Piso / Depto</label><input placeholder="3º B" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">CP <span style="color: #A8362B;">*</span></label>
+                  <input value="C1043" style="font-family: inherit; width: 100%; font-size: 15px; color: #A8362B; border: 1.5px solid #A8362B; border-radius: 10px; padding: 12px 14px; background: #fff;">
+                  <p style="font-size: 12px; color: #A8362B; margin: 6px 0 0; display: flex; align-items: center; gap: 5px;"><span style="width: 13px; height: 13px; border-radius: 50%; background: #A8362B; color: #fff; font-size: 9px; display: grid; place-items: center;">!</span>CP incompleto (ej. C1043AAZ)</p>
+                </div>
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Localidad <span style="color: #A8362B;">*</span></label><input placeholder="Balvanera" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Provincia <span style="color: #A8362B;">*</span></label>
+                  <div style="position: relative;">
+                    <select style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 36px 12px 14px; background: #fff; appearance: none; cursor: pointer;"><option>CABA</option><option>Buenos Aires (GBA)</option></select>
+                    <span style="position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #8C847A; pointer-events: none; font-size: 11px;">▼</span>
+                  </div>
+                </div>
+                <div><label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px;">Notas para la entrega</label><input placeholder="Timbre, horario…" style="font-family: inherit; width: 100%; font-size: 15px; border: 1.5px solid #D8C7AC; border-radius: 10px; padding: 12px 14px; background: #fff;" style-focus="border-color: #8C4B26; outline: 3px solid #E7CFAE;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: summary -->
+        <div style="flex: 1; min-width: 280px; position: sticky; top: 24px;">
+          <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 18px; padding: 22px;">
+            <h2 style="margin: 0 0 16px; font-size: 17px; font-weight: 800;">Tu pedido</h2>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+              <sc-for list="{{ lines }}" as="l" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 11px;">
+                  <div style="position: relative; width: 46px; height: 46px; flex-shrink: 0; border-radius: 10px; background: repeating-linear-gradient(45deg, #F4EDE0, #F4EDE0 6px, #EFE6D6 6px, #EFE6D6 12px);"><span style="position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #173747; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;">{{ l.qty }}</span></div>
+                  <div style="flex: 1; min-width: 0;"><div style="font-size: 13.5px; font-weight: 600; line-height: 1.25;">{{ l.name }}</div><div style="font-size: 12px; color: #8C847A;">{{ l.color }}</div></div>
+                  <div style="font-size: 13.5px; font-weight: 700; white-space: nowrap;">{{ l.lineFmt }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height: 1px; background: #F0E8DA; margin-bottom: 14px;"></div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 9px;"><span style="color: #5B554E;">Subtotal</span><span style="font-weight: 600;">{{ subtotalFmt }}</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 9px;"><span style="color: #1F7A4D;">Descuento (VENDORA10)</span><span style="font-weight: 600; color: #1F7A4D;">– {{ discountFmt }}</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 9px;"><span style="color: #5B554E;">Envío</span><span style="font-weight: 600;">Gratis</span></div>
+            <div style="height: 1px; background: #F0E8DA; margin: 12px 0;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px;"><span style="font-weight: 800; font-size: 16px;">Total</span><span style="font-weight: 800; font-size: 23px; letter-spacing: -.02em; white-space: nowrap;">{{ totalFmt }}</span></div>
+            <button onClick="{{ pay }}" style="font-family: inherit; width: 100%; font-size: 16px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; transition: background .15s;" style-hover="background: #6E3A1D;">Pagar con Mercado Pago →</button>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 7px; margin: 12px 0 14px; font-size: 12px; color: #8C847A;"><span>🔒</span> Te redirigimos al pago seguro</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+              <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #5B554E; background: #F4EDE0; padding: 4px 9px; border-radius: 6px;">Mercado Pago</span>
+              <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #5B554E; background: #F4EDE0; padding: 4px 9px; border-radius: 6px;">Visa</span>
+              <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #5B554E; background: #F4EDE0; padding: 4px 9px; border-radius: 6px;">Mastercard</span>
+              <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #5B554E; background: #F4EDE0; padding: 4px 9px; border-radius: 6px;">Hasta 12 cuotas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- RESULT VIEW -->
+  <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width: 620px; margin: 0 auto; padding: 48px 20px 80px;">
+      <div style="background: #fff; border: 1px solid #E6DAC6; border-radius: 22px; padding: 44px 32px; text-align: center; animation: vd-pop .3s ease;">
+        <div style="{{ resultIconStyle }}">{{ resultIcon }}</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #8C847A; margin: 22px 0 8px;">Pedido #VD-100482</div>
+        <h1 style="margin: 0 0 12px; font-size: 28px; font-weight: 800; letter-spacing: -.02em;">{{ resultTitle }}</h1>
+        <p style="font-size: 15.5px; color: #5B554E; line-height: 1.6; margin: 0 auto 28px; max-width: 42ch;">{{ resultText }}</p>
+        <div style="background: #F4EDE0; border-radius: 14px; padding: 16px 20px; text-align: left; margin-bottom: 26px;">
+          <div style="display: flex; justify-content: space-between; gap: 14px; font-size: 14px; margin-bottom: 10px;"><span style="color: #5B554E; white-space: nowrap;">Total {{ resultTotalNote }}</span><span style="font-weight: 800; white-space: nowrap;">{{ totalFmt }}</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 14px; font-size: 14px;"><span style="color: #5B554E; white-space: nowrap;">Envío a</span><span style="font-weight: 600; text-align: right;">Av. Corrientes 1234, CABA</span></div>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <sc-if value="{{ showTrack }}" hint-placeholder-val="{{ false }}"><a href="Seguimiento.dc.html" style="text-decoration: none; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border-radius: 12px; padding: 13px 24px;">Seguir mi pedido</a></sc-if>
+          <sc-if value="{{ showRetry }}" hint-placeholder-val="{{ false }}"><button onClick="{{ backToForm }}" style="font-family: inherit; font-size: 15px; font-weight: 700; color: #FFF9F0; background: #8C4B26; border: none; border-radius: 12px; padding: 13px 24px; cursor: pointer;">Reintentar pago</button></sc-if>
+          <a href="Storefront.dc.html" style="text-decoration: none; font-size: 15px; font-weight: 700; color: #8C4B26; background: #fff; border: 1.5px solid #D8C7AC; border-radius: 12px; padding: 12px 24px;">Volver a la tienda</a>
+        </div>
+      </div>
+
+      <!-- demo switcher -->
+      <div style="display: flex; align-items: center; gap: 9px; margin-top: 22px; justify-content: center; flex-wrap: wrap;">
+        <span style="font-family: 'Space Mono', monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #B7AE9F;">Ver resultado:</span>
+        <sc-for list="{{ resultTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view:'form' }; // form | success | pending | fail
+  fmt(n){ return '$ ' + Math.round(n).toLocaleString('es-AR'); }
+  renderVals() {
+    const S = this.state;
+    const lines = [
+      { name:'Auriculares inalámbricos Onda', color:'Negro', qty:1, line:89900 },
+      { name:'Botella térmica Cumbre', color:'Arena', qty:2, line:39800 },
+      { name:'Parlante portátil Brisa', color:'Negro', qty:1, line:64900 },
+    ].map(l => ({ ...l, lineFmt: this.fmt(l.line) }));
+    const subtotal = 89900 + 39800 + 64900;
+    const discount = Math.round(subtotal * 0.10);
+    const total = subtotal - discount;
+
+    const RES = {
+      success: { icon:'✓', iconBg:'#E3F0E7', iconFg:'#1F7A4D', title:'¡Pago confirmado!', text:'Recibimos tu pago. Te enviamos el comprobante y el link de seguimiento por email. Preparamos tu pedido enseguida.', totalNote:'pagado', track:true, retry:false },
+      pending: { icon:'⏳', iconBg:'#F6EAD2', iconFg:'#9A6512', title:'Tu pago está en proceso', text:'Mercado Pago está confirmando el pago. Puede demorar unos minutos. Te avisamos por email apenas se acredite.', totalNote:'a confirmar', track:true, retry:false },
+      fail: { icon:'×', iconBg:'#F6E2DD', iconFg:'#A8362B', title:'No pudimos procesar el pago', text:'El pago fue rechazado o se canceló. No te cobramos nada. Probá con otro medio de pago o reintentá.', totalNote:'pendiente', track:false, retry:true },
+    };
+    const r = RES[S.view] || RES.success;
+    const tabsDef = [ {k:'success',l:'Éxito'}, {k:'pending',l:'Pendiente'}, {k:'fail',l:'Fallo'} ];
+    const resultTabs = tabsDef.map(t => ({
+      label:t.l,
+      style: 'font-family:\'Space Mono\',monospace;font-size:11px;font-weight:700;cursor:pointer;border-radius:8px;padding:5px 12px;border:1.5px solid '+(S.view===t.k?'#8C4B26':'#D8C7AC')+';background:'+(S.view===t.k?'#8C4B26':'#fff')+';color:'+(S.view===t.k?'#FFF9F0':'#8C847A')+';',
+      go: () => this.setState({ view:t.k }),
+    }));
+
+    return {
+      isForm: S.view === 'form',
+      isResult: S.view !== 'form',
+      lines,
+      subtotalFmt: this.fmt(subtotal),
+      discountFmt: this.fmt(discount),
+      totalFmt: this.fmt(total),
+      pay: () => this.setState({ view:'success' }),
+      backToForm: () => this.setState({ view:'form' }),
+      resultIcon: r.icon,
+      resultIconStyle: 'width:76px;height:76px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:38px;font-weight:800;background:'+r.iconBg+';color:'+r.iconFg+';',
+      resultTitle: r.title,
+      resultText: r.text,
+      resultTotalNote: r.totalNote,
+      showTrack: r.track,
+      showRetry: r.retry,
+      resultTabs,
+    };
+  }
+}
+</script>
+</body>
+</html>
