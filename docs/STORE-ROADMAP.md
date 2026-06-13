@@ -58,6 +58,17 @@ Que se encuentren y comparen productos varios con facilidad.
 
 ---
 
+## Hardening de seguridad ✅ HECHO (rama feat/security-hardening)
+La app maneja pagos: seguridad como prioridad. Hecho en esta fase:
+- **Rate limiting** (`@nestjs/throttler`): global 120/min + límites estrictos en login (8), cupón (30), orden (15).
+- **Security headers**: `helmet` en la API; CSP + nosniff + frameguard + Referrer/Permissions-Policy + HSTS en el front.
+- **Redacción de PII**: el rawPayload del pago/webhook guarda solo lo no-sensible (sin payerEmail; webhook ya sanitizado).
+- **Redención atómica de cupón** (guard de maxRedemptions en el UPDATE).
+- **Supply chain**: `npm audit` informativo en CI + Dependabot semanal.
+
+Pendiente de seguridad (próximo): triar las ~12 vulns transitivas (Dependabot) y volver el audit bloqueante;
+CSP con nonces (sacar `'unsafe-inline'`); 2FA admin + revocación de sesión.
+
 ## Siguientes iteraciones (después de v1, ya con prioridad acordada)
 - **Checkout pro** ✅ HECHO: CP1 cupones/descuentos (modelo Coupon, validación, descuento en la orden) +
   CP2 validación de stock en vivo. Carrito persistente: ya persiste en localStorage por dispositivo;
