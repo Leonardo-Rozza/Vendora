@@ -59,7 +59,9 @@ Que se encuentren y comparen productos varios con facilidad.
 ---
 
 ## Siguientes iteraciones (después de v1, ya con prioridad acordada)
-- **Checkout pro**: carrito persistente, cupones/descuentos, validación de stock en vivo (envíos siguen AMBA).
+- **Checkout pro** ✅ HECHO: CP1 cupones/descuentos (modelo Coupon, validación, descuento en la orden) +
+  CP2 validación de stock en vivo. Carrito persistente: ya persiste en localStorage por dispositivo;
+  la persistencia cross-device real queda para cuando haya cuentas (envíos siguen AMBA).
 - **Invitado mejorado**: página "seguí tu pedido" por email+token, reenvío de tracking.
 - **Post-venta & confianza**: reviews/ratings, wishlist, cancelación por el cliente.
 - **Admin & métricas**: dashboard de ventas/top productos, gestión masiva de stock, cupones, categorías/atributos.
