@@ -233,11 +233,9 @@ const singleVariantPrismaMock = (calls: Record<string, unknown>) =>
           },
         },
         orderMilestone: { create: async () => ({ id: 'milestone-1' }) },
-        coupon: {
-          update: async (args: unknown) => {
-            calls.couponUpdate = args;
-            return args;
-          },
+        $executeRaw: async (_strings: unknown, ...values: unknown[]) => {
+          calls.couponRedeemValues = values;
+          return 1;
         },
       }),
   }) as never;
@@ -279,10 +277,8 @@ test('OrdersService applies a valid coupon and redeems it', async () => {
   expect(data.discountAmount.toFixed(2)).toBe('100.00');
   expect(data.couponCode).toBe('BIENVENIDA10');
   expect(data.totalAmount.toFixed(2)).toBe('900.00');
-  expect(calls.couponUpdate).toEqual({
-    where: { code: 'BIENVENIDA10' },
-    data: { timesRedeemed: { increment: 1 } },
-  });
+  // Redeemed atomically via a guarded UPDATE (code passed as a bound param).
+  expect(calls.couponRedeemValues).toEqual(['BIENVENIDA10']);
 });
 
 test('OrdersService rejects an invalid coupon', async () => {

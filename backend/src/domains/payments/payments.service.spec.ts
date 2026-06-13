@@ -149,7 +149,6 @@ test('PaymentsService creates a Mercado Pago checkout preference for an unpaid o
         initPoint:
           'https://www.mercadopago.com/checkout/v1/redirect?pref_id=pref_order-1',
         notificationPath: '/api/payments/webhooks/mercado-pago',
-        payerEmail: 'buyer@example.com',
         preferenceId: 'pref_order-1',
         provider: 'mercado-pago',
       },

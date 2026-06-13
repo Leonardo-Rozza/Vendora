@@ -271,10 +271,18 @@ export class OrdersService {
       });
 
       if (appliedCouponCode) {
-        await client.coupon.update({
-          where: { code: appliedCouponCode },
-          data: { timesRedeemed: { increment: 1 } },
-        });
+        // Atomic redemption with the redemption-limit guard in the WHERE, so
+        // concurrent orders cannot push a coupon past maxRedemptions.
+        const redeemed = await client.$executeRaw`
+          UPDATE "Coupon"
+          SET "timesRedeemed" = "timesRedeemed" + 1, "updatedAt" = now()
+          WHERE "code" = ${appliedCouponCode}
+            AND ("maxRedemptions" IS NULL OR "timesRedeemed" < "maxRedemptions")
+        `;
+
+        if (redeemed === 0) {
+          throw new ConflictException('El cupón alcanzó su límite de usos');
+        }
       }
 
       return {

@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersDto } from './dto/list-orders.dto';
@@ -22,6 +23,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post('orders')
+  @Throttle({ default: { ttl: 60_000, limit: 15 } })
   createOrder(@Body() body: CreateOrderDto) {
     return this.ordersService.createOrder(body);
   }
