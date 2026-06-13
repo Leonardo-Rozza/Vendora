@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../../platform/prisma/prisma.service';
 import {
+  type AttributeFilter,
+  parseAttributeFilter,
+} from './attributes.service';
+import {
   CategoriesService,
   collectBranchIds,
   type CategorySummary,
@@ -18,8 +22,20 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 type CatalogDbClient = Pick<PrismaService, 'product' | 'inventoryItem'>;
 
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 60;
+
 const PRODUCT_INCLUDE = {
   category: true,
+  attributeValues: {
+    include: {
+      attributeValue: {
+        include: {
+          attribute: true,
+        },
+      },
+    },
+  },
   variants: {
     include: {
       inventoryItem: true,
@@ -36,6 +52,19 @@ type CatalogListItem = Prisma.ProductGetPayload<{
   include: typeof PRODUCT_INCLUDE;
 }>;
 
+type DiscoveryProduct = {
+  categoryId: string | null;
+  variants: Array<{ priceAmount: Prisma.Decimal }>;
+  attributeValues: Array<{
+    attributeValue: {
+      id: string;
+      value: string;
+      slug: string;
+      attribute: { id: string; name: string; slug: string };
+    };
+  }>;
+};
+
 type CatalogCategoryFacet = {
   id: string;
   name: string;
@@ -44,8 +73,16 @@ type CatalogCategoryFacet = {
   count: number;
 };
 
+type CatalogAttributeFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  values: Array<{ id: string; value: string; slug: string; count: number }>;
+};
+
 type CatalogFilterMetadata = {
   categories: CatalogCategoryFacet[];
+  attributes: CatalogAttributeFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -54,6 +91,7 @@ type CatalogFilterMetadata = {
   applied: {
     query: string | null;
     category: string | null;
+    attributes: AttributeFilter[];
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
@@ -74,6 +112,8 @@ export class CatalogService {
     const categoryIds = query.category
       ? collectBranchIds(categories, query.category)
       : undefined;
+    const attributeFilters = parseAttributeFilter(query.attributes);
+    const { page, pageSize } = this.resolvePagination(query);
 
     const discoveryWhere = this.buildProductWhere({
       query: normalizedQuery,
@@ -83,6 +123,7 @@ export class CatalogService {
       query: normalizedQuery,
       status: ProductStatus.ACTIVE,
       categoryIds,
+      attributeFilters,
       minPriceAmount: query.minPriceAmount,
       maxPriceAmount: query.maxPriceAmount,
     });
@@ -96,6 +137,15 @@ export class CatalogService {
               priceAmount: true,
             },
           },
+          attributeValues: {
+            include: {
+              attributeValue: {
+                include: {
+                  attribute: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.product.findMany({
@@ -104,14 +154,22 @@ export class CatalogService {
       }),
     ]);
 
+    const sorted = this.sortProducts(filteredProducts, appliedSort);
+    const total = sorted.length;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
+    const items = sorted.slice(start, start + pageSize);
+
     return {
-      items: this.sortProducts(filteredProducts, appliedSort),
+      items,
       filters: this.buildCatalogFilterMetadata({
         discoveryProducts,
         categories,
+        attributeFilters,
         query,
         sort: appliedSort,
       }),
+      pagination: { page, pageSize, total, totalPages },
     };
   }
 
@@ -154,6 +212,13 @@ export class CatalogService {
         description: input.description,
         status: input.status,
         categoryId: input.categoryId,
+        attributeValues: input.attributeValueIds?.length
+          ? {
+              create: input.attributeValueIds.map((attributeValueId) => ({
+                attributeValueId,
+              })),
+            }
+          : undefined,
         variants: {
           create: input.variants.map((variant) => ({
             sku: variant.sku,
@@ -208,6 +273,21 @@ export class CatalogService {
           categoryId: input.categoryId,
         },
       });
+
+      if (input.attributeValueIds) {
+        await client.productAttributeValue.deleteMany({
+          where: { productId },
+        });
+
+        if (input.attributeValueIds.length > 0) {
+          await client.productAttributeValue.createMany({
+            data: input.attributeValueIds.map((attributeValueId) => ({
+              productId,
+              attributeValueId,
+            })),
+          });
+        }
+      }
 
       if (input.images) {
         await client.productImage.deleteMany({
@@ -296,16 +376,29 @@ export class CatalogService {
     });
   }
 
+  private resolvePagination(query: ListCatalogProductsDto) {
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const requestedSize = Math.trunc(query.pageSize ?? DEFAULT_PAGE_SIZE);
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, requestedSize || DEFAULT_PAGE_SIZE),
+    );
+
+    return { page, pageSize };
+  }
+
   private buildProductWhere({
     query,
     status,
     categoryIds,
+    attributeFilters,
     minPriceAmount,
     maxPriceAmount,
   }: {
     query?: string;
     status?: ProductStatus;
     categoryIds?: string[];
+    attributeFilters?: AttributeFilter[];
     minPriceAmount?: string;
     maxPriceAmount?: string;
   }) {
@@ -320,17 +413,26 @@ export class CatalogService {
       andFilters.push({ categoryId: { in: categoryIds } });
     }
 
+    for (const filter of attributeFilters ?? []) {
+      andFilters.push({
+        attributeValues: {
+          some: {
+            attributeValue: {
+              attribute: { slug: filter.slug },
+              slug: { in: filter.values },
+            },
+          },
+        },
+      });
+    }
+
     if (normalizedQuery) {
       andFilters.push({
         OR: [
+          { name: { contains: normalizedQuery, mode: 'insensitive' as const } },
+          { slug: { contains: normalizedQuery, mode: 'insensitive' as const } },
           {
-            name: {
-              contains: normalizedQuery,
-              mode: 'insensitive' as const,
-            },
-          },
-          {
-            slug: {
+            description: {
               contains: normalizedQuery,
               mode: 'insensitive' as const,
             },
@@ -377,16 +479,13 @@ export class CatalogService {
   private buildCatalogFilterMetadata({
     discoveryProducts,
     categories,
+    attributeFilters,
     query,
     sort,
   }: {
-    discoveryProducts: Array<{
-      categoryId: string | null;
-      variants: Array<{
-        priceAmount: Prisma.Decimal;
-      }>;
-    }>;
+    discoveryProducts: DiscoveryProduct[];
     categories: CategorySummary[];
+    attributeFilters: AttributeFilter[];
     query: ListCatalogProductsDto;
     sort: CatalogSortOption;
   }): CatalogFilterMetadata {
@@ -412,8 +511,6 @@ export class CatalogService {
       priceAmounts.length > 0 ? Math.max(...priceAmounts).toFixed(2) : null;
 
     return {
-      // `categories` is already ordered (sortOrder, name); keep only those with
-      // matching products so the facet reflects the discovery set.
       categories: categories
         .filter((category) => categoryCounts.has(category.id))
         .map((category) => ({
@@ -423,6 +520,7 @@ export class CatalogService {
           parentId: category.parentId,
           count: categoryCounts.get(category.id) as number,
         })),
+      attributes: this.buildAttributeFacets(discoveryProducts),
       priceRange: {
         minAmount,
         maxAmount,
@@ -431,11 +529,70 @@ export class CatalogService {
       applied: {
         query: this.normalizeText(query.query) ?? null,
         category: query.category ?? null,
+        attributes: attributeFilters,
         minPriceAmount: this.normalizeText(query.minPriceAmount) ?? null,
         maxPriceAmount: this.normalizeText(query.maxPriceAmount) ?? null,
         sort,
       },
     };
+  }
+
+  private buildAttributeFacets(
+    discoveryProducts: DiscoveryProduct[],
+  ): CatalogAttributeFacet[] {
+    const attributes = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        slug: string;
+        values: Map<
+          string,
+          { id: string; value: string; slug: string; count: number }
+        >;
+      }
+    >();
+
+    for (const product of discoveryProducts) {
+      for (const link of product.attributeValues) {
+        const value = link.attributeValue;
+        const attribute = value.attribute;
+
+        let attributeEntry = attributes.get(attribute.id);
+        if (!attributeEntry) {
+          attributeEntry = {
+            id: attribute.id,
+            name: attribute.name,
+            slug: attribute.slug,
+            values: new Map(),
+          };
+          attributes.set(attribute.id, attributeEntry);
+        }
+
+        const valueEntry = attributeEntry.values.get(value.id);
+        if (valueEntry) {
+          valueEntry.count += 1;
+        } else {
+          attributeEntry.values.set(value.id, {
+            id: value.id,
+            value: value.value,
+            slug: value.slug,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    return Array.from(attributes.values())
+      .map((attribute) => ({
+        id: attribute.id,
+        name: attribute.name,
+        slug: attribute.slug,
+        values: Array.from(attribute.values.values()).sort((left, right) =>
+          left.value.localeCompare(right.value),
+        ),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private buildPriceFilter(minPriceAmount?: string, maxPriceAmount?: string) {

@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCatalogProductCard, listCatalogProductCollection } from "@/lib/commerce/api";
-import { toCatalogErrorMessage } from "@/lib/commerce/catalog";
+import {
+  appliedAttributesToCompact,
+  toCatalogErrorMessage,
+  toggleAttributeValue,
+} from "@/lib/commerce/catalog";
 import type {
   CatalogCollectionResponse,
   CatalogFilters,
@@ -14,6 +18,7 @@ import { CatalogFilters as CatalogFiltersPanel } from "@/components/storefront/c
 import { CatalogGrid } from "@/components/storefront/catalog-grid";
 import { CatalogToolbar } from "@/components/storefront/catalog-toolbar";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import { Panel } from "@/components/ui/panel";
 import { Pill } from "@/components/ui/pill";
 
@@ -31,6 +36,7 @@ function mapAppliedFilters(
     minPriceAmount: applied.minPriceAmount ?? "",
     maxPriceAmount: applied.maxPriceAmount ?? "",
     sort: applied.sort,
+    attributes: appliedAttributesToCompact(applied.attributes),
   };
 }
 
@@ -60,8 +66,12 @@ export function CatalogExperience({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
+  const gridRef = useRef<HTMLDivElement | null>(null);
 
-  async function loadProducts(nextFilters: CatalogFilters) {
+  async function loadProducts(
+    nextFilters: CatalogFilters,
+    options: { scrollToGrid?: boolean } = {},
+  ) {
     setIsLoading(true);
     setError(null);
 
@@ -72,12 +82,33 @@ export function CatalogExperience({
       const appliedFilters = mapAppliedFilters(nextCollection.filters.applied);
       setActiveFilters(appliedFilters);
       setDraftFilters(appliedFilters);
+      if (options.scrollToGrid) {
+        gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     } catch (caughtError) {
       setError(toCatalogErrorMessage(caughtError));
       setProducts([]);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handlePageChange(nextPage: number) {
+    void loadProducts(
+      { ...activeFilters, page: nextPage },
+      { scrollToGrid: true },
+    );
+  }
+
+  function handleAttributeToggle(attributeSlug: string, valueSlug: string) {
+    setDraftFilters((current) => ({
+      ...current,
+      attributes: toggleAttributeValue(
+        current.attributes,
+        attributeSlug,
+        valueSlug,
+      ),
+    }));
   }
 
   useEffect(() => {
@@ -89,14 +120,30 @@ export function CatalogExperience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const appliedAttributes = useMemo(
+    () => collection?.filters.applied.attributes ?? [],
+    [collection],
+  );
+
+  const attributeNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const facet of collection?.filters.attributes ?? []) {
+      map.set(facet.slug, facet.name);
+    }
+    return map;
+  }, [collection]);
+
   const activeFilterCount = useMemo(() => {
-    return [
-      activeFilters.query,
-      activeFilters.category,
-      activeFilters.minPriceAmount,
-      activeFilters.maxPriceAmount,
-    ].filter(Boolean).length;
-  }, [activeFilters]);
+    return (
+      [
+        activeFilters.query,
+        activeFilters.category,
+        activeFilters.minPriceAmount,
+        activeFilters.maxPriceAmount,
+      ].filter(Boolean).length +
+      appliedAttributes.reduce((total, entry) => total + entry.values.length, 0)
+    );
+  }, [activeFilters, appliedAttributes]);
 
   const categoryFacets = useMemo(
     () => collection?.filters.categories ?? [],
@@ -134,6 +181,7 @@ export function CatalogExperience({
       query: draftFilters.query?.trim() ?? "",
       minPriceAmount: draftFilters.minPriceAmount?.trim() ?? "",
       maxPriceAmount: draftFilters.maxPriceAmount?.trim() ?? "",
+      page: 1,
     });
     setIsFiltersOpen(false);
   }
@@ -264,10 +312,11 @@ export function CatalogExperience({
             onMinPriceChange={(value) =>
               setDraftFilters((current) => ({ ...current, minPriceAmount: value }))
             }
+            onAttributeToggle={handleAttributeToggle}
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4" ref={gridRef}>
           <div className="lg:hidden">
             <CatalogFiltersPanel
               filters={draftFilters}
@@ -282,6 +331,7 @@ export function CatalogExperience({
               onMinPriceChange={(value) =>
                 setDraftFilters((current) => ({ ...current, minPriceAmount: value }))
               }
+              onAttributeToggle={handleAttributeToggle}
               visible={isFiltersOpen}
             />
           </div>
@@ -294,6 +344,13 @@ export function CatalogExperience({
               {activeFilters.query ? <Pill>Busqueda: {activeFilters.query}</Pill> : null}
               {activeFilters.minPriceAmount ? <Pill>Min: {activeFilters.minPriceAmount}</Pill> : null}
               {activeFilters.maxPriceAmount ? <Pill>Max: {activeFilters.maxPriceAmount}</Pill> : null}
+              {appliedAttributes.flatMap((entry) =>
+                entry.values.map((value) => (
+                  <Pill key={`${entry.slug}:${value}`}>
+                    {attributeNameBySlug.get(entry.slug) ?? entry.slug}: {value}
+                  </Pill>
+                )),
+              )}
               <Button onClick={clearFilters} variant="ghost">
                 {copy.clearFilters}
               </Button>
@@ -307,6 +364,16 @@ export function CatalogExperience({
             onRetry={() => void loadProducts(activeFilters)}
             products={products}
           />
+
+          {collection && collection.pagination.totalPages > 1 ? (
+            <div className="flex justify-center pt-2">
+              <Pagination
+                page={collection.pagination.page}
+                pageCount={collection.pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

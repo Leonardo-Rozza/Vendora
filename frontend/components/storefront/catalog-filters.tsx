@@ -1,4 +1,5 @@
 import type { CatalogFilterMetadata, CatalogFilters } from "@/lib/contracts";
+import { parseAttributeFilter } from "@/lib/commerce/catalog";
 import { appCopy } from "@/lib/copy/es-ar";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
@@ -10,6 +11,7 @@ type CatalogFiltersProps = {
   onCategoryChange: (category?: string) => void;
   onMaxPriceChange: (value: string) => void;
   onMinPriceChange: (value: string) => void;
+  onAttributeToggle: (attributeSlug: string, valueSlug: string) => void;
   visible?: boolean;
 };
 
@@ -20,6 +22,7 @@ export function CatalogFilters({
   onCategoryChange,
   onMaxPriceChange,
   onMinPriceChange,
+  onAttributeToggle,
   visible = true,
 }: CatalogFiltersProps) {
   const copy = appCopy.storefrontCatalog;
@@ -29,6 +32,8 @@ export function CatalogFilters({
   }
 
   const availableCategories = metadata?.categories ?? [];
+  const availableAttributes = metadata?.attributes ?? [];
+  const selectedAttributes = parseAttributeFilter(filters.attributes);
 
   return (
     <Panel className="p-5">
@@ -92,6 +97,56 @@ export function CatalogFilters({
             />
           </label>
         </div>
+
+        {availableAttributes.length > 0 ? (
+          <div className="flex flex-col gap-5 border-t border-[var(--line-soft)] pt-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-soft)]">
+              {copy.attributesLabel}
+            </p>
+            {availableAttributes.map((attribute) => {
+              const selectedValues =
+                selectedAttributes.get(attribute.slug) ?? new Set<string>();
+
+              return (
+                <fieldset key={attribute.id} className="flex flex-col gap-3">
+                  <legend className="text-sm font-semibold text-[var(--ink-strong)]">
+                    {attribute.name}
+                  </legend>
+                  <div className="flex flex-col gap-2">
+                    {attribute.values.map((value) => {
+                      const inputId = `attr-${attribute.slug}-${value.slug}`;
+                      const isChecked = selectedValues.has(value.slug);
+
+                      return (
+                        <label
+                          key={value.id}
+                          className="flex items-center justify-between gap-3 text-sm text-[var(--ink-strong)]"
+                          htmlFor={inputId}
+                        >
+                          <span className="flex items-center gap-2">
+                            <input
+                              checked={isChecked}
+                              className="h-4 w-4 rounded border-[var(--line-strong)] accent-[var(--brand-deep)]"
+                              id={inputId}
+                              onChange={() =>
+                                onAttributeToggle(attribute.slug, value.slug)
+                              }
+                              type="checkbox"
+                            />
+                            {value.value}
+                          </span>
+                          <span className="text-xs text-[var(--ink-soft)]">
+                            {value.count}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              );
+            })}
+          </div>
+        ) : null}
 
         <Button className="w-full" onClick={onApply}>
           {copy.applyFilters}

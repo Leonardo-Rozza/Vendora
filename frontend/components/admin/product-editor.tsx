@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ProductFormSections, createEmptyImage, createEmptyVariant, type CategoryOption, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
-import { listCategoryTree } from "@/lib/commerce/api";
-import type { AdminProduct, AdminProductInput, CategoryNode } from "@/lib/contracts";
+import { listAttributes, listCategoryTree } from "@/lib/commerce/api";
+import type {
+  AdminProduct,
+  AdminProductInput,
+  AttributeOption,
+  CategoryNode,
+} from "@/lib/contracts";
 import { appCopy } from "@/lib/copy/es-ar";
 
 type ProductEditorProps = {
@@ -40,6 +45,10 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
   const [variants, setVariants] = useState<EditableVariant[]>(blankProductPayload.variants);
   const [images, setImages] = useState<EditableImage[]>(blankProductPayload.images);
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [attributeOptions, setAttributeOptions] = useState<AttributeOption[]>([]);
+  const [selectedAttributeValueIds, setSelectedAttributeValueIds] = useState<
+    Set<string>
+  >(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +63,24 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       .catch(() => {
         if (active) {
           setCategoryOptions([]);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    listAttributes()
+      .then((attributes) => {
+        if (active) {
+          setAttributeOptions(attributes);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAttributeOptions([]);
         }
       });
     return () => {
@@ -76,6 +103,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       setCategoryId(blankProductPayload.categoryId);
       setVariants([createEmptyVariant()]);
       setImages([createEmptyImage(0)]);
+      setSelectedAttributeValueIds(new Set());
       setError(null);
       return;
     }
@@ -106,7 +134,22 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
           }))
         : [createEmptyImage(0)],
     );
+    setSelectedAttributeValueIds(
+      resolveSelectedValueIds(product.attributes ?? [], attributeOptions),
+    );
     setError(null);
+  }
+
+  function toggleAttributeValue(valueId: string) {
+    setSelectedAttributeValueIds((current) => {
+      const next = new Set(current);
+      if (next.has(valueId)) {
+        next.delete(valueId);
+      } else {
+        next.add(valueId);
+      }
+      return next;
+    });
   }
 
   async function handleSave() {
@@ -140,6 +183,9 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
             altText: image.altText.trim() || undefined,
             sortOrder: image.sortOrder,
           })),
+        ...(selectedAttributeValueIds.size > 0
+          ? { attributeValueIds: [...selectedAttributeValueIds] }
+          : {}),
       } satisfies AdminProductInput;
 
       if (payload.variants.length === 0) {
@@ -236,6 +282,42 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
           variants={variants}
         />
 
+        {attributeOptions.length > 0 ? (
+          <div className="mt-5 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/70 p-4">
+            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+              {copy.attributesTitle}
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {attributeOptions.map((attribute) => (
+                <fieldset key={attribute.id} className="flex flex-col gap-2">
+                  <legend className="text-sm font-semibold text-[var(--ink-strong)]">
+                    {attribute.name}
+                  </legend>
+                  {attribute.values.map((value) => {
+                    const inputId = `admin-attr-${attribute.slug}-${value.slug}`;
+                    return (
+                      <label
+                        key={value.id}
+                        className="flex items-center gap-2 text-sm text-[var(--ink-strong)]"
+                        htmlFor={inputId}
+                      >
+                        <input
+                          checked={selectedAttributeValueIds.has(value.id)}
+                          className="h-4 w-4 rounded border-[var(--line-strong)] accent-[var(--brand-deep)]"
+                          id={inputId}
+                          onChange={() => toggleAttributeValue(value.id)}
+                          type="checkbox"
+                        />
+                        {value.value}
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-5 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/70 p-4 text-sm leading-7 text-[var(--ink-muted)]">
           {copy.helper}
         </div>
@@ -246,6 +328,25 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       </article>
     </section>
   );
+}
+
+function resolveSelectedValueIds(
+  attributes: { attributeSlug: string; valueSlug: string }[],
+  options: AttributeOption[],
+): Set<string> {
+  const selected = new Set<string>();
+
+  for (const attribute of attributes) {
+    const option = options.find((entry) => entry.slug === attribute.attributeSlug);
+    const value = option?.values.find(
+      (candidate) => candidate.slug === attribute.valueSlug,
+    );
+    if (value) {
+      selected.add(value.id);
+    }
+  }
+
+  return selected;
 }
 
 function readRequiredString(value: string, label: string) {

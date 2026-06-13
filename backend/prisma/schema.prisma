@@ -102,19 +102,56 @@ model User {
 }
 
 model Product {
-  id          String           @id @default(cuid())
-  slug        String           @unique
-  name        String
-  description String?
-  status      ProductStatus    @default(DRAFT)
-  categoryId  String?
-  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  variants    ProductVariant[]
-  images      ProductImage[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String                  @id @default(cuid())
+  slug            String                  @unique
+  name            String
+  description     String?
+  status          ProductStatus           @default(DRAFT)
+  categoryId      String?
+  category        Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants        ProductVariant[]
+  images          ProductImage[]
+  attributeValues ProductAttributeValue[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   @@index([categoryId])
+}
+
+model Attribute {
+  id        String           @id @default(cuid())
+  name      String
+  slug      String           @unique
+  values    AttributeValue[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model AttributeValue {
+  id          String                  @id @default(cuid())
+  attributeId String
+  value       String
+  slug        String
+  attribute   Attribute               @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  products    ProductAttributeValue[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([attributeId, slug])
+  @@index([attributeId])
+}
+
+model ProductAttributeValue {
+  id               String         @id @default(cuid())
+  productId        String
+  attributeValueId String
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  @@unique([productId, attributeValueId])
+  @@index([productId])
+  @@index([attributeValueId])
 }
 
 model ProductVariant {

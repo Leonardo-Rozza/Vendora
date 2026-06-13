@@ -36,6 +36,7 @@ export const appCopy = {
     filtersDescription:
       "Ajusta categoria, precio y orden para encontrar mas rapido lo que buscas.",
     categoryLabel: "Categoria",
+    attributesLabel: "Atributos",
     minPriceLabel: "Precio minimo",
     maxPriceLabel: "Precio maximo",
     sortLabel: "Ordenar por",
@@ -86,6 +87,7 @@ export const appCopy = {
     stockUnknown: "Stock a confirmar",
     addedToCart: "agregado al carrito",
     categoryLabel: "Categoria",
+    specificationsTitle: "Especificaciones",
     imagePending: "Imagen pendiente",
     unavailableCta: "Variante sin stock",
   },
@@ -259,6 +261,7 @@ export const appCopy = {
     imageKey: "Clave del asset en Cloudinary",
     imageAlt: "Texto alternativo",
     imageSortOrder: "Orden",
+    attributesTitle: "Atributos del producto",
     helper:
       "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",
     saving: "Guardando producto...",

@@ -7,6 +7,7 @@ type PrismaTransactionClient = Pick<
   | 'product'
   | 'productVariant'
   | 'productImage'
+  | 'productAttributeValue'
   | 'inventoryItem'
   | 'order'
   | 'orderMilestone'
@@ -65,6 +66,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
   get category() {
     return this.client.category;
+  }
+
+  get attribute() {
+    return this.client.attribute;
+  }
+
+  get attributeValue() {
+    return this.client.attributeValue;
+  }
+
+  get productAttributeValue() {
+    return this.client.productAttributeValue;
   }
 
   get product() {

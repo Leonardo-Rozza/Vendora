@@ -1,9 +1,13 @@
+import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsInt,
   IsNumberString,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { CatalogSortOption } from '../catalog.constants';
 
@@ -19,6 +23,12 @@ export class ListCatalogProductsDto {
   @MaxLength(160)
   category?: string;
 
+  /** Attribute filter, e.g. `color:negro,azul;material:vidrio`. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  attributes?: string;
+
   @IsOptional()
   @IsNumberString()
   minPriceAmount?: string;
@@ -30,4 +40,17 @@ export class ListCatalogProductsDto {
   @IsOptional()
   @IsEnum(CatalogSortOption)
   sort?: CatalogSortOption;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  pageSize?: number;
 }

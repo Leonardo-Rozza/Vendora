@@ -37,6 +37,15 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
         sortOrder: 0,
       },
     ],
+    attributes: [
+      {
+        attributeId: "attr-color",
+        attributeName: "Color",
+        attributeSlug: "color",
+        value: "Arena",
+        valueSlug: "arena",
+      },
+    ],
   });
 
   expect(result).toEqual({
@@ -59,6 +68,15 @@ test("normalizeCatalogProductCard maps backend product detail into storefront ca
     primaryImageAlt: "Aurora speaker",
     startingPriceAmount: "129900",
     currencyCode: "ARS",
+    attributes: [
+      {
+        attributeId: "attr-color",
+        attributeName: "Color",
+        attributeSlug: "color",
+        value: "Arena",
+        valueSlug: "arena",
+      },
+    ],
   });
 });
 

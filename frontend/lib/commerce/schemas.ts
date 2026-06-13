@@ -47,6 +47,55 @@ const catalogImageReferenceSchema = z.object({
   sortOrder: z.number(),
 });
 
+const productAttributeSchema = z.object({
+  attributeId: z.string(),
+  attributeName: z.string(),
+  attributeSlug: z.string(),
+  value: z.string(),
+  valueSlug: z.string(),
+});
+
+const attributeValueFacetSchema = z.object({
+  id: z.string(),
+  value: z.string(),
+  slug: z.string(),
+  count: z.number(),
+});
+
+const attributeFacetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  values: z.array(attributeValueFacetSchema),
+});
+
+const appliedAttributeFilterSchema = z.object({
+  slug: z.string(),
+  values: z.array(z.string()),
+});
+
+const paginationSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+  totalPages: z.number(),
+});
+
+const attributeOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  values: z.array(
+    z.object({
+      id: z.string(),
+      value: z.string(),
+      slug: z.string(),
+    }),
+  ),
+});
+
+export const attributesListSchema = z.array(attributeOptionSchema);
+
 const catalogProductDetailSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -56,10 +105,12 @@ const catalogProductDetailSchema = z.object({
   category: categoryRefSchema.nullable(),
   variants: z.array(catalogVariantPreviewSchema),
   images: z.array(catalogImageReferenceSchema),
+  attributes: z.array(productAttributeSchema),
 });
 
 const catalogFilterMetadataSchema = z.object({
   categories: z.array(categoryFacetSchema),
+  attributes: z.array(attributeFacetSchema),
   priceRange: z.object({
     minAmount: z.string().nullable(),
     maxAmount: z.string().nullable(),
@@ -71,12 +122,14 @@ const catalogFilterMetadataSchema = z.object({
     minPriceAmount: z.string().nullable(),
     maxPriceAmount: z.string().nullable(),
     sort: catalogSortOptionSchema,
+    attributes: z.array(appliedAttributeFilterSchema),
   }),
 });
 
 export const catalogCollectionResponseSchema = z.object({
   items: z.array(catalogProductDetailSchema),
   filters: catalogFilterMetadataSchema,
+  pagination: paginationSchema,
 });
 
 export const catalogProductDetailResponseSchema = catalogProductDetailSchema;

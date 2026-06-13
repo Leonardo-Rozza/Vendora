@@ -3,6 +3,7 @@ import type {
   AdminProduct,
   AdminProductInput,
   AdminSession,
+  AttributeOption,
   CatalogCollectionResponse,
   CatalogFilters,
   CatalogProductCard,
@@ -18,6 +19,7 @@ import type {
   UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 import {
+  attributesListSchema,
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
   categoryTreeSchema,
@@ -102,6 +104,7 @@ export function normalizeCatalogProductCard(
     primaryImageAlt: primaryImage?.altText ?? null,
     startingPriceAmount: firstVariant?.priceAmount ?? null,
     currencyCode: firstVariant?.currencyCode ?? null,
+    attributes: product.attributes,
   };
 }
 
@@ -144,6 +147,15 @@ export async function listCatalogProductCollection(
     resolvedFilters.maxPriceAmount,
   );
   appendSearchParam(searchParams, "sort", resolvedFilters.sort);
+  appendSearchParam(searchParams, "attributes", resolvedFilters.attributes);
+
+  if (typeof resolvedFilters.page === "number") {
+    searchParams.set("page", String(resolvedFilters.page));
+  }
+
+  if (typeof resolvedFilters.pageSize === "number") {
+    searchParams.set("pageSize", String(resolvedFilters.pageSize));
+  }
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   const payload = await requestJson<unknown>(`/catalog/products${suffix}`);
@@ -171,6 +183,17 @@ export async function getCatalogProduct(slug: string) {
   }
 
   return result.data satisfies CatalogProductDetail;
+}
+
+export async function listAttributes(): Promise<AttributeOption[]> {
+  const payload = await requestJson<unknown>("/catalog/attributes");
+  const result = attributesListSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
 }
 
 export async function listCategoryTree(): Promise<CategoryNode[]> {

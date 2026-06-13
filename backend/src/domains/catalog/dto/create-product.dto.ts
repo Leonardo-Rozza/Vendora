@@ -35,6 +35,11 @@ export class CreateProductDto {
   @MaxLength(64)
   categoryId?: string;
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attributeValueIds?: string[];
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

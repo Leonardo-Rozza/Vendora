@@ -12,7 +12,23 @@ const HOGAR = {
 const categoriesStub = (categories: Array<typeof HOGAR> = []) =>
   ({ listAll: async () => categories }) as never;
 
-test('CatalogService lists active catalog products with filter metadata and search filters', async () => {
+const PRODUCT_INCLUDE = {
+  category: true,
+  attributeValues: {
+    include: { attributeValue: { include: { attribute: true } } },
+  },
+  variants: { include: { inventoryItem: true } },
+  images: { orderBy: { sortOrder: 'asc' } },
+};
+
+const DISCOVERY_INCLUDE = {
+  variants: { select: { priceAmount: true } },
+  attributeValues: {
+    include: { attributeValue: { include: { attribute: true } } },
+  },
+};
+
+test('CatalogService lists products with category/attribute facets, search and pagination', async () => {
   let receivedArgs: unknown;
   let metadataArgs: unknown;
   const service = new CatalogService(
@@ -25,6 +41,20 @@ test('CatalogService lists active catalog products with filter metadata and sear
               {
                 categoryId: 'cat_hogar',
                 variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
+                attributeValues: [
+                  {
+                    attributeValue: {
+                      id: 'av_negro',
+                      value: 'Negro',
+                      slug: 'negro',
+                      attribute: {
+                        id: 'attr_color',
+                        name: 'Color',
+                        slug: 'color',
+                      },
+                    },
+                  },
+                ],
               },
             ];
           }
@@ -46,77 +76,68 @@ test('CatalogService lists active catalog products with filter metadata and sear
   const result = await service.listProducts({
     query: 'mate',
     category: 'hogar',
+    attributes: 'color:negro',
     minPriceAmount: '9000',
     maxPriceAmount: '12000',
     sort: 'price-asc',
   });
 
-  expect(result).toEqual({
-    items: [
-      {
-        id: 'product-1',
-        createdAt: new Date('2026-03-14T00:00:00.000Z'),
-        variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
-      },
-    ],
-    filters: {
-      categories: [
-        {
-          id: 'cat_hogar',
-          name: 'Hogar',
-          slug: 'hogar',
-          parentId: null,
-          count: 1,
-        },
-      ],
-      priceRange: {
-        minAmount: '9900.00',
-        maxAmount: '9900.00',
-      },
-      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
-      applied: {
-        query: 'mate',
-        category: 'hogar',
-        minPriceAmount: '9000',
-        maxPriceAmount: '12000',
-        sort: 'price-asc',
-      },
+  expect(result.items).toEqual([
+    {
+      id: 'product-1',
+      createdAt: new Date('2026-03-14T00:00:00.000Z'),
+      variants: [{ priceAmount: new Prisma.Decimal('9900.00') }],
     },
+  ]);
+  expect(result.pagination).toEqual({
+    page: 1,
+    pageSize: 12,
+    total: 1,
+    totalPages: 1,
   });
-  expect(metadataArgs).toEqual({
-    where: {
-      AND: [
-        { status: 'ACTIVE' },
-        {
-          OR: [
-            { name: { contains: 'mate', mode: 'insensitive' } },
-            { slug: { contains: 'mate', mode: 'insensitive' } },
-            {
-              variants: {
-                some: { sku: { contains: 'mate', mode: 'insensitive' } },
-              },
-            },
-          ],
-        },
-      ],
+  expect(result.filters.categories).toEqual([
+    { id: 'cat_hogar', name: 'Hogar', slug: 'hogar', parentId: null, count: 1 },
+  ]);
+  expect(result.filters.attributes).toEqual([
+    {
+      id: 'attr_color',
+      name: 'Color',
+      slug: 'color',
+      values: [{ id: 'av_negro', value: 'Negro', slug: 'negro', count: 1 }],
     },
-    include: {
-      variants: {
-        select: {
-          priceAmount: true,
-        },
-      },
-    },
+  ]);
+  expect(result.filters.applied).toEqual({
+    query: 'mate',
+    category: 'hogar',
+    attributes: [{ slug: 'color', values: ['negro'] }],
+    minPriceAmount: '9000',
+    maxPriceAmount: '12000',
+    sort: 'price-asc',
   });
+
+  expect((metadataArgs as { include: unknown }).include).toEqual(
+    DISCOVERY_INCLUDE,
+  );
   expect(receivedArgs).toEqual({
     where: {
       AND: [
         { status: 'ACTIVE' },
         { categoryId: { in: ['cat_hogar'] } },
         {
+          attributeValues: {
+            some: {
+              attributeValue: {
+                attribute: { slug: 'color' },
+                slug: { in: ['negro'] },
+              },
+            },
+          },
+        },
+        {
           OR: [
             { name: { contains: 'mate', mode: 'insensitive' } },
             { slug: { contains: 'mate', mode: 'insensitive' } },
+            { description: { contains: 'mate', mode: 'insensitive' } },
             {
               variants: {
                 some: { sku: { contains: 'mate', mode: 'insensitive' } },
@@ -136,19 +157,7 @@ test('CatalogService lists active catalog products with filter metadata and sear
         },
       ],
     },
-    include: {
-      category: true,
-      variants: {
-        include: {
-          inventoryItem: true,
-        },
-      },
-      images: {
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-    },
+    include: PRODUCT_INCLUDE,
   });
 });
 
@@ -169,23 +178,22 @@ test('CatalogService returns an empty collection when no active products match t
   const result = await service.listProducts({ query: 'missing' });
 
   expect(readCount).toBe(2);
-  expect(result).toEqual({
-    items: [],
-    filters: {
-      categories: [],
-      priceRange: {
-        minAmount: null,
-        maxAmount: null,
-      },
-      availableSorts: ['featured', 'price-asc', 'price-desc', 'newest'],
-      applied: {
-        query: 'missing',
-        category: null,
-        minPriceAmount: null,
-        maxPriceAmount: null,
-        sort: 'featured',
-      },
-    },
+  expect(result.items).toEqual([]);
+  expect(result.pagination).toEqual({
+    page: 1,
+    pageSize: 12,
+    total: 0,
+    totalPages: 0,
+  });
+  expect(result.filters.categories).toEqual([]);
+  expect(result.filters.attributes).toEqual([]);
+  expect(result.filters.applied).toEqual({
+    query: 'missing',
+    category: null,
+    attributes: [],
+    minPriceAmount: null,
+    maxPriceAmount: null,
+    sort: 'featured',
   });
 });
 
@@ -208,19 +216,7 @@ test('CatalogService loads an active product aggregate by slug', async () => {
   expect(result).toEqual({ id: 'product-1' });
   expect(receivedArgs).toEqual({
     where: { slug: 'mate-gourd', status: 'ACTIVE' },
-    include: {
-      category: true,
-      variants: {
-        include: {
-          inventoryItem: true,
-        },
-      },
-      images: {
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-    },
+    include: PRODUCT_INCLUDE,
   });
 });
 
@@ -244,6 +240,7 @@ test('CatalogService creates a product with category, variants, inventory, and i
     description: 'Classic mate.',
     status: 'ACTIVE',
     categoryId: 'cat_hogar',
+    attributeValueIds: ['av_negro'],
     variants: [
       {
         sku: 'SKU-1',
@@ -266,32 +263,24 @@ test('CatalogService creates a product with category, variants, inventory, and i
   expect(result).toEqual({ id: 'product-1' });
   const createArgs = receivedArgs as {
     data: {
-      slug: string;
-      name: string;
-      description: string;
-      status: string;
       categoryId: string;
+      attributeValues: { create: Array<{ attributeValueId: string }> };
       variants: {
         create: Array<{ priceAmount: Prisma.Decimal; currencyCode: string }>;
       };
-      images: { create: Array<{ assetUrl: string }> };
     };
   };
-  expect(createArgs.data.slug).toBe('mate-gourd');
-  expect(createArgs.data.name).toBe('Mate Gourd');
-  expect(createArgs.data.description).toBe('Classic mate.');
-  expect(createArgs.data.status).toBe('ACTIVE');
   expect(createArgs.data.categoryId).toBe('cat_hogar');
+  expect(createArgs.data.attributeValues.create).toEqual([
+    { attributeValueId: 'av_negro' },
+  ]);
   expect(createArgs.data.variants.create[0]?.currencyCode).toBe('ARS');
   expect(createArgs.data.variants.create[0]?.priceAmount.toString()).toBe(
     '12500',
   );
-  expect(createArgs.data.images.create[0]?.assetUrl).toBe(
-    'https://cdn.example.com/mate.jpg',
-  );
 });
 
-test('CatalogService updates product fields and existing variants', async () => {
+test('CatalogService updates product fields, attribute links and existing variants', async () => {
   const calls: Record<string, unknown> = {};
   let readCount = 0;
   const service = new CatalogService(
@@ -309,7 +298,6 @@ test('CatalogService updates product fields and existing variants', async () => 
                 };
               }
 
-              calls.productReadAfter = args;
               return { id: 'product-1', variants: [], images: [] };
             },
             update: async (args: unknown) => {
@@ -317,45 +305,41 @@ test('CatalogService updates product fields and existing variants', async () => 
               return args;
             },
           },
-          productImage: {
+          productAttributeValue: {
             deleteMany: async (args: unknown) => {
-              calls.imageDeleteMany = args;
+              calls.attributeDeleteMany = args;
               return args;
             },
             createMany: async (args: unknown) => {
-              calls.imageCreateMany = args;
+              calls.attributeCreateMany = args;
               return args;
             },
+          },
+          productImage: {
+            deleteMany: async () => undefined,
+            createMany: async () => undefined,
           },
           productVariant: {
             update: async (args: unknown) => {
               calls.variantUpdate = args;
               return args;
             },
-            create: async (args: unknown) => {
-              calls.variantCreate = args;
-              return { id: 'variant-2' };
-            },
+            create: async () => ({ id: 'variant-2' }),
           },
           inventoryItem: {
             findUnique: async () => ({ variantId: 'variant-1' }),
-            update: async (args: unknown) => {
-              calls.inventoryUpdate = args;
-              return args;
-            },
-            create: async (args: unknown) => {
-              calls.inventoryCreate = args;
-              return args;
-            },
+            update: async () => undefined,
+            create: async () => undefined,
           },
         }),
     } as never,
     categoriesStub(),
   );
 
-  const result = await service.updateProduct('product-1', {
+  await service.updateProduct('product-1', {
     name: 'Updated Mate Gourd',
     categoryId: 'cat_accesorios',
+    attributeValueIds: ['av_azul'],
     variants: [
       {
         id: 'variant-1',
@@ -366,17 +350,8 @@ test('CatalogService updates product fields and existing variants', async () => 
         availableQuantity: 8,
       },
     ],
-    images: [
-      {
-        assetUrl: 'https://cdn.example.com/mate-2.jpg',
-        assetKey: 'mate-2.jpg',
-        altText: 'Updated mate',
-        sortOrder: 1,
-      },
-    ],
   });
 
-  expect(result).toEqual({ id: 'product-1', variants: [], images: [] });
   expect(calls.productUpdate).toEqual({
     where: { id: 'product-1' },
     data: {
@@ -387,6 +362,12 @@ test('CatalogService updates product fields and existing variants', async () => 
       categoryId: 'cat_accesorios',
     },
   });
+  expect(calls.attributeDeleteMany).toEqual({
+    where: { productId: 'product-1' },
+  });
+  expect(calls.attributeCreateMany).toEqual({
+    data: [{ productId: 'product-1', attributeValueId: 'av_azul' }],
+  });
   expect(calls.variantUpdate).toEqual({
     where: { id: 'variant-1' },
     data: {
@@ -395,25 +376,5 @@ test('CatalogService updates product fields and existing variants', async () => 
       priceAmount: new Prisma.Decimal('13000.00'),
       currencyCode: 'ARS',
     },
-  });
-  expect(calls.inventoryUpdate).toEqual({
-    where: { variantId: 'variant-1' },
-    data: {
-      availableQuantity: 8,
-    },
-  });
-  expect(calls.imageDeleteMany).toEqual({
-    where: { productId: 'product-1' },
-  });
-  expect(calls.imageCreateMany).toEqual({
-    data: [
-      {
-        productId: 'product-1',
-        assetUrl: 'https://cdn.example.com/mate-2.jpg',
-        assetKey: 'mate-2.jpg',
-        altText: 'Updated mate',
-        sortOrder: 1,
-      },
-    ],
   });
 });

@@ -38,6 +38,11 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
+  attributeValueIds?: string[];
+
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductVariantInputDto)
   variants?: ProductVariantInputDto[];

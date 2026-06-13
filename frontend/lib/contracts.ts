@@ -44,6 +44,53 @@ export type CatalogImageReference = {
   sortOrder: number;
 };
 
+/** An attribute value assigned to a product (e.g. Color: Negro). */
+export type ProductAttribute = {
+  attributeId: string;
+  attributeName: string;
+  attributeSlug: string;
+  value: string;
+  valueSlug: string;
+};
+
+/** A single attribute value facet with its discovery-set product count. */
+export type AttributeValueFacet = {
+  id: string;
+  value: string;
+  slug: string;
+  count: number;
+};
+
+/** An attribute facet, grouping its value facets. */
+export type AttributeFacet = {
+  id: string;
+  name: string;
+  slug: string;
+  values: AttributeValueFacet[];
+};
+
+/** Applied attribute filter, by attribute slug and selected value slugs. */
+export type AppliedAttributeFilter = {
+  slug: string;
+  values: string[];
+};
+
+/** Pagination metadata for a catalog collection response. */
+export type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+/** An attribute with all its values (GET /catalog/attributes). */
+export type AttributeOption = {
+  id: string;
+  name: string;
+  slug: string;
+  values: Array<{ id: string; value: string; slug: string }>;
+};
+
 export type CatalogProductDetail = {
   id: string;
   slug: string;
@@ -53,6 +100,7 @@ export type CatalogProductDetail = {
   category: CategoryRef | null;
   variants: CatalogVariantPreview[];
   images: CatalogImageReference[];
+  attributes: ProductAttribute[];
 };
 
 export type CatalogProductCard = {
@@ -67,6 +115,7 @@ export type CatalogProductCard = {
   primaryImageAlt: string | null;
   startingPriceAmount: string | null;
   currencyCode: string | null;
+  attributes: ProductAttribute[];
 };
 
 export type CatalogFilters = {
@@ -76,10 +125,15 @@ export type CatalogFilters = {
   minPriceAmount?: string;
   maxPriceAmount?: string;
   sort?: CatalogSortOption;
+  /** Compact attribute filter, e.g. `color:negro,azul;material:vidrio`. */
+  attributes?: string;
+  page?: number;
+  pageSize?: number;
 };
 
 export type CatalogFilterMetadata = {
   categories: CategoryFacet[];
+  attributes: AttributeFacet[];
   priceRange: {
     minAmount: string | null;
     maxAmount: string | null;
@@ -91,12 +145,14 @@ export type CatalogFilterMetadata = {
     minPriceAmount: string | null;
     maxPriceAmount: string | null;
     sort: CatalogSortOption;
+    attributes: AppliedAttributeFilter[];
   };
 };
 
 export type CatalogCollectionResponse = {
   items: CatalogProductDetail[];
   filters: CatalogFilterMetadata;
+  pagination: PaginationMeta;
 };
 
 export type CartLine = {
@@ -260,6 +316,7 @@ export type AdminProduct = {
     }
   >;
   images: CatalogImageReference[];
+  attributes?: ProductAttribute[];
 };
 
 export type ProductVariantInput = {
@@ -286,6 +343,7 @@ export type AdminProductInput = {
   categoryId?: string;
   variants: ProductVariantInput[];
   images?: ProductImageInput[];
+  attributeValueIds?: string[];
 };
 
 export type FulfillmentStatus =

@@ -4,6 +4,7 @@ import {
   getOrderTracking,
   listAdminProducts,
   listAdminOrders,
+  listAttributes,
   listCatalogProductCollection,
   resolveApiBaseUrl,
   updateAdminOrderFulfillment,
@@ -178,7 +179,7 @@ test("admin order helper appends fulfillment filters to the query string", async
   expect(seenRequests[0]!.init?.credentials).toBe("include");
 });
 
-test("catalog collection helper appends category, price, and sort filters", async () => {
+test("catalog collection helper appends category, price, sort, attribute, and pagination filters", async () => {
   const originalFetch = global.fetch;
   const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
 
@@ -198,6 +199,17 @@ test("catalog collection helper appends category, price, and sort filters", asyn
               count: 1,
             },
           ],
+          attributes: [
+            {
+              id: "attr-color",
+              name: "Color",
+              slug: "color",
+              values: [
+                { id: "val-negro", value: "Negro", slug: "negro", count: 2 },
+                { id: "val-azul", value: "Azul", slug: "azul", count: 1 },
+              ],
+            },
+          ],
           priceRange: { minAmount: "9000.00", maxAmount: "12000.00" },
           availableSorts: ["featured", "price-asc", "price-desc", "newest"],
           applied: {
@@ -206,8 +218,10 @@ test("catalog collection helper appends category, price, and sort filters", asyn
             minPriceAmount: "9000",
             maxPriceAmount: "12000",
             sort: "price-asc",
+            attributes: [{ slug: "color", values: ["negro", "azul"] }],
           },
         },
+        pagination: { page: 2, pageSize: 24, total: 50, totalPages: 3 },
       }),
       {
         status: 200,
@@ -223,6 +237,9 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       minPriceAmount: "9000",
       maxPriceAmount: "12000",
       sort: "price-asc",
+      attributes: "color:negro,azul",
+      page: 2,
+      pageSize: 24,
     });
 
     expect(response.filters.applied).toEqual({
@@ -231,6 +248,13 @@ test("catalog collection helper appends category, price, and sort filters", asyn
       minPriceAmount: "9000",
       maxPriceAmount: "12000",
       sort: "price-asc",
+      attributes: [{ slug: "color", values: ["negro", "azul"] }],
+    });
+    expect(response.pagination).toEqual({
+      page: 2,
+      pageSize: 24,
+      total: 50,
+      totalPages: 3,
     });
   } finally {
     global.fetch = originalFetch;
@@ -238,8 +262,49 @@ test("catalog collection helper appends category, price, and sort filters", asyn
 
   expect(seenRequests.length).toBe(1);
   expect(seenRequests[0]!.url).toMatch(
-    /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc$/,
+    /\/catalog\/products\?query=mate&category=HOGAR&minPriceAmount=9000&maxPriceAmount=12000&sort=price-asc&attributes=color%3Anegro%2Cazul&page=2&pageSize=24$/,
   );
+});
+
+test("attributes helper requests the catalog attributes endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify([
+        {
+          id: "attr-color",
+          name: "Color",
+          slug: "color",
+          values: [{ id: "val-negro", value: "Negro", slug: "negro" }],
+        },
+      ]),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const attributes = await listAttributes();
+    expect(attributes).toEqual([
+      {
+        id: "attr-color",
+        name: "Color",
+        slug: "color",
+        values: [{ id: "val-negro", value: "Negro", slug: "negro" }],
+      },
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/catalog\/attributes$/);
 });
 
 test("admin product helper appends category and status filters to the query string", async () => {

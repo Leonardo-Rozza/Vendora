@@ -156,6 +156,29 @@ export function ProductDetailClient({
             </div>
           </div>
 
+          {product.attributes.length > 0 ? (
+            <div className="mt-8 rounded-[1.6rem] border border-[var(--line-soft)] bg-white/75 p-5">
+              <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--ink-soft)]">
+                {copy.specificationsTitle}
+              </p>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                {product.attributes.map((attribute) => (
+                  <div
+                    key={`${attribute.attributeId}-${attribute.valueSlug}`}
+                    className="flex items-baseline justify-between gap-3 border-b border-[var(--line-soft)] pb-2"
+                  >
+                    <dt className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]">
+                      {attribute.attributeName}
+                    </dt>
+                    <dd className="text-sm font-semibold text-[var(--ink-strong)]">
+                      {attribute.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
           <div className="mt-8 flex flex-col gap-4 rounded-[1.6rem] border border-[var(--line-soft)] bg-[linear-gradient(180deg,rgba(26,58,73,0.96),rgba(18,39,52,0.98))] p-6 text-[var(--surface-base)]">
             <div className="flex items-center justify-between gap-4">
               <div>
