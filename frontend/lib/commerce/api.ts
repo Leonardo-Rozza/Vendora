@@ -10,6 +10,7 @@ import type {
   CatalogProductDetail,
   CategoryNode,
   CheckoutPreferenceResponse,
+  CouponEvaluation,
   CreateCheckoutPreferenceRequest,
   CreateOrderRequest,
   ListAdminProductsQuery,
@@ -23,6 +24,7 @@ import {
   catalogCollectionResponseSchema,
   catalogProductDetailResponseSchema,
   categoryTreeSchema,
+  couponEvaluationSchema,
   relatedProductsSchema,
 } from "./schemas";
 
@@ -215,6 +217,23 @@ export async function getRelatedProducts(
 export async function listCategoryTree(): Promise<CategoryNode[]> {
   const payload = await requestJson<unknown>("/catalog/categories");
   const result = categoryTreeSchema.safeParse(payload);
+
+  if (!result.success) {
+    throw new ApiError("Respuesta inválida del servidor", 502);
+  }
+
+  return result.data;
+}
+
+export async function validateCoupon(
+  code: string,
+  subtotalAmount: string,
+): Promise<CouponEvaluation> {
+  const payload = await requestJson<unknown>("/coupons/validate", {
+    method: "POST",
+    body: JSON.stringify({ code, subtotalAmount }),
+  });
+  const result = couponEvaluationSchema.safeParse(payload);
 
   if (!result.success) {
     throw new ApiError("Respuesta inválida del servidor", 502);

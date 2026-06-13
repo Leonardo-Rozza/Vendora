@@ -138,7 +138,8 @@ test("cart helpers serialize persistence state and shape the backend order paylo
   };
 
   expect(rehydrated).toEqual(state);
-  expect(toCreateOrderRequest(state, checkoutForm)).toEqual({
+  const orderRequest = toCreateOrderRequest(state, checkoutForm);
+  expect(orderRequest).toEqual({
     items: [{ variantId: "variant-2", quantity: 2 }],
     contact: {
       fullName: "Ada Buyer",
@@ -155,5 +156,26 @@ test("cart helpers serialize persistence state and shape the backend order paylo
       postalCode: "C1426",
       deliveryNotes: undefined,
     },
+  });
+  expect("couponCode" in orderRequest).toBe(false);
+
+  expect(toCreateOrderRequest(state, checkoutForm, "  BIENVENIDA10  ")).toEqual({
+    items: [{ variantId: "variant-2", quantity: 2 }],
+    contact: {
+      fullName: "Ada Buyer",
+      email: "ada@example.com",
+      phone: "11 5555 1111",
+    },
+    shippingAddress: {
+      recipientName: "Ada Buyer",
+      phone: "11 5555 1111",
+      streetLine1: "Cabildo 123",
+      streetLine2: undefined,
+      locality: "CABA",
+      province: "CABA",
+      postalCode: "C1426",
+      deliveryNotes: undefined,
+    },
+    couponCode: "BIENVENIDA10",
   });
 });

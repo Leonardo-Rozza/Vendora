@@ -89,6 +89,26 @@ enum UserRole {
   ADMIN
 }
 
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id                String     @id @default(cuid())
+  code              String     @unique
+  type              CouponType
+  value             Decimal    @db.Decimal(10, 2)
+  minSubtotalAmount Decimal?   @db.Decimal(10, 2)
+  maxRedemptions    Int?
+  timesRedeemed     Int        @default(0)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -207,9 +227,11 @@ model Order {
   trackingCode          String?     @unique
   currencyCode          String      @db.Char(3)
   subtotalAmount        Decimal     @db.Decimal(10, 2)
-  // Prepared for shipping costs; total = subtotal + shipping. Defaults to 0
-  // while shipping is free, so totals stay consistent once a cost is charged.
+  // Prepared for shipping costs; total = subtotal - discount + shipping. Both
+  // default to 0 so totals stay consistent until a cost/discount is applied.
   shippingAmount        Decimal     @default(0) @db.Decimal(10, 2)
+  discountAmount        Decimal     @default(0) @db.Decimal(10, 2)
+  couponCode            String?
   totalAmount           Decimal     @db.Decimal(10, 2)
   contactFullName       String
   contactEmail          String

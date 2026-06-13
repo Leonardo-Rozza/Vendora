@@ -198,6 +198,15 @@ export type CartState = {
   lastCheckout: CheckoutSnapshot | null;
 };
 
+export type CouponEvaluation =
+  | {
+      valid: true;
+      code: string;
+      type: "PERCENTAGE" | "FIXED";
+      discountAmount: string;
+    }
+  | { valid: false; reason: string };
+
 export type CreateOrderRequest = {
   items: Array<{
     variantId: string;
@@ -209,6 +218,7 @@ export type CreateOrderRequest = {
     phone: string;
   };
   shippingAddress: ShippingAddressInput;
+  couponCode?: string;
 };
 
 export type ShippingAddressInput = {
@@ -244,6 +254,8 @@ export type CreatedOrder = {
   trackingUrlPath: string | null;
   currencyCode: string;
   subtotalAmount: string;
+  discountAmount: string;
+  couponCode: string | null;
   totalAmount: string;
   contactFullName: string;
   contactEmail: string;

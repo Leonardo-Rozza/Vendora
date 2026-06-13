@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
 import { CheckoutForm } from "@/components/cart/checkout-form";
-import { createCheckoutPreference, createOrder } from "@/lib/commerce/api";
+import {
+  CouponForm,
+  type AppliedCoupon,
+} from "@/components/cart/coupon-form";
+import {
+  createCheckoutPreference,
+  createOrder,
+  validateCoupon,
+} from "@/lib/commerce/api";
 import {
   createEmptyCheckoutFormState,
   toCreateOrderRequest,
@@ -39,11 +47,59 @@ export function CartPageClient() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
+    null,
+  );
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
   const isCheckoutReady = useMemo(
     () => canStartCheckout({ isSubmitting, lineCount: cartState.lines.length }),
     [cartState.lines.length, isSubmitting],
   );
+
+  const discountAmount = appliedCoupon
+    ? Math.min(Number(appliedCoupon.discountAmount), Number(subtotalAmount))
+    : 0;
+  const totalAmount = Math.max(Number(subtotalAmount) - discountAmount, 0);
+
+  // Drop the applied coupon if the cart becomes empty.
+  useEffect(() => {
+    if (cartState.lines.length === 0 && appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponError(null);
+    }
+  }, [appliedCoupon, cartState.lines.length]);
+
+  async function handleApplyCoupon(code: string) {
+    setIsValidatingCoupon(true);
+    setCouponError(null);
+
+    try {
+      const evaluation = await validateCoupon(code, subtotalAmount);
+
+      if (evaluation.valid) {
+        setAppliedCoupon({
+          code: evaluation.code,
+          discountAmount: evaluation.discountAmount,
+        });
+        setCouponError(null);
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(evaluation.reason);
+      }
+    } catch (caughtError) {
+      setAppliedCoupon(null);
+      setCouponError(toCheckoutErrorMessage(caughtError));
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  }
 
   async function handleCheckout() {
     if (!isCheckoutReady) {
@@ -62,7 +118,7 @@ export function CartPageClient() {
 
     try {
       const order = await createOrder(
-        toCreateOrderRequest(cartState, checkoutForm),
+        toCreateOrderRequest(cartState, checkoutForm, appliedCoupon?.code),
       );
       const preference = await createCheckoutPreference({
         orderId: order.id,
@@ -259,6 +315,35 @@ export function CartPageClient() {
                 {formatMoney(subtotalAmount, currencyCode)}
               </strong>
             </div>
+
+            {appliedCoupon ? (
+              <div className="mt-3 flex items-center justify-between gap-4">
+                <span className="text-sm text-white/70">
+                  {copy.discount} · {appliedCoupon.code}
+                </span>
+                <strong className="text-xl text-[var(--accent-sand)]">
+                  -{formatMoney(discountAmount, currencyCode)}
+                </strong>
+              </div>
+            ) : null}
+
+            <div className="mt-3 flex items-center justify-between gap-4 border-t border-white/10 pt-3">
+              <span className="text-sm font-semibold text-white">
+                {copy.total}
+              </span>
+              <strong className="text-2xl">
+                {formatMoney(totalAmount, currencyCode)}
+              </strong>
+            </div>
+
+            <CouponForm
+              applied={appliedCoupon}
+              copy={copy}
+              error={couponError}
+              isValidating={isValidatingCoupon}
+              onApply={(code) => void handleApplyCoupon(code)}
+              onRemove={handleRemoveCoupon}
+            />
 
             <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-black/10 p-4 text-sm text-white/76">
               <p className="font-semibold text-white">

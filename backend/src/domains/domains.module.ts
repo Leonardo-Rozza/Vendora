@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { CouponsModule } from './coupons/coupons.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrdersModule } from './orders/orders.module';
@@ -11,6 +12,7 @@ import { UsersModule } from './users/users.module';
   imports: [
     AuthModule,
     CatalogModule,
+    CouponsModule,
     InventoryModule,
     NotificationsModule,
     OrdersModule,
@@ -20,6 +22,7 @@ import { UsersModule } from './users/users.module';
   exports: [
     AuthModule,
     CatalogModule,
+    CouponsModule,
     InventoryModule,
     NotificationsModule,
     OrdersModule,

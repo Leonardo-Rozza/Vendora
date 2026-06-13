@@ -108,6 +108,15 @@ export const appCopy = {
     orderSummaryDescription:
       "Primero guardamos el pedido en Vendora y despues generamos el link de pago. Asi mantienes una referencia clara aunque cierres la ventana.",
     subtotal: "Subtotal",
+    discount: "Descuento",
+    total: "Total",
+    couponSection: "Cupón de descuento",
+    couponLabel: "Código de cupón",
+    couponPlaceholder: "Ingresa tu código",
+    couponApply: "Aplicar",
+    couponApplying: "Aplicando...",
+    couponRemove: "Quitar cupón",
+    couponApplied: "Cupón aplicado",
     deliveryScopeTitle: "Cobertura actual",
     deliveryScopeDescription:
       "En este MVP solo hacemos envios dentro de CABA y AMBA. Si completas una direccion fuera de esa zona, el checkout no avanza.",

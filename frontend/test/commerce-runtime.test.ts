@@ -8,6 +8,7 @@ import {
   listCatalogProductCollection,
   resolveApiBaseUrl,
   updateAdminOrderFulfillment,
+  validateCoupon,
 } from "../lib/commerce/api.ts";
 import { toCatalogErrorMessage } from "../lib/commerce/catalog.ts";
 import {
@@ -366,6 +367,68 @@ test("admin fulfillment helper sends a patch request with the transition payload
   expect(String(seenRequests[0]!.init?.body)).toMatch(
     /"fulfillmentStatus":"CONFIRMED"/,
   );
+});
+
+test("coupon helper posts the code and subtotal to the validate endpoint", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({
+        valid: true,
+        code: "BIENVENIDA10",
+        type: "PERCENTAGE",
+        discountAmount: "12990.00",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const evaluation = await validateCoupon("BIENVENIDA10", "129900");
+    expect(evaluation).toEqual({
+      valid: true,
+      code: "BIENVENIDA10",
+      type: "PERCENTAGE",
+      discountAmount: "12990.00",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(/\/coupons\/validate$/);
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  expect(JSON.parse(String(seenRequests[0]!.init?.body))).toEqual({
+    code: "BIENVENIDA10",
+    subtotalAmount: "129900",
+  });
+});
+
+test("coupon helper surfaces invalid evaluations from the validate endpoint", async () => {
+  const originalFetch = global.fetch;
+
+  global.fetch = (async () =>
+    new Response(
+      JSON.stringify({ valid: false, reason: "Cupón vencido" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    )) as typeof global.fetch;
+
+  try {
+    const evaluation = await validateCoupon("EXPIRADO", "129900");
+    expect(evaluation).toEqual({ valid: false, reason: "Cupón vencido" });
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("api helper resolves the configured API base url without a trailing slash", () => {

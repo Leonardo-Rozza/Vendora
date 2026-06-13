@@ -5,6 +5,7 @@ import {
   type CatalogCollectionResponse,
   type CatalogProductDetail,
   type CategoryNode,
+  type CouponEvaluation,
 } from "../contracts";
 
 const catalogSortOptionSchema = z.enum(CATALOG_SORT_OPTIONS);
@@ -135,6 +136,20 @@ export const catalogCollectionResponseSchema = z.object({
 export const catalogProductDetailResponseSchema = catalogProductDetailSchema;
 
 export const relatedProductsSchema = z.array(catalogProductDetailSchema);
+
+export const couponEvaluationSchema: z.ZodType<CouponEvaluation> =
+  z.discriminatedUnion("valid", [
+    z.object({
+      valid: z.literal(true),
+      code: z.string(),
+      type: z.enum(["PERCENTAGE", "FIXED"]),
+      discountAmount: z.string(),
+    }),
+    z.object({
+      valid: z.literal(false),
+      reason: z.string(),
+    }),
+  ]);
 
 // Ensure the inferred schema types stay compatible with the public contracts.
 type _AssertCollection = z.infer<
