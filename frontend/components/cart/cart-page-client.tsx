@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useCommerce } from "@/components/commerce/commerce-provider";
@@ -294,10 +295,13 @@ export function CartPageClient() {
                 <div className="flex gap-4">
                   <div className="grid size-[92px] flex-shrink-0 place-items-center overflow-hidden rounded-[12px] bg-[repeating-linear-gradient(45deg,#F4EDE0,#F4EDE0_8px,#EFE6D6_8px,#EFE6D6_16px)]">
                     {line.imageUrl ? (
-                      <img
+                      <Image
                         alt={line.imageAlt ?? line.productName}
                         className="h-full w-full object-cover"
+                        height={92}
+                        sizes="92px"
                         src={line.imageUrl}
+                        width={92}
                       />
                     ) : null}
                   </div>

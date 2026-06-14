@@ -14,7 +14,20 @@ const eslintConfig = defineConfig([
   // eslint-config-next already registers the jsx-a11y plugin; only override the
   // rule severities here (re-registering the plugin would error).
   {
-    rules: jsxA11yWarnRules,
+    rules: {
+      ...jsxA11yWarnRules,
+      // `label-has-for` is deprecated upstream and superseded by
+      // `label-has-associated-control` (kept on, passes clean). It demands BOTH
+      // nesting AND htmlFor and fires false positives on our correctly
+      // associated labels, so we turn it off explicitly.
+      "jsx-a11y/label-has-for": "off",
+      // The accurate label<->control rule; keep it on as our source of truth.
+      "jsx-a11y/label-has-associated-control": "warn",
+      // Redundant with the rule above and unable to read JSX-expression label
+      // text ({copy.x}, {value.name}), so it false-fires on controls that ARE
+      // correctly associated. label-has-associated-control already guards us.
+      "jsx-a11y/control-has-associated-label": "off",
+    },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

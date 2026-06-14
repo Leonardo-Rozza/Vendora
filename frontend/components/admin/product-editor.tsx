@@ -290,7 +290,9 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
                         {heading}
                       </th>
                     ))}
-                    <th className="px-[18px] py-[13px]" />
+                    <th className="px-[18px] py-[13px]">
+                      <span className="sr-only">{copy.colActions}</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

@@ -284,6 +284,7 @@ export const appCopy = {
     colPrice: "Precio",
     colStock: "Stock",
     colStatus: "Estado",
+    colActions: "Acciones",
     edit: "Editar",
     cancel: "Cancelar",
     stockOut: "Sin stock",
