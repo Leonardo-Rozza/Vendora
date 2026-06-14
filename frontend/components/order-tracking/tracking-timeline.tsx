@@ -3,9 +3,9 @@ import type {
   OrderTrackingMilestone,
 } from "@/lib/contracts";
 
-type StepState = "done" | "current" | "pending";
+export type StepState = "done" | "current" | "pending";
 
-function resolveStates(
+export function resolveStates(
   count: number,
   status: BuyerTrackingStatus,
 ): StepState[] {

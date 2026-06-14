@@ -31,14 +31,17 @@ const blankProductPayload = {
   images: [createEmptyImage(0)] as EditableImage[],
 };
 
-function flattenCategoryTree(tree: CategoryNode[], depth = 0): CategoryOption[] {
+export function flattenCategoryTree(
+  tree: CategoryNode[],
+  depth = 0,
+): CategoryOption[] {
   return tree.flatMap((node) => [
     { id: node.id, name: node.name, depth },
     ...flattenCategoryTree(node.children, depth + 1),
   ]);
 }
 
-function productPrice(product: AdminProduct): string {
+export function productPrice(product: AdminProduct): string {
   const firstVariant = product.variants[0];
   if (!firstVariant) {
     return "—";
@@ -46,7 +49,7 @@ function productPrice(product: AdminProduct): string {
   return formatMoney(firstVariant.priceAmount, firstVariant.currencyCode);
 }
 
-function productStock(product: AdminProduct): number {
+export function productStock(product: AdminProduct): number {
   return product.variants.reduce(
     (total, variant) =>
       total +
@@ -523,7 +526,7 @@ function resolveSelectedValueIds(
   return selected;
 }
 
-function readRequiredString(value: string, label: string) {
+export function readRequiredString(value: string, label: string) {
   if (value.trim().length === 0) {
     throw new Error(`${label} es obligatorio.`);
   }

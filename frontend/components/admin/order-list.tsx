@@ -32,7 +32,7 @@ const FULFILLMENT_TONE: Record<
   DELIVERED: "success",
 };
 
-const NEXT_FULFILLMENT_STATUS: Record<
+export const NEXT_FULFILLMENT_STATUS: Record<
   FulfillmentStatus,
   FulfillmentStatus | null
 > = {
@@ -43,6 +43,19 @@ const NEXT_FULFILLMENT_STATUS: Record<
   OUT_FOR_DELIVERY: "DELIVERED",
   DELIVERED: null,
 };
+
+/** A paid order may be cancelled only before payment; once PAID or CANCELLED it locks. */
+export function canCancelOrder(status: string): boolean {
+  return status !== "PAID" && status !== "CANCELLED";
+}
+
+/** Fulfillment only advances once the order is PAID and a next state exists. */
+export function canAdvanceFulfillment(
+  status: string,
+  fulfillmentStatus: FulfillmentStatus,
+): boolean {
+  return status === "PAID" && NEXT_FULFILLMENT_STATUS[fulfillmentStatus] !== null;
+}
 
 const FULFILLMENT_FILTERS: Array<FulfillmentStatus | "ALL"> = [
   "ALL",
@@ -184,12 +197,13 @@ export function OrderList({
 
       <div className="space-y-4">
         {pagedOrders.map((order) => {
-          const canCancel =
-            order.status !== "PAID" && order.status !== "CANCELLED";
+          const canCancel = canCancelOrder(order.status);
           const nextFulfillmentStatus =
             NEXT_FULFILLMENT_STATUS[order.fulfillmentStatus];
-          const canAdvanceFulfillment =
-            order.status === "PAID" && nextFulfillmentStatus !== null;
+          const canAdvance = canAdvanceFulfillment(
+            order.status,
+            order.fulfillmentStatus,
+          );
           const paymentStatus = order.payments[0]?.status ?? "PENDING";
 
           return (
@@ -340,7 +354,7 @@ export function OrderList({
                   <Button
                     className="mt-4"
                     disabled={
-                      !canAdvanceFulfillment ||
+                      !canAdvance ||
                       pendingActionKey === `fulfillment:${order.id}`
                     }
                     onClick={() => void handleAdvanceFulfillment(order)}
@@ -348,7 +362,7 @@ export function OrderList({
                   >
                     {pendingActionKey === `fulfillment:${order.id}`
                       ? copy.advancing
-                      : canAdvanceFulfillment && nextFulfillmentStatus
+                      : canAdvance && nextFulfillmentStatus
                         ? `${copy.advance} ${FULFILLMENT_LABELS[nextFulfillmentStatus]}`
                         : order.status === "PAID"
                           ? copy.done
