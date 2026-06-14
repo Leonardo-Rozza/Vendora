@@ -99,6 +99,20 @@ export class AppConfigService {
     return Number(this.getOrDefault('PORT', '3000'));
   }
 
+  /**
+   * Minutes a PENDING_PAYMENT order may hold its stock reservation before the
+   * abandoned-checkout job is allowed to cancel it and release the stock.
+   */
+  get orderPendingTtlMinutes(): number {
+    const value = Number(this.getOrDefault('ORDER_PENDING_TTL_MINUTES', '60'));
+
+    if (!Number.isInteger(value) || value < 1) {
+      return 60;
+    }
+
+    return value;
+  }
+
   get frontendAppUrls(): string[] {
     const configuredValue = this.configService.get<string>('FRONTEND_APP_URL');
 

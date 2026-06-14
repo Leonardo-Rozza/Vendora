@@ -755,3 +755,142 @@ test('OrdersService rejects fulfillment transitions for unpaid or cancelled orde
     }),
   ).rejects.toBeInstanceOf(ConflictException);
 });
+
+test('OrdersService selects only expired unpaid orders and releases their reservations', async () => {
+  const now = new Date('2026-06-14T12:00:00.000Z');
+  let findManyArgs: any;
+  const released: string[] = [];
+  const milestones: unknown[] = [];
+  const claimed: unknown[] = [];
+
+  const service = new OrdersService(
+    {
+      order: {
+        findMany: async (args: unknown) => {
+          findManyArgs = args;
+          return [{ id: 'order-1' }, { id: 'order-2' }];
+        },
+      },
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          order: {
+            updateMany: async (args: unknown) => {
+              claimed.push(args);
+              return { count: 1 };
+            },
+          },
+          orderMilestone: {
+            create: async (args: unknown) => {
+              milestones.push(args);
+              return { id: 'milestone-1', type: 'ORDER_CANCELLED' };
+            },
+          },
+        }),
+    } as never,
+    {
+      reserveItems: async () => undefined,
+      releaseReservationForOrder: async (_client: unknown, orderId: string) => {
+        released.push(orderId);
+      },
+    } as never,
+  );
+
+  const expiredCount = await service.expirePendingOrders(60, now);
+
+  expect(expiredCount).toBe(2);
+  expect(released).toEqual(['order-1', 'order-2']);
+  expect(milestones).toHaveLength(2);
+  // Selection targets unpaid, unlocked, old PENDING_PAYMENT orders.
+  expect(findManyArgs.where).toEqual({
+    status: 'PENDING_PAYMENT',
+    isLocked: false,
+    createdAt: { lt: new Date('2026-06-14T11:00:00.000Z') },
+    payments: { none: { status: 'APPROVED' } },
+  });
+  // Each cancellation is guarded by a status/lock check inside the transaction.
+  expect(claimed).toEqual([
+    {
+      where: { id: 'order-1', status: 'PENDING_PAYMENT', isLocked: false },
+      data: { status: 'CANCELLED' },
+    },
+    {
+      where: { id: 'order-2', status: 'PENDING_PAYMENT', isLocked: false },
+      data: { status: 'CANCELLED' },
+    },
+  ]);
+});
+
+test('OrdersService skips an order that was paid between selection and cancellation', async () => {
+  const released: string[] = [];
+
+  const service = new OrdersService(
+    {
+      order: {
+        findMany: async () => [{ id: 'order-1' }],
+      },
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          order: {
+            // Concurrency guard: row no longer matches (paid meanwhile).
+            updateMany: async () => ({ count: 0 }),
+          },
+          orderMilestone: {
+            create: async () => ({ id: 'm', type: 'ORDER_CANCELLED' }),
+          },
+        }),
+    } as never,
+    {
+      reserveItems: async () => undefined,
+      releaseReservationForOrder: async (_client: unknown, orderId: string) => {
+        released.push(orderId);
+      },
+    } as never,
+  );
+
+  const expiredCount = await service.expirePendingOrders(60);
+
+  expect(expiredCount).toBe(0);
+  // The reservation of an order that slipped to PAID must never be released.
+  expect(released).toEqual([]);
+});
+
+test('OrdersService keeps sweeping after one order fails', async () => {
+  const released: string[] = [];
+  let call = 0;
+
+  const service = new OrdersService(
+    {
+      order: {
+        findMany: async () => [{ id: 'order-1' }, { id: 'order-2' }],
+      },
+      $transaction: async (callback: (client: any) => Promise<unknown>) =>
+        callback({
+          order: {
+            updateMany: async () => ({ count: 1 }),
+          },
+          orderMilestone: {
+            create: async () => ({ id: 'm', type: 'ORDER_CANCELLED' }),
+          },
+        }),
+    } as never,
+    {
+      reserveItems: async () => undefined,
+      releaseReservationForOrder: async (_client: unknown, orderId: string) => {
+        call += 1;
+        if (call === 1) {
+          throw new Error('release failed');
+        }
+        released.push(orderId);
+      },
+    } as never,
+    undefined,
+    undefined,
+    { logApplicationError: () => undefined } as never,
+  );
+
+  const expiredCount = await service.expirePendingOrders(60);
+
+  // First order failed and was logged; the batch still expired the second.
+  expect(expiredCount).toBe(1);
+  expect(released).toEqual(['order-2']);
+});

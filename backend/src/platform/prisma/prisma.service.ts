@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { AppConfigService } from '../config/app-config.service';
 
-type PrismaTransactionClient = Pick<
+export type PrismaTransactionClient = Pick<
   PrismaClient,
   | 'product'
   | 'productVariant'

@@ -15,7 +15,11 @@ import { Optional } from '@nestjs/common';
 import { CouponsService } from '../coupons/coupons.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { PrismaService } from '../../platform/prisma/prisma.service';
+import { AppLoggerService } from '../../platform/logging/app-logger.service';
+import {
+  PrismaService,
+  type PrismaTransactionClient,
+} from '../../platform/prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { isWithinAmbaShippingScope } from './amba-shipping';
 import { UpdateOrderFulfillmentDto } from './dto/update-order-fulfillment.dto';
@@ -66,6 +70,8 @@ export class OrdersService {
     private readonly notificationsService?: NotificationsService,
     @Optional()
     private readonly couponsService?: CouponsService,
+    @Optional()
+    private readonly logger?: AppLoggerService,
   ) {}
 
   findOrderById(id: string) {
@@ -312,24 +318,109 @@ export class OrdersService {
       return order;
     }
 
-    return this.prisma.$transaction(async (client) => {
-      await this.inventoryService.releaseReservationForOrder(client, orderId);
+    return this.prisma.$transaction((client) =>
+      this.cancelOrderWithin(client, orderId),
+    );
+  }
 
-      const updatedOrder = await client.order.update({
-        where: { id: orderId },
-        data: {
-          status: PrismaOrderStatus.CANCELLED,
+  /**
+   * Automatically cancels PENDING_PAYMENT orders whose stock reservation has
+   * expired (abandoned checkouts). Returns the number of orders expired.
+   *
+   * Designed to run from a scheduled job: each order is cancelled in its own
+   * transaction guarded by a concurrency-safe `updateMany` (status still
+   * PENDING_PAYMENT and isLocked false), so an order that gets paid between
+   * selection and cancellation is skipped and the reservation is never released
+   * for an already-paid order. Errors on a single order are logged and do not
+   * abort the rest of the batch, keeping the job idempotent across runs.
+   */
+  async expirePendingOrders(ttlMinutes: number, now: Date = new Date()) {
+    const cutoff = new Date(now.getTime() - ttlMinutes * 60 * 1000);
+
+    const expiredOrders = await this.prisma.order.findMany({
+      where: {
+        status: PrismaOrderStatus.PENDING_PAYMENT,
+        isLocked: false,
+        createdAt: { lt: cutoff },
+        payments: {
+          none: {
+            status: 'APPROVED',
+          },
         },
-        include: ORDER_INCLUDE,
-      });
-
-      await this.createMilestone(client, {
-        orderId,
-        type: OrderMilestoneType.ORDER_CANCELLED,
-      });
-
-      return updatedOrder;
+      },
+      select: { id: true },
     });
+
+    let expiredCount = 0;
+
+    for (const { id: orderId } of expiredOrders) {
+      try {
+        const cancelled = await this.prisma.$transaction(async (client) => {
+          // Concurrency guard: only cancel if the order is still unpaid and
+          // unlocked. A row count of 0 means it was paid/cancelled meanwhile.
+          const claimed = await client.order.updateMany({
+            where: {
+              id: orderId,
+              status: PrismaOrderStatus.PENDING_PAYMENT,
+              isLocked: false,
+            },
+            data: {
+              status: PrismaOrderStatus.CANCELLED,
+            },
+          });
+
+          if (claimed.count === 0) {
+            return false;
+          }
+
+          await this.inventoryService.releaseReservationForOrder(
+            client,
+            orderId,
+          );
+
+          await this.createMilestone(client, {
+            orderId,
+            type: OrderMilestoneType.ORDER_CANCELLED,
+          });
+
+          return true;
+        });
+
+        if (cancelled) {
+          expiredCount += 1;
+        }
+      } catch (error) {
+        this.logger?.logApplicationError(
+          'order.expiration.failed',
+          error instanceof Error ? error : new Error(String(error)),
+          { orderId },
+        );
+      }
+    }
+
+    return expiredCount;
+  }
+
+  private async cancelOrderWithin(
+    client: PrismaTransactionClient,
+    orderId: string,
+  ) {
+    await this.inventoryService.releaseReservationForOrder(client, orderId);
+
+    const updatedOrder = await client.order.update({
+      where: { id: orderId },
+      data: {
+        status: PrismaOrderStatus.CANCELLED,
+      },
+      include: ORDER_INCLUDE,
+    });
+
+    await this.createMilestone(client, {
+      orderId,
+      type: OrderMilestoneType.ORDER_CANCELLED,
+    });
+
+    return updatedOrder;
   }
 
   async updateOrderFulfillment(

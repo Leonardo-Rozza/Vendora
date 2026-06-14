@@ -6,6 +6,19 @@ test('validateEnvironment applies safe defaults for the platform baseline', () =
   expect(config.APP_NAME).toBe('vendora-backend');
   expect(config.NODE_ENV).toBe('development');
   expect(config.PORT).toBe(3000);
+  expect(config.ORDER_PENDING_TTL_MINUTES).toBe(60);
+});
+
+test('validateEnvironment parses a custom order pending TTL', () => {
+  const config = validateEnvironment({ ORDER_PENDING_TTL_MINUTES: '90' });
+
+  expect(config.ORDER_PENDING_TTL_MINUTES).toBe(90);
+});
+
+test('validateEnvironment rejects a non-positive order pending TTL', () => {
+  expect(() => validateEnvironment({ ORDER_PENDING_TTL_MINUTES: '0' })).toThrow(
+    /Invalid positive integer/,
+  );
 });
 
 test('validateEnvironment rejects partial Mercado Pago configuration', () => {

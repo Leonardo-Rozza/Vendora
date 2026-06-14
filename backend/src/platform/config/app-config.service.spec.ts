@@ -56,3 +56,19 @@ test('isAllowedMutationOrigin tolerates a missing Origin outside production', ()
 
   expect(config.isAllowedMutationOrigin(undefined)).toBe(true);
 });
+
+test('orderPendingTtlMinutes defaults to 60 and reads a valid override', () => {
+  expect(buildConfig({}).orderPendingTtlMinutes).toBe(60);
+  expect(
+    buildConfig({ ORDER_PENDING_TTL_MINUTES: '120' }).orderPendingTtlMinutes,
+  ).toBe(120);
+});
+
+test('orderPendingTtlMinutes falls back to 60 for invalid values', () => {
+  expect(
+    buildConfig({ ORDER_PENDING_TTL_MINUTES: '0' }).orderPendingTtlMinutes,
+  ).toBe(60);
+  expect(
+    buildConfig({ ORDER_PENDING_TTL_MINUTES: 'abc' }).orderPendingTtlMinutes,
+  ).toBe(60);
+});

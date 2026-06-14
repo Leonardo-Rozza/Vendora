@@ -29,6 +29,7 @@ type EnvironmentVariables = {
   NOTIFICATION_EMAIL_FROM?: string;
   NOTIFICATION_EMAIL_FROM_NAME?: string;
   NOTIFICATION_EMAIL_REPLY_TO?: string;
+  ORDER_PENDING_TTL_MINUTES?: number;
   PORT?: number;
 };
 
@@ -83,6 +84,10 @@ export function validateEnvironment(
     ),
     NOTIFICATION_EMAIL_REPLY_TO: readOptionalEmail(
       config.NOTIFICATION_EMAIL_REPLY_TO,
+    ),
+    ORDER_PENDING_TTL_MINUTES: readPositiveInteger(
+      config.ORDER_PENDING_TTL_MINUTES,
+      60,
     ),
     PORT: readPort(config.PORT),
   };
