@@ -5,35 +5,36 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { appCopy } from "@/lib/copy/es-ar";
 
-export default function ProductError({
+export default function RootError({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const copy = appCopy.productDetail;
-  const feedback = appCopy.feedback;
+  const copy = appCopy.feedback;
 
   useEffect(() => {
+    // Surface the error in the console for debugging; production reporting
+    // (e.g. Sentry) can hook in here later.
     console.error(error);
   }, [error]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col items-center px-6 py-20 text-center sm:px-8">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-danger-ink">
-        {feedback.errorEyebrow}
+        {copy.errorEyebrow}
       </p>
       <h1 className="mt-3 text-2xl font-extrabold text-ink-strong sm:text-3xl">
-        {copy.temporaryError}
+        {copy.errorTitle}
       </h1>
       <p className="mt-3 max-w-[42ch] text-[15px] leading-relaxed text-ink-muted">
-        {feedback.errorDescription}
+        {copy.errorDescription}
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        <Button onClick={() => reset()}>{feedback.retry}</Button>
+        <Button onClick={() => reset()}>{copy.retry}</Button>
         <Link href="/">
-          <Button variant="secondary">{copy.backToCatalog}</Button>
+          <Button variant="secondary">{copy.backToStore}</Button>
         </Link>
       </div>
     </main>

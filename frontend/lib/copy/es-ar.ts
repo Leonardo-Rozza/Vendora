@@ -12,6 +12,21 @@ export const appCopy = {
     title: "Vendora",
     description: "Tienda y backoffice del MVP de Vendora.",
   },
+  feedback: {
+    loadingEyebrow: "Cargando",
+    loadingTitle: "Preparando tu experiencia...",
+    errorEyebrow: "Algo salio mal",
+    errorTitle: "No pudimos cargar esta seccion.",
+    errorDescription:
+      "Fue un problema temporal de nuestro lado. Reintenta en unos segundos.",
+    retry: "Reintentar",
+    backToStore: "Volver a la tienda",
+    notFoundEyebrow: "Pagina no encontrada",
+    notFoundTitle: "No encontramos lo que buscabas.",
+    notFoundDescription:
+      "El enlace puede estar roto o la pagina pudo haberse movido.",
+    trackingErrorTitle: "No pudimos cargar el seguimiento.",
+  },
   storefrontHeader: {
     brand: "Vendora tienda",
     tagline: "Catalogo real, carrito persistente y checkout con Mercado Pago.",
