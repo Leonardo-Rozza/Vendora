@@ -3,6 +3,7 @@ import { Hanken_Grotesk, Space_Mono } from "next/font/google";
 import { CommerceProvider } from "@/components/commerce/commerce-provider";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { appCopy } from "@/lib/copy/es-ar";
+import { resolveSiteUrl } from "@/lib/seo/site";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -19,9 +20,25 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+const siteUrl = resolveSiteUrl();
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: appCopy.metadata.title,
   description: appCopy.metadata.description,
+  openGraph: {
+    type: "website",
+    siteName: appCopy.metadata.title,
+    title: appCopy.metadata.title,
+    description: appCopy.metadata.description,
+    url: siteUrl,
+    locale: "es_AR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: appCopy.metadata.title,
+    description: appCopy.metadata.description,
+  },
 };
 
 export default function RootLayout({

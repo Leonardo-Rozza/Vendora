@@ -354,6 +354,21 @@ export type ProductImageInput = {
   sortOrder?: number;
 };
 
+/** Signed-upload params returned by the backend for direct Cloudinary uploads. */
+export type ProductImageUploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  folder: string;
+  timestamp: number;
+  signature: string;
+};
+
+/** Result of uploading an image asset to Cloudinary, mapped to our model. */
+export type UploadedProductImage = {
+  assetUrl: string;
+  assetKey: string;
+};
+
 export type AdminProductInput = {
   slug: string;
   name: string;

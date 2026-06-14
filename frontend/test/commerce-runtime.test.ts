@@ -2,6 +2,7 @@ import { test, expect } from "vitest";
 import {
   ApiError,
   checkCartAvailability,
+  createProductImageUploadSignature,
   getOrderTracking,
   listAdminProducts,
   listAdminOrders,
@@ -11,6 +12,7 @@ import {
   updateAdminOrderFulfillment,
   validateCoupon,
 } from "../lib/commerce/api.ts";
+import { uploadProductImageToCloudinary } from "../lib/commerce/uploads.ts";
 import { toCatalogErrorMessage } from "../lib/commerce/catalog.ts";
 import {
   canStartCheckout,
@@ -494,6 +496,130 @@ test("availability helper posts the cart items to the availability endpoint", as
       { variantId: "variant-2", quantity: 1 },
     ],
   });
+});
+
+test("product image signature helper posts the product id with credentials", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({
+        cloudName: "vendora",
+        apiKey: "key-1",
+        folder: "products/product-1",
+        timestamp: 1700000000,
+        signature: "sig-1",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  try {
+    const signature = await createProductImageUploadSignature("product-1");
+    expect(signature).toEqual({
+      cloudName: "vendora",
+      apiKey: "key-1",
+      folder: "products/product-1",
+      timestamp: 1700000000,
+      signature: "sig-1",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toMatch(
+    /\/media\/product-images\/upload-signatures$/,
+  );
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  expect(seenRequests[0]!.init?.credentials).toBe("include");
+  expect(JSON.parse(String(seenRequests[0]!.init?.body))).toEqual({
+    productId: "product-1",
+  });
+});
+
+test("cloudinary upload helper maps secure_url and public_id to the model", async () => {
+  const originalFetch = global.fetch;
+  const seenRequests: Array<{ url: string; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    seenRequests.push({ url: String(input), init });
+
+    return new Response(
+      JSON.stringify({
+        secure_url: "https://res.cloudinary.com/vendora/image/upload/p.jpg",
+        public_id: "products/product-1/p",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }) as typeof global.fetch;
+
+  const file = new File(["binary"], "p.jpg", { type: "image/jpeg" });
+
+  try {
+    const uploaded = await uploadProductImageToCloudinary(file, {
+      cloudName: "vendora",
+      apiKey: "key-1",
+      folder: "products/product-1",
+      timestamp: 1700000000,
+      signature: "sig-1",
+    });
+
+    expect(uploaded).toEqual({
+      assetUrl: "https://res.cloudinary.com/vendora/image/upload/p.jpg",
+      assetKey: "products/product-1/p",
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  expect(seenRequests.length).toBe(1);
+  expect(seenRequests[0]!.url).toBe(
+    "https://api.cloudinary.com/v1_1/vendora/image/upload",
+  );
+  expect(seenRequests[0]!.init?.method).toBe("POST");
+  const body = seenRequests[0]!.init?.body as FormData;
+  expect(body).toBeInstanceOf(FormData);
+  expect(body.get("api_key")).toBe("key-1");
+  expect(body.get("timestamp")).toBe("1700000000");
+  expect(body.get("signature")).toBe("sig-1");
+  expect(body.get("folder")).toBe("products/product-1");
+  expect(body.get("file")).toBeInstanceOf(File);
+});
+
+test("cloudinary upload helper surfaces an error on a failed response", async () => {
+  const originalFetch = global.fetch;
+
+  global.fetch = (async () =>
+    new Response(JSON.stringify({ error: { message: "Invalid signature" } }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof global.fetch;
+
+  const file = new File(["binary"], "p.jpg", { type: "image/jpeg" });
+
+  try {
+    await expect(
+      uploadProductImageToCloudinary(file, {
+        cloudName: "vendora",
+        apiKey: "key-1",
+        folder: "products/product-1",
+        timestamp: 1700000000,
+        signature: "bad-sig",
+      }),
+    ).rejects.toThrow("Invalid signature");
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("api helper resolves the configured API base url without a trailing slash", () => {

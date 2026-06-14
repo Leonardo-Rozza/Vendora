@@ -296,6 +296,13 @@ export const appCopy = {
     imageKey: "Clave del asset en Cloudinary",
     imageAlt: "Texto alternativo",
     imageSortOrder: "Orden",
+    imageUpload: "Subir imagen",
+    imageUploading: "Subiendo...",
+    imageUploadHint:
+      "Elegí un archivo (JPG, PNG o WebP) y lo subimos a Cloudinary automáticamente.",
+    imageUploadDisabledHint: "Guardá el producto para subir imágenes.",
+    imageUploadError: "No pudimos subir la imagen. Intentá nuevamente.",
+    imagePreviewAlt: "Vista previa de la imagen",
     attributesTitle: "Atributos del producto",
     helper:
       "El estado `ARCHIVED` retira el producto de la tienda. Usa stock por variante para reflejar disponibilidad real.",

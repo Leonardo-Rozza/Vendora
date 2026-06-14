@@ -392,6 +392,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
         description={description}
         images={images}
         name={name}
+        productId={selectedProductId}
         setCategoryId={setCategoryId}
         setDescription={setDescription}
         setImages={setImages}

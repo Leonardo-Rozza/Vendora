@@ -18,6 +18,7 @@ import type {
   CreatedOrder,
   ListAdminOrdersQuery,
   OrderTrackingView,
+  ProductImageUploadSignature,
   UpdateAdminOrderFulfillmentRequest,
 } from "../contracts";
 import {
@@ -328,6 +329,16 @@ export function updateAdminProduct(
     {
       method: "PATCH",
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function createProductImageUploadSignature(productId: string) {
+  return requestAdminJson<ProductImageUploadSignature>(
+    "/media/product-images/upload-signatures",
+    {
+      method: "POST",
+      body: JSON.stringify({ productId }),
     },
   );
 }

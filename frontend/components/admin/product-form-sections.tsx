@@ -1,7 +1,10 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useRef, useState } from "react";
+import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { createProductImageUploadSignature } from "@/lib/commerce/api";
+import { uploadProductImageToCloudinary } from "@/lib/commerce/uploads";
 import { appCopy } from "@/lib/copy/es-ar";
 
 export type CategoryOption = {
@@ -32,6 +35,8 @@ type ProductFormSectionsProps = {
   description: string;
   images: EditableImage[];
   name: string;
+  /** Existing product id; absent when creating, which disables direct upload. */
+  productId: string | null;
   setCategoryId: Dispatch<SetStateAction<string>>;
   setDescription: Dispatch<SetStateAction<string>>;
   setImages: Dispatch<SetStateAction<EditableImage[]>>;
@@ -54,6 +59,7 @@ export function ProductFormSections({
   description,
   images,
   name,
+  productId,
   setCategoryId,
   setDescription,
   setImages,
@@ -241,83 +247,187 @@ export function ProductFormSections({
         </div>
         <div className="flex flex-col gap-3">
           {images.map((image, index) => (
-            <div
-              key={`${image.assetUrl}-${index}`}
-              className="rounded-field border border-line-soft bg-surface-sand p-4"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-ink-strong">
-                  Imagen {index + 1}
-                </p>
-                <button
-                  className="text-sm font-semibold text-ink-muted outline-none hover:text-brand-deep focus-visible:underline"
-                  onClick={() =>
-                    setImages((current) =>
-                      current.filter((_, currentIndex) => currentIndex !== index),
-                    )
-                  }
-                  type="button"
-                >
-                  {copy.removeImage}
-                </button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Field
-                  className="xl:col-span-2"
-                  id={`image-${index}-url`}
-                  label={copy.imageUrl}
-                >
-                  <Input
-                    onChange={(event) =>
-                      setImages((current) =>
-                        updateImage(current, index, { assetUrl: event.target.value }),
-                      )
-                    }
-                    value={image.assetUrl}
-                  />
-                </Field>
-                <Field id={`image-${index}-key`} label={copy.imageKey}>
-                  <Input
-                    onChange={(event) =>
-                      setImages((current) =>
-                        updateImage(current, index, { assetKey: event.target.value }),
-                      )
-                    }
-                    value={image.assetKey}
-                  />
-                </Field>
-                <Field id={`image-${index}-sort`} label={copy.imageSortOrder}>
-                  <Input
-                    inputMode="numeric"
-                    onChange={(event) =>
-                      setImages((current) =>
-                        updateImage(current, index, {
-                          sortOrder: Number(event.target.value || 0),
-                        }),
-                      )
-                    }
-                    value={String(image.sortOrder)}
-                  />
-                </Field>
-                <Field
-                  className="md:col-span-2 xl:col-span-4"
-                  id={`image-${index}-alt`}
-                  label={copy.imageAlt}
-                >
-                  <Input
-                    onChange={(event) =>
-                      setImages((current) =>
-                        updateImage(current, index, { altText: event.target.value }),
-                      )
-                    }
-                    value={image.altText}
-                  />
-                </Field>
-              </div>
-            </div>
+            <ImageRow
+              key={`image-${index}`}
+              image={image}
+              index={index}
+              productId={productId}
+              setImages={setImages}
+            />
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+type ImageRowProps = {
+  image: EditableImage;
+  index: number;
+  productId: string | null;
+  setImages: Dispatch<SetStateAction<EditableImage[]>>;
+};
+
+function ImageRow({ image, index, productId, setImages }: ImageRowProps) {
+  const copy = appCopy.adminProductEditor;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const canUpload = Boolean(productId);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Reset so re-selecting the same file fires change again.
+    event.target.value = "";
+
+    if (!file || !productId) {
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const signature = await createProductImageUploadSignature(productId);
+      const uploaded = await uploadProductImageToCloudinary(file, signature);
+      setImages((current) =>
+        updateImage(current, index, {
+          assetUrl: uploaded.assetUrl,
+          assetKey: uploaded.assetKey,
+        }),
+      );
+    } catch (caughtError) {
+      setUploadError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : copy.imageUploadError,
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-field border border-line-soft bg-surface-sand p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-sm font-bold text-ink-strong">Imagen {index + 1}</p>
+        <button
+          className="text-sm font-semibold text-ink-muted outline-none hover:text-brand-deep focus-visible:underline"
+          onClick={() =>
+            setImages((current) =>
+              current.filter((_, currentIndex) => currentIndex !== index),
+            )
+          }
+          type="button"
+        >
+          {copy.removeImage}
+        </button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {image.assetUrl.trim().length > 0 ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            alt={image.altText.trim() || copy.imagePreviewAlt}
+            className="size-16 flex-shrink-0 rounded-[9px] border border-line-soft object-cover"
+            src={image.assetUrl}
+          />
+        ) : (
+          <span className="size-16 flex-shrink-0 rounded-[9px] bg-[repeating-linear-gradient(45deg,#f4ede0,#f4ede0_6px,#efe6d6_6px,#efe6d6_12px)]" />
+        )}
+        <div className="flex flex-col gap-1.5">
+          <input
+            accept="image/*"
+            aria-label={`${copy.imageUpload} ${index + 1}`}
+            className="sr-only"
+            disabled={!canUpload || isUploading}
+            id={`image-${index}-file`}
+            onChange={(event) => void handleFileChange(event)}
+            ref={fileInputRef}
+            type="file"
+          />
+          <Button
+            disabled={!canUpload || isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            size="sm"
+            variant="secondary"
+          >
+            {isUploading ? copy.imageUploading : copy.imageUpload}
+          </Button>
+          <p className="text-[12px] text-ink-soft">
+            {canUpload ? copy.imageUploadHint : copy.imageUploadDisabledHint}
+          </p>
+        </div>
+      </div>
+
+      {uploadError ? (
+        <p
+          className="mb-3 flex items-center gap-1.5 text-[12.5px] font-medium text-danger-ink"
+          role="alert"
+        >
+          <span
+            aria-hidden
+            className="grid size-3.5 flex-shrink-0 place-items-center rounded-full bg-danger-ink text-[10px] font-bold text-white"
+          >
+            !
+          </span>
+          {uploadError}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Field
+          className="xl:col-span-2"
+          id={`image-${index}-url`}
+          label={copy.imageUrl}
+        >
+          <Input
+            onChange={(event) =>
+              setImages((current) =>
+                updateImage(current, index, { assetUrl: event.target.value }),
+              )
+            }
+            value={image.assetUrl}
+          />
+        </Field>
+        <Field id={`image-${index}-key`} label={copy.imageKey}>
+          <Input
+            onChange={(event) =>
+              setImages((current) =>
+                updateImage(current, index, { assetKey: event.target.value }),
+              )
+            }
+            value={image.assetKey}
+          />
+        </Field>
+        <Field id={`image-${index}-sort`} label={copy.imageSortOrder}>
+          <Input
+            inputMode="numeric"
+            onChange={(event) =>
+              setImages((current) =>
+                updateImage(current, index, {
+                  sortOrder: Number(event.target.value || 0),
+                }),
+              )
+            }
+            value={String(image.sortOrder)}
+          />
+        </Field>
+        <Field
+          className="md:col-span-2 xl:col-span-4"
+          id={`image-${index}-alt`}
+          label={copy.imageAlt}
+        >
+          <Input
+            onChange={(event) =>
+              setImages((current) =>
+                updateImage(current, index, { altText: event.target.value }),
+              )
+            }
+            value={image.altText}
+          />
+        </Field>
+      </div>
     </div>
   );
 }
