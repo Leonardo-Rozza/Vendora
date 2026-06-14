@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toCheckoutErrorMessage } from "@/lib/commerce/checkout";
 import { formatMoney } from "@/lib/commerce/format";
-import { Badge, Button, cn } from "@/components/ui";
+import { Badge, Button, Pagination, cn } from "@/components/ui";
 import type {
   AdminOrder,
   FulfillmentStatus,
@@ -65,6 +65,8 @@ type OrderListProps = {
   selectedFulfillmentFilter: FulfillmentStatus | "ALL";
 };
 
+const ORDERS_PER_PAGE = 10;
+
 export function OrderList({
   orders,
   onAdvanceFulfillment,
@@ -74,6 +76,7 @@ export function OrderList({
 }: OrderListProps) {
   const copy = appCopy.adminOrders;
   const [error, setError] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(1);
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
   const [notesByOrderId, setNotesByOrderId] = useState<Record<string, string>>(
     {},
@@ -81,6 +84,19 @@ export function OrderList({
   const [referencesByOrderId, setReferencesByOrderId] = useState<
     Record<string, string>
   >({});
+
+  // The fulfillment filter refetches server-side; reset to the first page so the
+  // user doesn't land on an out-of-range page after the list shrinks.
+  useEffect(() => {
+    setListPage(1);
+  }, [selectedFulfillmentFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(orders.length / ORDERS_PER_PAGE));
+  const currentPage = Math.min(listPage, pageCount);
+  const pagedOrders = orders.slice(
+    (currentPage - 1) * ORDERS_PER_PAGE,
+    currentPage * ORDERS_PER_PAGE,
+  );
 
   async function handleCancel(orderId: string) {
     setPendingActionKey(`cancel:${orderId}`);
@@ -167,7 +183,7 @@ export function OrderList({
       ) : null}
 
       <div className="space-y-4">
-        {orders.map((order) => {
+        {pagedOrders.map((order) => {
           const canCancel =
             order.status !== "PAID" && order.status !== "CANCELLED";
           const nextFulfillmentStatus =
@@ -356,6 +372,16 @@ export function OrderList({
           );
         })}
       </div>
+
+      {pageCount > 1 ? (
+        <div className="mt-5 flex justify-end">
+          <Pagination
+            page={currentPage}
+            pageCount={pageCount}
+            onPageChange={setListPage}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

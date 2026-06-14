@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProductFormSections, createEmptyImage, createEmptyVariant, type CategoryOption, type EditableImage, type EditableVariant } from "@/components/admin/product-form-sections";
 import { listAttributes, listCategoryTree } from "@/lib/commerce/api";
 import { formatMoney } from "@/lib/commerce/format";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, Pagination } from "@/components/ui";
 import type {
   AdminProduct,
   AdminProductInput,
@@ -12,6 +12,8 @@ import type {
   CategoryNode,
 } from "@/lib/contracts";
 import { appCopy } from "@/lib/copy/es-ar";
+
+const PRODUCTS_PER_PAGE = 10;
 
 type ProductEditorProps = {
   products: AdminProduct[];
@@ -77,6 +79,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
   >(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -240,6 +243,13 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
       (product) => product.status === "ACTIVE",
     ).length;
 
+    const pageCount = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+    const currentPage = Math.min(listPage, pageCount);
+    const pagedProducts = products.slice(
+      (currentPage - 1) * PRODUCTS_PER_PAGE,
+      currentPage * PRODUCTS_PER_PAGE,
+    );
+
     return (
       <section id="admin-productos">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-4">
@@ -284,7 +294,7 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => {
+                  {pagedProducts.map((product) => {
                     const stock = productStock(product);
                     const isOut = stock === 0;
                     const isLow = stock > 0 && stock <= 3;
@@ -344,6 +354,16 @@ export function ProductEditor({ products, onCreate, onUpdate }: ProductEditorPro
             </div>
           )}
         </div>
+
+        {pageCount > 1 ? (
+          <div className="mt-5 flex justify-end">
+            <Pagination
+              page={currentPage}
+              pageCount={pageCount}
+              onPageChange={setListPage}
+            />
+          </div>
+        ) : null}
       </section>
     );
   }
