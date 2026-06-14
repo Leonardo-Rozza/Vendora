@@ -8,9 +8,6 @@
   "engines": {
     "node": ">=20 <22"
   },
-  "prisma": {
-    "seed": "node prisma/seed.cjs"
-  },
   "scripts": {
     "prebuild": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.build.json",
@@ -39,6 +36,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
     "helmet": "^8.2.0",
     "joi": "^18.0.2",
     "mercadopago": "^3.1.0",
